@@ -336,59 +336,46 @@ jobs:
         node --version
         npm --version
         
-        # Install dependencies with verbose logging
-        echo "📦 Installing dependencies..."
-        npm install --verbose --legacy-peer-deps
+        # Install dependencies with all required packages
+        echo "📦 Installing dependencies (including TypeScript)..."
+        npm install --legacy-peer-deps
         
-        # Try multiple build approaches
-        echo "🏗️ Building production bundle..."
-        
-        # Method 1: Try the fallback script
-        if node build-fallback.js; then
-          echo "✅ Build successful using fallback script"
-        else
-          echo "❌ Fallback script failed, trying direct methods..."
-          
-          # Method 2: Try npx
-          if GENERATE_SOURCEMAP=false CI=false npx react-scripts build; then
-            echo "✅ Build successful using npx"
-          else
-            echo "❌ npx failed, trying direct node execution..."
-            
-            # Method 3: Try direct node execution
-            if GENERATE_SOURCEMAP=false CI=false node node_modules/react-scripts/scripts/build.js; then
-              echo "✅ Build successful using direct node"
-            else
-              echo "❌ All build methods failed"
-              
-              # Debug information
-              echo "🔍 Debug information:"
-              echo "Node modules contents:"
-              ls -la node_modules/ | head -20
-              echo "React scripts location:"
-              find node_modules -name "react-scripts" -type d
-              echo "Bin directory:"
-              ls -la node_modules/.bin/ | grep react || echo "No react-scripts in bin"
-              
-              exit 1
-            fi
-          fi
+        # Verify critical dependencies are installed
+        echo "🔍 Verifying critical dependencies..."
+        if [ ! -d "node_modules/typescript" ]; then
+          echo "❌ TypeScript missing, installing explicitly..."
+          npm install typescript@^4.9.5 --save --legacy-peer-deps
         fi
+        
+        if [ ! -d "node_modules/react-scripts" ]; then
+          echo "❌ React Scripts missing, installing explicitly..."
+          npm install react-scripts@5.0.1 --save --legacy-peer-deps
+        fi
+        
+        # List key dependencies to verify
+        echo "📋 Key dependencies check:"
+        ls -la node_modules/ | grep -E "(typescript|react-scripts)" || echo "Some dependencies not found"
+        
+        # Build production bundle
+        echo "🏗️ Building production bundle..."
+        GENERATE_SOURCEMAP=false CI=false npm run build
         
         echo "📦 Frontend build completed:"
-        ls -la build/ || echo "Build directory not created"
-        
-        # Deploy to manually created S3 bucket
         if [ -d "build" ]; then
-          echo "🪣 Deploying to S3 bucket: ${{ env.S3_BUCKET_NAME }}"
-          aws s3 sync build/ s3://${{ env.S3_BUCKET_NAME }} \
-            --delete \
-            --region ${{ env.AWS_REGION }}
-          echo "✅ Frontend deployed to S3"
+          ls -la build/
+          echo "✅ Build directory created successfully"
         else
-          echo "❌ Build directory not found, skipping S3 deployment"
+          echo "❌ Build directory not found"
           exit 1
         fi
+        
+        # Deploy to manually created S3 bucket
+        echo "🪣 Deploying to S3 bucket: ${{ env.S3_BUCKET_NAME }}"
+        aws s3 sync build/ s3://${{ env.S3_BUCKET_NAME }} \
+          --delete \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "✅ Frontend deployed to S3"
     
     - name: Invalidate CloudFront Cache
       run: |
