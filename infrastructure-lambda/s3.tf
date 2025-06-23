@@ -1,16 +1,16 @@
-# S3 Bucket for Frontend Static Hosting
+# S3 Bucket for Frontend Static Hosting - Persistent
 resource "aws_s3_bucket" "frontend" {
-  bucket = "${local.name_prefix}-frontend-${random_string.bucket_suffix.result}"
+  bucket = "${local.name_prefix}-frontend"
 
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-frontend-bucket"
+    Persistent = "true"
   })
-}
-
-resource "random_string" "bucket_suffix" {
-  length  = 8
-  special = false
-  upper   = false
+  
+  lifecycle {
+    # Prevent accidental destruction
+    prevent_destroy = false  # Set to true in production
+  }
 }
 
 # S3 Bucket Public Access Block

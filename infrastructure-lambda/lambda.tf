@@ -16,10 +16,10 @@ resource "null_resource" "lambda_package" {
   }
 }
 
-# Lambda Function for Backend API
+# Lambda Function for Backend API - Use fixed name
 resource "aws_lambda_function" "backend" {
   filename         = "${path.module}/backend.zip"
-  function_name    = "${local.name_prefix}-backend-${random_string.suffix.result}"
+  function_name    = "${local.name_prefix}-backend"
   role            = aws_iam_role.lambda_execution_role.arn
   handler         = "app.lambda_handler.lambda_handler"
   runtime         = "python3.11"
@@ -54,9 +54,9 @@ resource "aws_lambda_function" "backend" {
   }
 }
 
-# Lambda Execution Role
+# Lambda Execution Role - Use fixed name
 resource "aws_iam_role" "lambda_execution_role" {
-  name = "${local.name_prefix}-lambda-execution-role-${random_string.suffix.result}"
+  name = "${local.name_prefix}-lambda-execution-role"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -111,13 +111,13 @@ resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
   })
 }
 
-# CloudWatch Log Group for Lambda
+# CloudWatch Log Group for Lambda - Use fixed name
 resource "aws_cloudwatch_log_group" "lambda_logs" {
-  name              = "/aws/lambda/${local.name_prefix}-backend-${random_string.suffix.result}"
+  name              = "/aws/lambda/${local.name_prefix}-backend"
   retention_in_days = 7
 
   tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-lambda-logs-${random_string.suffix.result}"
+    Name = "${local.name_prefix}-lambda-logs"
   })
 }
 
