@@ -1,7 +1,9 @@
-# DynamoDB Tables for Lambda Architecture
+# DynamoDB Tables - Only create if they don't already exist
 
-# Users Table
+# Users Table - conditional creation
 resource "aws_dynamodb_table" "users" {
+  count = can(data.aws_dynamodb_table.existing_users.name) ? 0 : 1
+  
   name           = "${local.name_prefix}-users-serverless"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "id"
@@ -38,8 +40,10 @@ resource "aws_dynamodb_table" "users" {
   })
 }
 
-# Trips Table
+# Trips Table - conditional creation
 resource "aws_dynamodb_table" "trips" {
+  count = can(data.aws_dynamodb_table.existing_trips.name) ? 0 : 1
+  
   name           = "${local.name_prefix}-trips-serverless"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "id"
@@ -71,8 +75,10 @@ resource "aws_dynamodb_table" "trips" {
   })
 }
 
-# Sessions Table
+# Sessions Table - conditional creation
 resource "aws_dynamodb_table" "sessions" {
+  count = can(data.aws_dynamodb_table.existing_sessions.name) ? 0 : 1
+  
   name           = "${local.name_prefix}-sessions-serverless"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "id"

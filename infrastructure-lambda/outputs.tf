@@ -30,17 +30,17 @@ output "cloudfront_distribution_id" {
 
 output "dynamodb_users_table_name" {
   description = "Name of the DynamoDB users table"
-  value       = aws_dynamodb_table.users.name
+  value       = local.users_table_name
 }
 
 output "dynamodb_trips_table_name" {
   description = "Name of the DynamoDB trips table"
-  value       = aws_dynamodb_table.trips.name
+  value       = local.trips_table_name
 }
 
 output "dynamodb_sessions_table_name" {
   description = "Name of the DynamoDB sessions table"
-  value       = aws_dynamodb_table.sessions.name
+  value       = local.sessions_table_name
 }
 
 output "application_url" {
