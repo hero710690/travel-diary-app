@@ -1,0 +1,47 @@
+
+> travel-diary-client@1.0.0 start
+> react-scripts start
+
+(node:30884) [DEP0176] DeprecationWarning: fs.F_OK is deprecated, use fs.constants.F_OK instead
+(Use `node --trace-deprecation ...` to show where the warning was created)
+(node:30884) [DEP_WEBPACK_DEV_SERVER_ON_AFTER_SETUP_MIDDLEWARE] DeprecationWarning: 'onAfterSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+(node:30884) [DEP_WEBPACK_DEV_SERVER_ON_BEFORE_SETUP_MIDDLEWARE] DeprecationWarning: 'onBeforeSetupMiddleware' option is deprecated. Please use the 'setupMiddlewares' option.
+Starting the development server...
+
+Compiled with warnings.
+
+[eslint] 
+src/components/Layout.tsx
+  Line 11:3:  'CogIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+src/pages/CreateTripPage.tsx
+  Line 1:17:  'useState' is defined but never used  @typescript-eslint/no-unused-vars
+
+src/pages/DashboardPage.tsx
+  Line 12:3:  'PencilIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+Search for the keywords to learn more about each warning.
+To ignore, add // eslint-disable-next-line to the line before.
+
+WARNING in [eslint] 
+src/components/Layout.tsx
+  Line 11:3:  'CogIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+src/pages/CreateTripPage.tsx
+  Line 1:17:  'useState' is defined but never used  @typescript-eslint/no-unused-vars
+
+src/pages/DashboardPage.tsx
+  Line 12:3:  'PencilIcon' is defined but never used  @typescript-eslint/no-unused-vars
+
+webpack compiled with 1 warning
+ERROR in src/pages/DashboardPage.tsx:28:28
+TS2339: Property 'trips' does not exist on type 'PaginatedResponse<Trip>'.
+    26 |   );
+    27 |
+  > 28 |   const trips = tripsData?.trips || [];
+       |                            ^^^^^
+    29 |
+    30 |   const getStatusColor = (status: string) => {
+    31 |     switch (status) {
+
+(node:30884) [DEP0060] DeprecationWarning: The `util._extend` API is deprecated. Please use Object.assign() instead.

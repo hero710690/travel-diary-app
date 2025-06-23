@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Page</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test { margin: 10px 0; padding: 10px; border: 1px solid #ccc; }
+        .success { background-color: #d4edda; }
+        .error { background-color: #f8d7da; }
+    </style>
+</head>
+<body>
+    <h1>Travel Diary Debug Page</h1>
+    <div id="results"></div>
+
+    <script>
+        const results = document.getElementById('results');
+        
+        function addResult(title, success, message) {
+            const div = document.createElement('div');
+            div.className = `test ${success ? 'success' : 'error'}`;
+            div.innerHTML = `<strong>${title}:</strong> ${message}`;
+            results.appendChild(div);
+        }
+
+        // Test 1: Basic JavaScript
+        addResult('JavaScript', true, 'Working');
+
+        // Test 2: Fetch API availability
+        addResult('Fetch API', typeof fetch !== 'undefined', typeof fetch !== 'undefined' ? 'Available' : 'Not available');
+
+        // Test 3: Local Storage
+        try {
+            localStorage.setItem('test', 'value');
+            localStorage.removeItem('test');
+            addResult('Local Storage', true, 'Working');
+        } catch (e) {
+            addResult('Local Storage', false, e.message);
+        }
+
+        // Test 4: API Health Check
+        fetch('/api/v1/health')
+            .then(response => response.json())
+            .then(data => {
+                addResult('API Health', false, `Error: ${JSON.stringify(data)}`);
+            })
+            .catch(error => {
+                addResult('API Health', false, `Network Error: ${error.message}`);
+            });
+
+        // Test 5: Direct Backend Health
+        fetch('http://localhost:8001/health')
+            .then(response => response.json())
+            .then(data => {
+                addResult('Direct Backend', true, `${data.service} - ${data.status}`);
+            })
+            .catch(error => {
+                addResult('Direct Backend', false, `CORS/Network Error: ${error.message}`);
+            });
+
+        // Test 6: Check if React app div exists
+        const reactRoot = document.getElementById('root');
+        addResult('React Root Div', !!reactRoot, reactRoot ? 'Found' : 'Missing');
+
+        // Test 7: Check current URL
+        addResult('Current URL', true, window.location.href);
+
+        // Test 8: Check localStorage for auth data
+        const token = localStorage.getItem('token');
+        const user = localStorage.getItem('user');
+        addResult('Auth Token', !!token, token ? `Exists (${token.substring(0, 20)}...)` : 'Not found');
+        addResult('User Data', !!user, user ? `Exists (${JSON.parse(user).name})` : 'Not found');
+    </script>
+</body>
+</html>
