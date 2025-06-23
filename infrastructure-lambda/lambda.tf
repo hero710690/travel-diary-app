@@ -29,9 +29,9 @@ resource "aws_lambda_function" "backend" {
   environment {
     variables = {
       DATABASE_TYPE    = "dynamodb"
-      USERS_TABLE     = data.aws_dynamodb_table.users.name
-      TRIPS_TABLE     = data.aws_dynamodb_table.trips.name
-      SESSIONS_TABLE  = data.aws_dynamodb_table.sessions.name
+      USERS_TABLE     = aws_dynamodb_table.users.name
+      TRIPS_TABLE     = aws_dynamodb_table.trips.name
+      SESSIONS_TABLE  = aws_dynamodb_table.sessions.name
       ENVIRONMENT     = var.environment
       DEBUG          = "false"
       SECRET_KEY     = var.jwt_secret_key
@@ -99,12 +99,12 @@ resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
           "dynamodb:Scan"
         ]
         Resource = [
-          data.aws_dynamodb_table.users.arn,
-          data.aws_dynamodb_table.trips.arn,
-          data.aws_dynamodb_table.sessions.arn,
-          "${data.aws_dynamodb_table.users.arn}/index/*",
-          "${data.aws_dynamodb_table.trips.arn}/index/*",
-          "${data.aws_dynamodb_table.sessions.arn}/index/*"
+          aws_dynamodb_table.users.arn,
+          aws_dynamodb_table.trips.arn,
+          aws_dynamodb_table.sessions.arn,
+          "${aws_dynamodb_table.users.arn}/index/*",
+          "${aws_dynamodb_table.trips.arn}/index/*",
+          "${aws_dynamodb_table.sessions.arn}/index/*"
         ]
       }
     ]
