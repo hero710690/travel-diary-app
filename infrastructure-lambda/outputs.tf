@@ -30,17 +30,17 @@ output "cloudfront_distribution_id" {
 
 output "dynamodb_users_table_name" {
   description = "Name of the DynamoDB users table"
-  value       = aws_dynamodb_table.users.name
+  value       = data.aws_dynamodb_table.users.name
 }
 
 output "dynamodb_trips_table_name" {
   description = "Name of the DynamoDB trips table"
-  value       = aws_dynamodb_table.trips.name
+  value       = data.aws_dynamodb_table.trips.name
 }
 
 output "dynamodb_sessions_table_name" {
   description = "Name of the DynamoDB sessions table"
-  value       = aws_dynamodb_table.sessions.name
+  value       = data.aws_dynamodb_table.sessions.name
 }
 
 output "application_url" {
@@ -54,12 +54,13 @@ output "architecture_info" {
   value = {
     frontend = "CloudFront + S3 Static Hosting"
     backend  = "API Gateway + Lambda"
-    database = "DynamoDB"
+    database = "DynamoDB (existing tables)"
     benefits = [
       "Pay only for actual requests",
       "No idle server costs", 
       "Auto-scaling from 0 to thousands",
-      "Reduced operational overhead"
+      "Reduced operational overhead",
+      "Reusing existing data"
     ]
   }
 }
