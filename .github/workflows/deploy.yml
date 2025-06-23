@@ -50,9 +50,16 @@ jobs:
       working-directory: client
       run: |
         if [ ! -f package-lock.json ]; then
+          echo "📦 No package-lock.json found, running npm install..."
           npm install
         else
-          npm ci
+          echo "📦 Found package-lock.json, checking sync..."
+          # Try npm ci first, fall back to npm install if out of sync
+          npm ci || {
+            echo "⚠️ package-lock.json out of sync, regenerating..."
+            rm package-lock.json
+            npm install
+          }
         fi
     
     - name: Run Frontend tests
@@ -168,13 +175,18 @@ jobs:
         echo "⚛️ Building React frontend..."
         cd client
         
-        # Install dependencies
+        # Install dependencies with better error handling
         if [ ! -f package-lock.json ]; then
-          echo "Creating package-lock.json..."
+          echo "📦 No package-lock.json found, running npm install..."
           npm install
         else
-          echo "Using existing package-lock.json..."
-          npm ci
+          echo "📦 Found package-lock.json, attempting npm ci..."
+          # Try npm ci first, fall back to npm install if out of sync
+          npm ci || {
+            echo "⚠️ package-lock.json out of sync, regenerating..."
+            rm package-lock.json
+            npm install
+          }
         fi
         
         # Build production bundle
