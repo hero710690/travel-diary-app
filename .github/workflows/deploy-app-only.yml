@@ -326,33 +326,69 @@ jobs:
         echo "⚛️ Building React frontend..."
         cd client
         
-        # Clean npm cache and node_modules
+        # Clean everything for a fresh start
         echo "🧹 Cleaning npm cache and dependencies..."
         npm cache clean --force
         rm -rf node_modules package-lock.json
         
-        # Install dependencies with legacy peer deps to avoid conflicts
+        # Verify Node.js and npm versions
+        echo "📋 Environment info:"
+        node --version
+        npm --version
+        
+        # Install dependencies with verbose logging
         echo "📦 Installing dependencies..."
-        npm install --legacy-peer-deps
+        npm install --verbose --legacy-peer-deps
         
-        # Fix security vulnerabilities
-        echo "🔒 Fixing security vulnerabilities..."
-        npm audit fix --force || echo "Some vulnerabilities couldn't be auto-fixed"
-        
-        # Build production bundle
+        # Try multiple build approaches
         echo "🏗️ Building production bundle..."
-        CI=false npm run build
+        
+        # Method 1: Try the fallback script
+        if node build-fallback.js; then
+          echo "✅ Build successful using fallback script"
+        else
+          echo "❌ Fallback script failed, trying direct methods..."
+          
+          # Method 2: Try npx
+          if GENERATE_SOURCEMAP=false CI=false npx react-scripts build; then
+            echo "✅ Build successful using npx"
+          else
+            echo "❌ npx failed, trying direct node execution..."
+            
+            # Method 3: Try direct node execution
+            if GENERATE_SOURCEMAP=false CI=false node node_modules/react-scripts/scripts/build.js; then
+              echo "✅ Build successful using direct node"
+            else
+              echo "❌ All build methods failed"
+              
+              # Debug information
+              echo "🔍 Debug information:"
+              echo "Node modules contents:"
+              ls -la node_modules/ | head -20
+              echo "React scripts location:"
+              find node_modules -name "react-scripts" -type d
+              echo "Bin directory:"
+              ls -la node_modules/.bin/ | grep react || echo "No react-scripts in bin"
+              
+              exit 1
+            fi
+          fi
+        fi
         
         echo "📦 Frontend build completed:"
-        ls -la build/
+        ls -la build/ || echo "Build directory not created"
         
         # Deploy to manually created S3 bucket
-        echo "🪣 Deploying to S3 bucket: ${{ env.S3_BUCKET_NAME }}"
-        aws s3 sync build/ s3://${{ env.S3_BUCKET_NAME }} \
-          --delete \
-          --region ${{ env.AWS_REGION }}
-        
-        echo "✅ Frontend deployed to S3"
+        if [ -d "build" ]; then
+          echo "🪣 Deploying to S3 bucket: ${{ env.S3_BUCKET_NAME }}"
+          aws s3 sync build/ s3://${{ env.S3_BUCKET_NAME }} \
+            --delete \
+            --region ${{ env.AWS_REGION }}
+          echo "✅ Frontend deployed to S3"
+        else
+          echo "❌ Build directory not found, skipping S3 deployment"
+          exit 1
+        fi
     
     - name: Invalidate CloudFront Cache
       run: |

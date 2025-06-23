@@ -9,11 +9,14 @@
     "axios": "^1.6.0",
     "react-router-dom": "^6.8.0",
     "web-vitals": "^2.1.4",
-    "builtin-modules": "^3.3.0"
+    "builtin-modules": "^3.3.0",
+    "@testing-library/jest-dom": "^5.16.4",
+    "@testing-library/react": "^13.3.0",
+    "@testing-library/user-event": "^13.5.0"
   },
   "scripts": {
     "start": "react-scripts start",
-    "build": "GENERATE_SOURCEMAP=false react-scripts build",
+    "build": "react-scripts build",
     "test": "react-scripts test --watchAll=false",
     "eject": "react-scripts eject"
   },
@@ -36,7 +39,7 @@
     ]
   },
   "proxy": "http://localhost:8000",
-  "overrides": {
+  "resolutions": {
     "@rollup/plugin-node-resolve": "^15.0.0",
     "builtin-modules": "^3.3.0"
   }
