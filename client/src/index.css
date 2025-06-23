@@ -30,6 +30,32 @@ code {
   text-align: center;
 }
 
+.status-card {
+  background-color: #f5f5f5;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 8px;
+  border: 1px solid #ddd;
+}
+
+.features {
+  margin: 30px 0;
+}
+
+.features ul {
+  list-style: none;
+  padding: 0;
+}
+
+.features li {
+  padding: 8px 0;
+  font-size: 16px;
+}
+
+.actions {
+  margin: 30px 0;
+}
+
 .btn {
   background-color: #61dafb;
   border: none;
@@ -39,9 +65,10 @@ code {
   text-decoration: none;
   display: inline-block;
   font-size: 16px;
-  margin: 4px 2px;
+  margin: 4px 8px;
   cursor: pointer;
   border-radius: 4px;
+  transition: background-color 0.3s;
 }
 
 .btn:hover {

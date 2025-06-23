@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: travel-diary-mongo
+    restart: unless-stopped
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_DATABASE: travel_diary
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - travel-diary-network
+
+  backend:
+    build:
+      context: ./python-backend
+      dockerfile: Dockerfile
+    container_name: travel-diary-backend
+    restart: unless-stopped
+    ports:
+      - "8001:8000"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/travel_diary
+      - DATABASE_NAME=travel_diary
+    depends_on:
+      - mongodb
+    volumes:
+      - ./python-backend:/app
+    networks:
+      - travel-diary-network
+
+  frontend:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+    container_name: travel-diary-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    environment:
+      REACT_APP_API_URL: http://localhost:8001/api/v1
+    depends_on:
+      - backend
+    networks:
+      - travel-diary-network
+
+volumes:
+  mongodb_data:
+
+networks:
+  travel-diary-network:
+    driver: bridge

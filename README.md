@@ -7,8 +7,8 @@ A full-stack serverless travel diary application built with React, FastAPI, and 
 - **Frontend**: React.js hosted on S3 + CloudFront
 - **Backend**: FastAPI on AWS Lambda + API Gateway
 - **Database**: DynamoDB
-- **CI/CD**: GitHub Actions
-- **Infrastructure**: Terraform
+- **CI/CD**: GitHub Actions (Hybrid Deployment)
+- **Infrastructure**: Manual + Terraform
 
 ## 🚀 Features
 
@@ -18,7 +18,7 @@ A full-stack serverless travel diary application built with React, FastAPI, and 
 - ✅ Wishlist management
 - ✅ Responsive design
 - ✅ Serverless architecture
-- ✅ Automatic deployments
+- ✅ Hybrid deployment strategy
 
 ## 🛠️ Local Development
 
@@ -60,54 +60,109 @@ uvicorn app.main:app --reload
 
 ## 🚀 Deployment
 
-### Automatic Deployment (GitHub Actions)
-1. Push to `main` branch
-2. GitHub Actions automatically deploys to AWS
-3. Access your app at the CloudFront URL
+### Hybrid Deployment Strategy
 
-### Manual Deployment
+This project uses a **hybrid deployment approach** for production-grade control:
+
+- **Manual Infrastructure**: Persistent components (DynamoDB, CloudFront, S3)
+- **Automated Application**: Code updates (Lambda function, frontend builds)
+
+### Step 1: Deploy Manual Infrastructure (One-time)
+
+Deploy the persistent infrastructure components manually:
+
 ```bash
-# Deploy infrastructure and application
-./deploy-lambda.sh deploy
-
-# Or deploy components separately
-./deploy-lambda.sh infrastructure
-./deploy-lambda.sh update-lambda
-./deploy-lambda.sh update-frontend
+# Deploy DynamoDB tables, S3 bucket, and CloudFront distribution
+./deploy-manual-infrastructure.sh
 ```
+
+This creates:
+- ✅ **DynamoDB Tables**: travel-diary-prod-*-serverless
+- ✅ **S3 Bucket**: travel-diary-prod-frontend
+- ✅ **CloudFront Distribution**: Global CDN
+
+### Step 2: Deploy Lambda Function
+
+Choose one of the following options:
+
+#### Option A: Automatic Lambda Creation (Recommended)
+The GitHub Actions workflow will automatically create the Lambda function if it doesn't exist:
+
+```bash
+# Just push your code - Lambda function will be created automatically
+git push origin main
+```
+
+#### Option B: Manual Lambda Creation
+Create the Lambda function manually before pushing code:
+
+```bash
+# Create Lambda function and IAM role manually
+./create-lambda-function.sh
+
+# Then push your code for deployment
+git push origin main
+```
+
+### Step 3: Configure GitHub Secrets
+
+Add these secrets in your GitHub repository settings:
+
+- `AWS_ACCESS_KEY_ID`: Your AWS Access Key
+- `AWS_SECRET_ACCESS_KEY`: Your AWS Secret Key
+- `JWT_SECRET_KEY`: JWT secret for authentication
+- `GOOGLE_MAPS_API_KEY`: Google Maps API key (optional)
+
+### Step 4: Automated Deployments
+
+After the initial setup, every push to `main` automatically:
+
+- ✅ **Updates Lambda function** with latest backend code
+- ✅ **Builds and deploys frontend** to S3
+- ✅ **Invalidates CloudFront cache** for fresh content
+- ✅ **Completes in 2-3 minutes** (vs 20+ minutes for full infrastructure)
 
 ## 🔧 Configuration
 
-### GitHub Secrets Required
-- `AWS_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY`
-- `JWT_SECRET_KEY`
-- `GOOGLE_MAPS_API_KEY` (optional)
+### Manual Infrastructure Names
+The deployment scripts use these fixed names:
+- **S3 Bucket**: `travel-diary-prod-frontend`
+- **CloudFront Comment**: `Travel Diary App CDN - prod`
+- **DynamoDB Tables**: `travel-diary-prod-*-serverless`
+- **Lambda Function**: `travel-diary-prod-backend`
 
 ### Environment Variables
-- `AWS_REGION`: AWS deployment region
-- `PROJECT_NAME`: Project identifier
-- `ENVIRONMENT`: Deployment environment (prod/dev)
+- `AWS_REGION`: AWS deployment region (ap-northeast-1)
+- `PROJECT_NAME`: Project identifier (travel-diary)
+- `ENVIRONMENT`: Deployment environment (prod)
 
 ## 📊 Cost Optimization
 
-This serverless architecture provides significant cost savings:
-- **Lambda**: Pay per request (~$0.20/1M requests)
-- **DynamoDB**: Pay per request
+This hybrid serverless architecture provides significant cost savings:
+
+### Infrastructure Costs
+- **DynamoDB**: Pay per request (~$1.25/million reads)
+- **Lambda**: Pay per request (~$0.20/million requests)
 - **S3 + CloudFront**: ~$0.50/month for static hosting
-- **API Gateway**: Pay per API call
+- **API Gateway**: Pay per API call (~$3.50/million calls)
 
-**Estimated monthly cost**: $5-15 for typical usage vs $95+ for traditional servers.
+### Deployment Benefits
+- **Manual Infrastructure**: Created once, no recreation costs
+- **Fast App Deployments**: 2-3 minutes vs 20+ minutes
+- **No Idle Costs**: Pay only for actual usage
+- **Estimated monthly cost**: $5-15 for typical usage vs $95+ for traditional servers
 
-## 🏗️ Infrastructure
+## 🏗️ Infrastructure Components
 
-The application uses these AWS services:
-- **AWS Lambda**: Serverless compute
+### Manual Components (Persistent)
+- **DynamoDB**: NoSQL database tables
+- **S3**: Static file hosting bucket
+- **CloudFront**: Global CDN distribution
+
+### Automated Components (Updated per push)
+- **Lambda**: Serverless compute function
 - **API Gateway**: REST API management
-- **DynamoDB**: NoSQL database
-- **S3**: Static file hosting
-- **CloudFront**: Global CDN
-- **IAM**: Access management
+- **Frontend Build**: React production bundle
 
 ## 🔒 Security
 
@@ -116,6 +171,7 @@ The application uses these AWS services:
 - IAM least-privilege policies
 - Secrets managed via GitHub/AWS
 - CORS properly configured
+- Manual infrastructure oversight
 
 ## 📱 API Endpoints
 
@@ -126,6 +182,35 @@ The application uses these AWS services:
 - `POST /api/v1/trips` - Create new trip
 - `PUT /api/v1/trips/{id}` - Update trip
 - `DELETE /api/v1/trips/{id}` - Delete trip
+
+## 🔄 Deployment Workflows
+
+### Manual Infrastructure Script
+```bash
+./deploy-manual-infrastructure.sh
+```
+- Creates DynamoDB tables
+- Sets up S3 bucket with website hosting
+- Configures CloudFront distribution
+- One-time setup (~20 minutes)
+
+### Lambda Creation Script (Option B)
+```bash
+./create-lambda-function.sh
+```
+- Creates IAM role with proper permissions
+- Creates Lambda function with dummy code
+- Sets up environment variables
+- Ready for GitHub Actions updates
+
+### GitHub Actions Workflow
+Automatically triggered on push to `main`:
+- Runs tests (Python + React)
+- Builds Lambda deployment package
+- Creates/updates Lambda function
+- Builds and deploys React frontend
+- Invalidates CloudFront cache
+- Completes in 2-3 minutes
 
 ## 🤝 Contributing
 
@@ -143,10 +228,20 @@ This project is licensed under the MIT License.
 
 For issues and questions:
 1. Check the GitHub Issues
-2. Review the deployment logs
-3. Check AWS CloudWatch logs
-4. Contact the maintainers
+2. Review the deployment logs in GitHub Actions
+3. Check AWS CloudWatch logs for Lambda function
+4. Verify manual infrastructure is properly deployed
+
+## 🎯 Quick Start Checklist
+
+- [ ] Clone repository
+- [ ] Configure AWS CLI
+- [ ] Run `./deploy-manual-infrastructure.sh`
+- [ ] Configure GitHub Secrets
+- [ ] Choose Lambda deployment option (A or B)
+- [ ] Push code to trigger automated deployment
+- [ ] Access your app via CloudFront URL
 
 ---
 
-Built with ❤️ using serverless technologies
+Built with ❤️ using hybrid serverless deployment strategy for production-grade reliability and fast development cycles.

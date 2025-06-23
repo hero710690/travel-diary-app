@@ -323,47 +323,56 @@ jobs:
     
     - name: Build and Deploy Frontend
       run: |
-        echo "⚛️ Building React frontend..."
+        echo "⚛️ Building React frontend (minimal setup)..."
         cd client
         
         # Clean everything for a fresh start
         echo "🧹 Cleaning npm cache and dependencies..."
         npm cache clean --force
-        rm -rf node_modules package-lock.json
+        rm -rf node_modules package-lock.json yarn.lock
+        
+        # Remove any config files that might cause conflicts
+        rm -f tailwind.config.js postcss.config.js tsconfig.json *.backup
         
         # Verify Node.js and npm versions
         echo "📋 Environment info:"
         node --version
         npm --version
         
-        # Install dependencies with all required packages
-        echo "📦 Installing dependencies (including TypeScript)..."
-        npm install --legacy-peer-deps
+        # Show package.json dependencies
+        echo "📋 Package.json dependencies:"
+        cat package.json | grep -A 10 '"dependencies"' || echo "Dependencies section not found"
         
-        # Verify critical dependencies are installed
-        echo "🔍 Verifying critical dependencies..."
-        if [ ! -d "node_modules/typescript" ]; then
-          echo "❌ TypeScript missing, installing explicitly..."
-          npm install typescript@^4.9.5 --save --legacy-peer-deps
+        # Install minimal dependencies
+        echo "📦 Installing minimal dependencies..."
+        npm install
+        
+        # Test critical dependencies
+        echo "🔍 Testing critical dependencies..."
+        npm run test:deps
+        
+        # Verify react-scripts
+        echo "🔍 Verifying react-scripts..."
+        if npx react-scripts --version; then
+          echo "✅ react-scripts working"
+        else
+          echo "❌ react-scripts not working"
+          exit 1
         fi
-        
-        if [ ! -d "node_modules/react-scripts" ]; then
-          echo "❌ React Scripts missing, installing explicitly..."
-          npm install react-scripts@5.0.1 --save --legacy-peer-deps
-        fi
-        
-        # List key dependencies to verify
-        echo "📋 Key dependencies check:"
-        ls -la node_modules/ | grep -E "(typescript|react-scripts)" || echo "Some dependencies not found"
         
         # Build production bundle
         echo "🏗️ Building production bundle..."
-        GENERATE_SOURCEMAP=false CI=false npm run build
+        npm run build
         
         echo "📦 Frontend build completed:"
         if [ -d "build" ]; then
           ls -la build/
           echo "✅ Build directory created successfully"
+          echo "📊 Build size: $(du -sh build/)"
+          
+          # Show key build files
+          echo "📁 Key build files:"
+          find build -name "*.html" -o -name "*.js" -o -name "*.css" | head -5
         else
           echo "❌ Build directory not found"
           exit 1
