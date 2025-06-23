@@ -41,3 +41,23 @@ variable "google_maps_api_key" {
   sensitive   = true
   default     = ""
 }
+
+# GitHub Integration Variables (Optional)
+variable "github_owner" {
+  description = "GitHub repository owner"
+  type        = string
+  default     = ""
+}
+
+variable "github_repo" {
+  description = "GitHub repository name"
+  type        = string
+  default     = "travel-diary-app"
+}
+
+variable "github_token" {
+  description = "GitHub personal access token"
+  type        = string
+  sensitive   = true
+  default     = ""
+}
