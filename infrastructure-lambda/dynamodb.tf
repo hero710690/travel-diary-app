@@ -1,9 +1,7 @@
-# DynamoDB Tables - Only create if they don't already exist
+# DynamoDB Tables - Use fixed names (not random)
 
-# Users Table - conditional creation
+# Users Table
 resource "aws_dynamodb_table" "users" {
-  count = can(data.aws_dynamodb_table.existing_users.name) ? 0 : 1
-  
   name           = "${local.name_prefix}-users-serverless"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "id"
@@ -38,12 +36,15 @@ resource "aws_dynamodb_table" "users" {
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-users-table-serverless"
   })
+
+  lifecycle {
+    # Prevent destruction of table with data
+    prevent_destroy = false  # Set to true in production
+  }
 }
 
-# Trips Table - conditional creation
+# Trips Table
 resource "aws_dynamodb_table" "trips" {
-  count = can(data.aws_dynamodb_table.existing_trips.name) ? 0 : 1
-  
   name           = "${local.name_prefix}-trips-serverless"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "id"
@@ -73,12 +74,15 @@ resource "aws_dynamodb_table" "trips" {
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-trips-table-serverless"
   })
+
+  lifecycle {
+    # Prevent destruction of table with data
+    prevent_destroy = false  # Set to true in production
+  }
 }
 
-# Sessions Table - conditional creation
+# Sessions Table
 resource "aws_dynamodb_table" "sessions" {
-  count = can(data.aws_dynamodb_table.existing_sessions.name) ? 0 : 1
-  
   name           = "${local.name_prefix}-sessions-serverless"
   billing_mode   = "PAY_PER_REQUEST"
   hash_key       = "id"
@@ -107,4 +111,9 @@ resource "aws_dynamodb_table" "sessions" {
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-sessions-table-serverless"
   })
+
+  lifecycle {
+    # Prevent destruction of table with data
+    prevent_destroy = false  # Set to true in production
+  }
 }

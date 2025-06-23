@@ -1,18 +1,4 @@
-# Persistent CloudFront Distribution (create once, reuse always)
-
-# Check if CloudFront distribution already exists
-data "aws_cloudfront_distribution" "existing" {
-  count = 1
-  
-  # Try to find existing distribution by comment/tag
-  # This will fail if no distribution exists, which is fine
-  lifecycle {
-    postcondition {
-      condition     = true  # Always pass, we handle the error with try()
-      error_message = "Distribution check"
-    }
-  }
-}
+# CloudFront Distribution - Persistent across deployments
 
 # Origin Access Control - use fixed name (not random)
 resource "aws_cloudfront_origin_access_control" "s3" {
@@ -173,11 +159,5 @@ resource "aws_cloudfront_distribution" "main" {
   lifecycle {
     # Prevent accidental destruction
     prevent_destroy = false  # Set to true in production
-    
-    # Ignore changes to origins when they reference dynamic resources
-    ignore_changes = [
-      origin[0].domain_name,  # S3 bucket domain might change
-      origin[1].domain_name   # API Gateway domain might change
-    ]
   }
 }
