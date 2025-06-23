@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     DATABASE_NAME: str = "travel_diary"
     
     # DynamoDB (for AWS deployment)
-    AWS_REGION: str = "us-east-1"
+    # AWS_REGION is automatically provided by Lambda runtime
+    AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
     USERS_TABLE: str = "travel-diary-users"
     TRIPS_TABLE: str = "travel-diary-trips"
     SESSIONS_TABLE: str = "travel-diary-sessions"

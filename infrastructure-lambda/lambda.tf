@@ -29,7 +29,6 @@ resource "aws_lambda_function" "backend" {
   environment {
     variables = {
       DATABASE_TYPE    = "dynamodb"
-      AWS_REGION      = var.aws_region
       USERS_TABLE     = data.aws_dynamodb_table.users.name
       TRIPS_TABLE     = data.aws_dynamodb_table.trips.name
       SESSIONS_TABLE  = data.aws_dynamodb_table.sessions.name
