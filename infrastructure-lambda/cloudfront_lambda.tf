@@ -1,7 +1,7 @@
 # Origin Access Control for S3
 resource "aws_cloudfront_origin_access_control" "s3" {
-  name                              = "${local.name_prefix}-s3-oac"
-  description                       = "OAC for Travel Diary S3 bucket"
+  name                              = "${local.name_prefix}-s3-oac-v2"
+  description                       = "OAC for Travel Diary S3 bucket v2"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"
@@ -18,7 +18,7 @@ resource "aws_cloudfront_distribution" "main" {
 
   # API Gateway Origin for Backend
   origin {
-    domain_name = replace(aws_api_gateway_rest_api.main.execution_arn, "arn:aws:execute-api:${var.aws_region}:${data.aws_caller_identity.current.account_id}:", "${aws_api_gateway_rest_api.main.id}.execute-api.${var.aws_region}.amazonaws.com")
+    domain_name = "${aws_api_gateway_rest_api.main.id}.execute-api.${var.aws_region}.amazonaws.com"
     origin_id   = "${local.name_prefix}-api-origin"
     origin_path = "/${var.environment}"
 

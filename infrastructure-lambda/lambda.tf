@@ -19,7 +19,7 @@ resource "null_resource" "lambda_package" {
 # Lambda Function for Backend API
 resource "aws_lambda_function" "backend" {
   filename         = "${path.module}/backend.zip"
-  function_name    = "${local.name_prefix}-backend"
+  function_name    = "${local.name_prefix}-backend-v2"
   role            = aws_iam_role.lambda_execution_role.arn
   handler         = "app.lambda_handler.lambda_handler"
   runtime         = "python3.11"
@@ -57,7 +57,7 @@ resource "aws_lambda_function" "backend" {
 
 # Lambda Execution Role
 resource "aws_iam_role" "lambda_execution_role" {
-  name = "${local.name_prefix}-lambda-execution-role"
+  name = "${local.name_prefix}-lambda-execution-role-v2"
 
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
@@ -114,11 +114,11 @@ resource "aws_iam_role_policy" "lambda_dynamodb_policy" {
 
 # CloudWatch Log Group for Lambda
 resource "aws_cloudwatch_log_group" "lambda_logs" {
-  name              = "/aws/lambda/${local.name_prefix}-backend"
+  name              = "/aws/lambda/${local.name_prefix}-backend-v2"
   retention_in_days = 7
 
   tags = merge(local.common_tags, {
-    Name = "${local.name_prefix}-lambda-logs"
+    Name = "${local.name_prefix}-lambda-logs-v2"
   })
 }
 
