@@ -1,0 +1,112 @@
+{
+  "CallerReference": "travel-diary-cloudfront-2025",
+  "Comment": "Travel Diary App CDN - prod",
+  "DefaultRootObject": "index.html",
+  "Origins": {
+    "Quantity": 2,
+    "Items": [
+      {
+        "Id": "travel-diary-s3-origin",
+        "DomainName": "travel-diary-prod-frontend.s3.ap-northeast-1.amazonaws.com",
+        "S3OriginConfig": {
+          "OriginAccessIdentity": ""
+        }
+      },
+      {
+        "Id": "travel-diary-api-origin",
+        "DomainName": "YOUR_API_GATEWAY_ID.execute-api.ap-northeast-1.amazonaws.com",
+        "OriginPath": "/prod",
+        "CustomOriginConfig": {
+          "HTTPPort": 443,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "https-only",
+          "OriginSslProtocols": {
+            "Quantity": 1,
+            "Items": ["TLSv1.2"]
+          }
+        }
+      }
+    ]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "travel-diary-s3-origin",
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "MinTTL": 0,
+    "DefaultTTL": 86400,
+    "MaxTTL": 31536000,
+    "ForwardedValues": {
+      "QueryString": false,
+      "Cookies": {
+        "Forward": "none"
+      }
+    },
+    "TrustedSigners": {
+      "Enabled": false,
+      "Quantity": 0
+    },
+    "Compress": true,
+    "AllowedMethods": {
+      "Quantity": 3,
+      "Items": ["GET", "HEAD", "OPTIONS"],
+      "CachedMethods": {
+        "Quantity": 2,
+        "Items": ["GET", "HEAD"]
+      }
+    }
+  },
+  "CacheBehaviors": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "PathPattern": "/api/*",
+        "TargetOriginId": "travel-diary-api-origin",
+        "ViewerProtocolPolicy": "redirect-to-https",
+        "MinTTL": 0,
+        "DefaultTTL": 0,
+        "MaxTTL": 0,
+        "ForwardedValues": {
+          "QueryString": true,
+          "Headers": {
+            "Quantity": 3,
+            "Items": ["Authorization", "Content-Type", "Accept"]
+          },
+          "Cookies": {
+            "Forward": "all"
+          }
+        },
+        "TrustedSigners": {
+          "Enabled": false,
+          "Quantity": 0
+        },
+        "Compress": true,
+        "AllowedMethods": {
+          "Quantity": 7,
+          "Items": ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"],
+          "CachedMethods": {
+            "Quantity": 2,
+            "Items": ["GET", "HEAD"]
+          }
+        }
+      }
+    ]
+  },
+  "CustomErrorResponses": {
+    "Quantity": 2,
+    "Items": [
+      {
+        "ErrorCode": 404,
+        "ResponsePagePath": "/index.html",
+        "ResponseCode": "200",
+        "ErrorCachingMinTTL": 300
+      },
+      {
+        "ErrorCode": 403,
+        "ResponsePagePath": "/index.html",
+        "ResponseCode": "200",
+        "ErrorCachingMinTTL": 300
+      }
+    ]
+  },
+  "Enabled": true,
+  "PriceClass": "PriceClass_100"
+}

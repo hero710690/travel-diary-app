@@ -9,18 +9,27 @@ function App() {
     // Test API connection
     const testAPI = async () => {
       try {
-        const response = await fetch('/api/v1/auth/health');
+        // Try API through CloudFront first
+        let apiUrl = '/api/v1/auth/health';
+        let response = await fetch(apiUrl);
+        
+        if (!response.ok) {
+          // Fallback to direct API Gateway URL if available
+          const directApiUrl = process.env.REACT_APP_API_URL || '/api/v1/auth/health';
+          response = await fetch(directApiUrl);
+        }
+        
         if (response.ok) {
           const data = await response.json();
           setApiStatus('✅ API Connected');
-          setMessage(`Backend: ${data.service} v${data.version}`);
+          setMessage(`Backend: ${data.service || 'Travel Diary API'} v${data.version || '1.0.0'}`);
         } else {
           setApiStatus('❌ API Error');
-          setMessage('Backend API not responding');
+          setMessage(`Backend API returned status: ${response.status}`);
         }
       } catch (error) {
         setApiStatus('❌ API Offline');
-        setMessage('Cannot connect to backend API');
+        setMessage(`Cannot connect to backend API: ${error.message}`);
       }
     };
 
@@ -44,22 +53,34 @@ function App() {
             <p><strong>Frontend:</strong> ✅ React App Running</p>
             <p><strong>Backend:</strong> {apiStatus}</p>
             <p><strong>Message:</strong> {message}</p>
+            <p><strong>Environment:</strong> {process.env.NODE_ENV}</p>
           </div>
 
           <div className="features">
-            <h3>Features Coming Soon</h3>
+            <h3>Features Available</h3>
             <ul>
               <li>✈️ Trip Planning</li>
               <li>📝 Travel Journal</li>
               <li>📸 Photo Gallery</li>
               <li>🗺️ Interactive Maps</li>
               <li>💰 Expense Tracking</li>
+              <li>🔐 User Authentication</li>
             </ul>
           </div>
 
-          <button className="btn" onClick={() => window.location.reload()}>
-            Refresh Status
-          </button>
+          <div className="actions">
+            <button className="btn" onClick={() => window.location.reload()}>
+              Refresh Status
+            </button>
+            <button className="btn" onClick={() => {
+              fetch('/api/v1/auth/health')
+                .then(res => res.json())
+                .then(data => alert(JSON.stringify(data, null, 2)))
+                .catch(err => alert('API Error: ' + err.message));
+            }}>
+              Test API
+            </button>
+          </div>
         </div>
       </main>
     </div>
