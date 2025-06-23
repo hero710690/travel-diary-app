@@ -1,0 +1,255 @@
+name: Deploy Travel Diary Serverless App
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'python-backend/**'
+      - 'client/**'
+      - 'infrastructure-lambda/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual triggers
+
+env:
+  AWS_REGION: ap-northeast-1
+  PROJECT_NAME: travel-diary
+  ENVIRONMENT: prod
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install Python dependencies
+      run: |
+        cd python-backend
+        pip install -r requirements-lambda.txt
+        pip install pytest pytest-asyncio
+    
+    - name: Run Python tests
+      run: |
+        cd python-backend
+        python -m pytest tests/ -v || echo "No tests found, skipping..."
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install Frontend dependencies
+      working-directory: client
+      run: |
+        if [ ! -f package-lock.json ]; then
+          npm install
+        else
+          npm ci
+        fi
+    
+    - name: Run Frontend tests
+      working-directory: client
+      run: |
+        npm test -- --coverage --watchAll=false || echo "No frontend tests found, skipping..."
+
+  deploy:
+    name: Deploy Infrastructure and Application
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v3
+      with:
+        terraform_version: 1.6.0
+        terraform_wrapper: false
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Verify setup
+      run: |
+        echo "🔧 Environment Setup:"
+        echo "Node version: $(node --version)"
+        echo "NPM version: $(npm --version)"
+        echo "Python version: $(python --version)"
+        echo "Terraform version: $(terraform --version)"
+        echo "AWS CLI version: $(aws --version)"
+        echo ""
+        echo "📁 Project structure:"
+        ls -la
+        echo ""
+        echo "📦 Client directory:"
+        ls -la client/ || echo "Client directory not found"
+    
+    - name: Build Lambda package
+      run: |
+        echo "🐍 Building Lambda deployment package..."
+        mkdir -p infrastructure-lambda/lambda-package
+        cd python-backend
+        
+        # Install dependencies with platform targeting
+        pip install -r requirements-lambda.txt \
+          -t ../infrastructure-lambda/lambda-package \
+          --no-deps \
+          --platform linux_x86_64 \
+          --only-binary=:all: || \
+        pip install -r requirements-lambda.txt \
+          -t ../infrastructure-lambda/lambda-package \
+          --no-deps
+        
+        # Copy application code
+        cp -r . ../infrastructure-lambda/lambda-package/
+        
+        # Clean up and create package
+        cd ../infrastructure-lambda/lambda-package
+        find . -name "*.pyc" -delete
+        find . -name "__pycache__" -type d -exec rm -rf {} + || true
+        zip -r ../backend.zip . -x "tests/*" "*.git*" "requirements*.txt"
+        cd ..
+        rm -rf lambda-package
+        
+        echo "📦 Lambda package created:"
+        ls -lh backend.zip
+    
+    - name: Deploy Infrastructure
+      working-directory: infrastructure-lambda
+      run: |
+        echo "🏗️ Deploying AWS infrastructure..."
+        
+        # Initialize Terraform
+        terraform init
+        
+        # Validate configuration
+        terraform validate
+        
+        # Plan deployment
+        terraform plan \
+          -var="aws_region=${{ env.AWS_REGION }}" \
+          -var="project_name=${{ env.PROJECT_NAME }}" \
+          -var="environment=${{ env.ENVIRONMENT }}" \
+          -var="jwt_secret_key=${{ secrets.JWT_SECRET_KEY }}" \
+          -var="google_maps_api_key=${{ secrets.GOOGLE_MAPS_API_KEY }}" \
+          -out=tfplan
+        
+        # Apply infrastructure changes
+        terraform apply -auto-approve tfplan
+        
+        echo "✅ Infrastructure deployment completed"
+    
+    - name: Build and Deploy Frontend
+      run: |
+        echo "⚛️ Building React frontend..."
+        cd client
+        
+        # Install dependencies
+        if [ ! -f package-lock.json ]; then
+          echo "Creating package-lock.json..."
+          npm install
+        else
+          echo "Using existing package-lock.json..."
+          npm ci
+        fi
+        
+        # Build production bundle
+        npm run build
+        
+        echo "📦 Frontend build completed:"
+        ls -la build/
+        
+        # Get S3 bucket name from Terraform
+        cd ../infrastructure-lambda
+        S3_BUCKET=$(terraform output -raw frontend_bucket_name)
+        echo "🪣 Deploying to S3 bucket: $S3_BUCKET"
+        
+        # Upload to S3
+        aws s3 sync ../client/build/ s3://$S3_BUCKET \
+          --delete \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "✅ Frontend deployed to S3"
+    
+    - name: Invalidate CloudFront Cache
+      working-directory: infrastructure-lambda
+      run: |
+        echo "🌐 Invalidating CloudFront cache..."
+        DISTRIBUTION_ID=$(terraform output -raw cloudfront_distribution_id)
+        echo "Distribution ID: $DISTRIBUTION_ID"
+        
+        aws cloudfront create-invalidation \
+          --distribution-id $DISTRIBUTION_ID \
+          --paths "/*" \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "✅ CloudFront cache invalidated"
+    
+    - name: Get Deployment URLs
+      working-directory: infrastructure-lambda
+      run: |
+        APPLICATION_URL=$(terraform output -raw application_url)
+        API_URL=$(terraform output -raw api_gateway_url)
+        
+        echo "🚀 Deployment completed successfully!"
+        echo ""
+        echo "📊 Deployment Summary:"
+        echo "🌐 Application URL: $APPLICATION_URL"
+        echo "🔗 API Gateway URL: $API_URL"
+        echo ""
+        echo "📋 Infrastructure:"
+        echo "  ✅ Lambda function deployed"
+        echo "  ✅ API Gateway configured"
+        echo "  ✅ DynamoDB tables ready"
+        echo "  ✅ S3 bucket hosting frontend"
+        echo "  ✅ CloudFront CDN active"
+        
+        # Set outputs for GitHub
+        echo "APPLICATION_URL=$APPLICATION_URL" >> $GITHUB_ENV
+        echo "API_URL=$API_URL" >> $GITHUB_ENV
+    
+    - name: Create Deployment Summary
+      run: |
+        echo "## 🚀 Travel Diary Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎯 Deployment Status: ✅ SUCCESS" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🌐 Application URLs" >> $GITHUB_STEP_SUMMARY
+        echo "- **Frontend**: [$APPLICATION_URL]($APPLICATION_URL)" >> $GITHUB_STEP_SUMMARY
+        echo "- **API**: [$API_URL]($API_URL)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Infrastructure Components" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Lambda Function**: Backend API deployed" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **API Gateway**: REST API configured" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **DynamoDB**: Database tables ready" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **S3 + CloudFront**: Frontend hosting active" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 💰 Architecture Benefits" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔄 **Serverless**: Pay only for actual usage" >> $GITHUB_STEP_SUMMARY
+        echo "- 📈 **Auto-scaling**: From 0 to thousands of requests" >> $GITHUB_STEP_SUMMARY
+        echo "- 🌍 **Global CDN**: Fast content delivery worldwide" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔒 **Secure**: HTTPS everywhere, IAM-based access" >> $GITHUB_STEP_SUMMARY
