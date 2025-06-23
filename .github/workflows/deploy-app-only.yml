@@ -153,8 +153,7 @@ jobs:
         echo "🚀 Deploying Lambda function..."
         
         # Create environment variables JSON file
-        cat > /tmp/lambda-env.json << 'ENVEOF'
-        {
+        echo '{
           "Variables": {
             "DATABASE_TYPE": "dynamodb",
             "USERS_TABLE": "travel-diary-prod-users-serverless",
@@ -165,8 +164,7 @@ jobs:
             "SECRET_KEY": "${{ secrets.JWT_SECRET_KEY }}",
             "GOOGLE_MAPS_API_KEY": "${{ secrets.GOOGLE_MAPS_API_KEY }}"
           }
-        }
-        ENVEOF
+        }' > /tmp/lambda-env.json
         
         # Check if Lambda function exists
         if aws lambda get-function --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend --region ${{ env.AWS_REGION }} 2>/dev/null; then
@@ -191,8 +189,7 @@ jobs:
             echo "Creating Lambda execution role..."
             
             # Create trust policy
-            cat > /tmp/trust-policy.json << 'TRUSTEOF'
-            {
+            echo '{
               "Version": "2012-10-17",
               "Statement": [
                 {
@@ -203,8 +200,7 @@ jobs:
                   "Action": "sts:AssumeRole"
                 }
               ]
-            }
-            TRUSTEOF
+            }' > /tmp/trust-policy.json
             
             # Create IAM role
             aws iam create-role \
@@ -217,8 +213,7 @@ jobs:
               --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
             
             # Create DynamoDB access policy
-            cat > /tmp/dynamodb-policy.json << 'DYNAMOEOF'
-            {
+            echo '{
               "Version": "2012-10-17",
               "Statement": [
                 {
@@ -243,8 +238,7 @@ jobs:
                   ]
                 }
               ]
-            }
-            DYNAMOEOF
+            }' > /tmp/dynamodb-policy.json
             
             # Attach DynamoDB policy
             aws iam put-role-policy \
