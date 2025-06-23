@@ -166,27 +166,72 @@ jobs:
           }
         }' > /tmp/lambda-env.json
         
+        # Function to wait for Lambda to be ready
+        wait_for_lambda_ready() {
+          local function_name=$1
+          local max_attempts=30
+          local attempt=1
+          
+          echo "⏳ Waiting for Lambda function to be ready..."
+          
+          while [ $attempt -le $max_attempts ]; do
+            STATE=$(aws lambda get-function --function-name $function_name --region ${{ env.AWS_REGION }} --query 'Configuration.State' --output text 2>/dev/null || echo "NotFound")
+            LAST_UPDATE_STATUS=$(aws lambda get-function --function-name $function_name --region ${{ env.AWS_REGION }} --query 'Configuration.LastUpdateStatus' --output text 2>/dev/null || echo "NotFound")
+            
+            echo "Attempt $attempt/$max_attempts - State: $STATE, LastUpdateStatus: $LAST_UPDATE_STATUS"
+            
+            if [ "$STATE" = "Active" ] && [ "$LAST_UPDATE_STATUS" = "Successful" ]; then
+              echo "✅ Lambda function is ready"
+              return 0
+            elif [ "$STATE" = "Failed" ] || [ "$LAST_UPDATE_STATUS" = "Failed" ]; then
+              echo "❌ Lambda function is in failed state"
+              return 1
+            fi
+            
+            echo "⏳ Lambda function not ready, waiting 10 seconds..."
+            sleep 10
+            attempt=$((attempt + 1))
+          done
+          
+          echo "❌ Timeout waiting for Lambda function to be ready"
+          return 1
+        }
+        
         # Check if Lambda function exists
         if aws lambda get-function --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend --region ${{ env.AWS_REGION }} 2>/dev/null; then
-          echo "Updating existing Lambda function..."
+          echo "📝 Updating existing Lambda function..."
+          
+          # Wait for any in-progress updates to complete
+          wait_for_lambda_ready ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend
+          
+          # Update function code
+          echo "📦 Updating Lambda function code..."
           aws lambda update-function-code \
             --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend \
             --zip-file fileb://backend.zip \
             --region ${{ env.AWS_REGION }}
           
+          # Wait for code update to complete
+          wait_for_lambda_ready ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend
+          
           # Update environment variables
+          echo "🔧 Updating Lambda environment variables..."
           aws lambda update-function-configuration \
             --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend \
             --environment file:///tmp/lambda-env.json \
             --region ${{ env.AWS_REGION }}
+          
+          # Wait for configuration update to complete
+          wait_for_lambda_ready ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend
+          
         else
-          echo "Creating new Lambda function..."
+          echo "🆕 Creating new Lambda function..."
           
           # First, create IAM role for Lambda
           ROLE_ARN=$(aws iam get-role --role-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-lambda-role --query 'Role.Arn' --output text 2>/dev/null || echo "")
           
           if [ -z "$ROLE_ARN" ]; then
-            echo "Creating Lambda execution role..."
+            echo "🔑 Creating Lambda execution role..."
             
             # Create trust policy
             echo '{
@@ -250,11 +295,12 @@ jobs:
             ROLE_ARN=$(aws iam get-role --role-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-lambda-role --query 'Role.Arn' --output text)
             
             # Wait for role to be ready
-            echo "Waiting for IAM role to be ready..."
+            echo "⏳ Waiting for IAM role to be ready..."
             sleep 15
           fi
           
           # Create Lambda function
+          echo "🚀 Creating Lambda function..."
           aws lambda create-function \
             --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend \
             --runtime python3.11 \
@@ -265,12 +311,15 @@ jobs:
             --memory-size 512 \
             --environment file:///tmp/lambda-env.json \
             --region ${{ env.AWS_REGION }}
+          
+          # Wait for function to be ready
+          wait_for_lambda_ready ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend
         fi
         
         # Clean up temp files
         rm -f /tmp/lambda-env.json /tmp/trust-policy.json /tmp/dynamodb-policy.json
         
-        echo "✅ Lambda function deployed"
+        echo "✅ Lambda function deployed successfully"
     
     - name: Build and Deploy Frontend
       run: |
