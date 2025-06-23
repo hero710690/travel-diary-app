@@ -11,7 +11,7 @@ venv/
 pip-log.txt
 pip-delete-this-directory.txt
 
-# Build outputs
+# Build outputs (keep source, ignore builds)
 client/build/
 *.zip
 backend.zip

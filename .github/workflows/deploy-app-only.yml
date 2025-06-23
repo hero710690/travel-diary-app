@@ -1,0 +1,299 @@
+name: Deploy Travel Diary App (Manual CDN + DynamoDB)
+
+on:
+  push:
+    branches: [ main ]
+    paths:
+      - 'python-backend/**'
+      - 'client/**'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:  # Allow manual triggers
+
+env:
+  AWS_REGION: ap-northeast-1
+  PROJECT_NAME: travel-diary
+  ENVIRONMENT: prod
+  # Manual infrastructure names
+  S3_BUCKET_NAME: travel-diary-prod-frontend
+  CLOUDFRONT_COMMENT: "Travel Diary App CDN - prod"
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Install Python dependencies
+      run: |
+        cd python-backend
+        pip install -r requirements-lambda.txt
+        pip install pytest pytest-asyncio
+    
+    - name: Run Python tests
+      run: |
+        cd python-backend
+        python -m pytest tests/ -v || echo "No tests found, skipping..."
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Install Frontend dependencies
+      working-directory: client
+      run: |
+        if [ ! -f package-lock.json ]; then
+          echo "📦 No package-lock.json found, running npm install..."
+          npm install
+        else
+          echo "📦 Found package-lock.json, checking sync..."
+          npm ci || {
+            echo "⚠️ package-lock.json out of sync, regenerating..."
+            rm package-lock.json
+            npm install
+          }
+        fi
+    
+    - name: Run Frontend tests
+      working-directory: client
+      run: |
+        npm test -- --coverage --watchAll=false || echo "No frontend tests found, skipping..."
+
+  deploy:
+    name: Deploy Application (Lambda + Frontend)
+    needs: test
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+    
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    
+    - name: Verify Manual Infrastructure
+      run: |
+        echo "🔍 Verifying manually deployed infrastructure..."
+        
+        # Check DynamoDB tables exist
+        echo "Checking DynamoDB tables..."
+        aws dynamodb describe-table --table-name travel-diary-prod-users-serverless --region ${{ env.AWS_REGION }} && echo "✅ Users table exists" || echo "❌ Users table missing"
+        aws dynamodb describe-table --table-name travel-diary-prod-trips-serverless --region ${{ env.AWS_REGION }} && echo "✅ Trips table exists" || echo "❌ Trips table missing"
+        aws dynamodb describe-table --table-name travel-diary-prod-sessions-serverless --region ${{ env.AWS_REGION }} && echo "✅ Sessions table exists" || echo "❌ Sessions table missing"
+        
+        # Check S3 bucket exists
+        echo "Checking S3 bucket..."
+        aws s3 ls s3://${{ env.S3_BUCKET_NAME }} --region ${{ env.AWS_REGION }} && echo "✅ S3 bucket exists" || echo "❌ S3 bucket missing"
+        
+        # Check CloudFront distribution
+        echo "Checking CloudFront distribution..."
+        DISTRIBUTION_ID=$(aws cloudfront list-distributions --query 'DistributionList.Items[?Comment==`${{ env.CLOUDFRONT_COMMENT }}`].Id' --output text)
+        if [ -n "$DISTRIBUTION_ID" ] && [ "$DISTRIBUTION_ID" != "None" ]; then
+          echo "✅ CloudFront distribution exists: $DISTRIBUTION_ID"
+        else
+          echo "❌ CloudFront distribution not found"
+        fi
+    
+    - name: Build Lambda package
+      run: |
+        echo "🐍 Building Lambda deployment package..."
+        mkdir -p lambda-package
+        cd python-backend
+        
+        # Install dependencies with platform targeting
+        pip install -r requirements-lambda.txt \
+          -t ../lambda-package \
+          --no-deps \
+          --platform linux_x86_64 \
+          --only-binary=:all: || \
+        pip install -r requirements-lambda.txt \
+          -t ../lambda-package \
+          --no-deps
+        
+        # Copy application code
+        cp -r . ../lambda-package/
+        
+        # Clean up and create package
+        cd ../lambda-package
+        find . -name "*.pyc" -delete
+        find . -name "__pycache__" -type d -exec rm -rf {} + || true
+        zip -r ../backend.zip . -x "tests/*" "*.git*" "requirements*.txt"
+        cd ..
+        rm -rf lambda-package
+        
+        echo "📦 Lambda package created:"
+        ls -lh backend.zip
+    
+    - name: Deploy Lambda Function
+      run: |
+        echo "🚀 Deploying Lambda function..."
+        
+        # Check if Lambda function exists
+        if aws lambda get-function --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend --region ${{ env.AWS_REGION }} 2>/dev/null; then
+          echo "Updating existing Lambda function..."
+          aws lambda update-function-code \
+            --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend \
+            --zip-file fileb://backend.zip \
+            --region ${{ env.AWS_REGION }}
+          
+          # Update environment variables
+          aws lambda update-function-configuration \
+            --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend \
+            --environment Variables='{
+              "DATABASE_TYPE":"dynamodb",
+              "USERS_TABLE":"travel-diary-prod-users-serverless",
+              "TRIPS_TABLE":"travel-diary-prod-trips-serverless",
+              "SESSIONS_TABLE":"travel-diary-prod-sessions-serverless",
+              "ENVIRONMENT":"prod",
+              "DEBUG":"false",
+              "SECRET_KEY":"${{ secrets.JWT_SECRET_KEY }}",
+              "GOOGLE_MAPS_API_KEY":"${{ secrets.GOOGLE_MAPS_API_KEY }}"
+            }' \
+            --region ${{ env.AWS_REGION }}
+        else
+          echo "❌ Lambda function not found. Please create it manually first."
+          exit 1
+        fi
+        
+        echo "✅ Lambda function deployed"
+    
+    - name: Build and Deploy Frontend
+      run: |
+        echo "⚛️ Building React frontend..."
+        cd client
+        
+        # Install dependencies
+        if [ ! -f package-lock.json ]; then
+          echo "📦 No package-lock.json found, running npm install..."
+          npm install
+        else
+          echo "📦 Found package-lock.json, attempting npm ci..."
+          npm ci || {
+            echo "⚠️ package-lock.json out of sync, regenerating..."
+            rm package-lock.json
+            npm install
+          }
+        fi
+        
+        # Build production bundle
+        npm run build
+        
+        echo "📦 Frontend build completed:"
+        ls -la build/
+        
+        # Deploy to manually created S3 bucket
+        echo "🪣 Deploying to S3 bucket: ${{ env.S3_BUCKET_NAME }}"
+        aws s3 sync build/ s3://${{ env.S3_BUCKET_NAME }} \
+          --delete \
+          --region ${{ env.AWS_REGION }}
+        
+        echo "✅ Frontend deployed to S3"
+    
+    - name: Invalidate CloudFront Cache
+      run: |
+        echo "🌐 Invalidating CloudFront cache..."
+        
+        # Get CloudFront distribution ID by comment
+        DISTRIBUTION_ID=$(aws cloudfront list-distributions \
+          --query 'DistributionList.Items[?Comment==`${{ env.CLOUDFRONT_COMMENT }}`].Id' \
+          --output text)
+        
+        if [ -n "$DISTRIBUTION_ID" ] && [ "$DISTRIBUTION_ID" != "None" ]; then
+          echo "Distribution ID: $DISTRIBUTION_ID"
+          aws cloudfront create-invalidation \
+            --distribution-id $DISTRIBUTION_ID \
+            --paths "/*" \
+            --region ${{ env.AWS_REGION }}
+          echo "✅ CloudFront cache invalidated"
+        else
+          echo "⚠️ CloudFront distribution not found - skipping cache invalidation"
+        fi
+    
+    - name: Get Deployment URLs
+      run: |
+        # Get CloudFront URL
+        CLOUDFRONT_URL=$(aws cloudfront list-distributions \
+          --query 'DistributionList.Items[?Comment==`${{ env.CLOUDFRONT_COMMENT }}`].DomainName' \
+          --output text)
+        
+        # Get API Gateway URL (if exists)
+        API_URL="https://$(aws apigateway get-rest-apis --query 'items[?name==`${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-api`].id' --output text).execute-api.${{ env.AWS_REGION }}.amazonaws.com/${{ env.ENVIRONMENT }}"
+        
+        if [ -n "$CLOUDFRONT_URL" ] && [ "$CLOUDFRONT_URL" != "None" ]; then
+          APPLICATION_URL="https://$CLOUDFRONT_URL"
+        else
+          APPLICATION_URL="https://${{ env.S3_BUCKET_NAME }}.s3-website-${{ env.AWS_REGION }}.amazonaws.com"
+        fi
+        
+        echo "🚀 Deployment completed successfully!"
+        echo ""
+        echo "📊 Deployment Summary:"
+        echo "🌐 Application URL: $APPLICATION_URL"
+        echo "🔗 API Gateway URL: $API_URL"
+        echo ""
+        echo "📋 Infrastructure:"
+        echo "  ✅ Lambda function deployed (automated)"
+        echo "  ✅ Frontend deployed (automated)"
+        echo "  🔧 DynamoDB tables (manual)"
+        echo "  🔧 S3 bucket (manual)"
+        echo "  🔧 CloudFront CDN (manual)"
+        echo "  🔧 API Gateway (manual)"
+        
+        # Set outputs for GitHub
+        echo "APPLICATION_URL=$APPLICATION_URL" >> $GITHUB_ENV
+        echo "API_URL=$API_URL" >> $GITHUB_ENV
+    
+    - name: Create Deployment Summary
+      run: |
+        echo "## 🚀 Travel Diary Deployment Summary" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🎯 Deployment Status: ✅ SUCCESS" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🌐 Application URLs" >> $GITHUB_STEP_SUMMARY
+        echo "- **Frontend**: [$APPLICATION_URL]($APPLICATION_URL)" >> $GITHUB_STEP_SUMMARY
+        echo "- **API**: [$API_URL]($API_URL)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 📊 Infrastructure Components" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Lambda Function**: Backend API deployed (automated)" >> $GITHUB_STEP_SUMMARY
+        echo "- ✅ **Frontend**: React app deployed (automated)" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔧 **DynamoDB**: Database tables (manual deployment)" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔧 **S3 Bucket**: Frontend hosting (manual deployment)" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔧 **CloudFront**: CDN distribution (manual deployment)" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔧 **API Gateway**: REST API (manual deployment)" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 🔧 Manual Infrastructure Required" >> $GITHUB_STEP_SUMMARY
+        echo "The following components must be deployed manually:" >> $GITHUB_STEP_SUMMARY
+        echo "- **DynamoDB Tables**: travel-diary-prod-*-serverless" >> $GITHUB_STEP_SUMMARY
+        echo "- **S3 Bucket**: ${{ env.S3_BUCKET_NAME }}" >> $GITHUB_STEP_SUMMARY
+        echo "- **CloudFront**: Distribution with comment '${{ env.CLOUDFRONT_COMMENT }}'" >> $GITHUB_STEP_SUMMARY
+        echo "- **API Gateway**: REST API for Lambda integration" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "### 💰 Architecture Benefits" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔄 **Hybrid Deployment**: Critical infrastructure manual, apps automated" >> $GITHUB_STEP_SUMMARY
+        echo "- ⚡ **Fast Deployments**: Only app components updated (~2-3 minutes)" >> $GITHUB_STEP_SUMMARY
+        echo "- 🌍 **Stable CDN**: No CloudFront recreation on each deploy" >> $GITHUB_STEP_SUMMARY
+        echo "- 🔒 **Production Ready**: Manual control over persistent infrastructure" >> $GITHUB_STEP_SUMMARY

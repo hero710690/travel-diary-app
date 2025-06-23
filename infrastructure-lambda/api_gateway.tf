@@ -92,8 +92,13 @@ resource "aws_api_gateway_stage" "main" {
   })
 }
 
-# API Gateway Method Settings (for CORS)
+# API Gateway Method Settings (for CORS) - depends on account configuration
 resource "aws_api_gateway_method_settings" "main" {
+  depends_on = [
+    aws_api_gateway_account.main,
+    aws_cloudwatch_log_group.api_gateway
+  ]
+  
   rest_api_id = aws_api_gateway_rest_api.main.id
   stage_name  = aws_api_gateway_stage.main.stage_name
   method_path = "*/*"

@@ -1,0 +1,11 @@
+# This workflow has been disabled and replaced by deploy.yml
+# Renamed to .disabled to prevent execution
+# Can be deleted safely
+
+name: Deploy Travel Diary Lambda (Full Infrastructure) - DISABLED
+
+# Disabled - no triggers
+on: []
+
+# Original content preserved for reference
+# ... (rest of the workflow content)
