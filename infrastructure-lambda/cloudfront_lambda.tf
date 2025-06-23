@@ -1,7 +1,14 @@
+# Generate random suffix for unique naming
+resource "random_string" "suffix" {
+  length  = 8
+  special = false
+  upper   = false
+}
+
 # Origin Access Control for S3
 resource "aws_cloudfront_origin_access_control" "s3" {
-  name                              = "${local.name_prefix}-s3-oac-v2"
-  description                       = "OAC for Travel Diary S3 bucket v2"
+  name                              = "${local.name_prefix}-s3-oac-${random_string.suffix.result}"
+  description                       = "OAC for Travel Diary S3 bucket"
   origin_access_control_origin_type = "s3"
   signing_behavior                  = "always"
   signing_protocol                  = "sigv4"

@@ -1,0 +1,48 @@
+name: Cleanup Conflicting AWS Resources
+
+on:
+  workflow_dispatch:  # Manual trigger only
+    inputs:
+      confirm_cleanup:
+        description: 'Type "CLEANUP" to confirm'
+        required: true
+        default: ''
+
+env:
+  AWS_REGION: ap-northeast-1
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    if: github.event.inputs.confirm_cleanup == 'CLEANUP'
+    
+    steps:
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Delete Conflicting Resources
+      run: |
+        echo "🗑️ Cleaning up conflicting AWS resources..."
+        
+        # Delete Lambda function
+        aws lambda delete-function --function-name travel-diary-prod-backend-v2 --region ${{ env.AWS_REGION }} || echo "Lambda function not found"
+        
+        # Delete IAM role (need to detach policies first)
+        aws iam detach-role-policy --role-name travel-diary-prod-lambda-execution-role-v2 --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole || echo "Policy not attached"
+        aws iam delete-role-policy --role-name travel-diary-prod-lambda-execution-role-v2 --policy-name travel-diary-prod-lambda-dynamodb-policy || echo "Inline policy not found"
+        aws iam delete-role --role-name travel-diary-prod-lambda-execution-role-v2 || echo "IAM role not found"
+        
+        # Delete CloudWatch log group
+        aws logs delete-log-group --log-group-name /aws/lambda/travel-diary-prod-backend-v2 --region ${{ env.AWS_REGION }} || echo "Log group not found"
+        
+        # Delete CloudFront OAC
+        OAC_ID=$(aws cloudfront list-origin-access-controls --query 'OriginAccessControlList.Items[?Name==`travel-diary-prod-s3-oac-v2`].Id' --output text)
+        if [ -n "$OAC_ID" ] && [ "$OAC_ID" != "None" ]; then
+          aws cloudfront delete-origin-access-control --id $OAC_ID || echo "OAC deletion failed"
+        fi
+        
+        echo "✅ Cleanup completed!"
