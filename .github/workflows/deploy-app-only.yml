@@ -152,6 +152,22 @@ jobs:
       run: |
         echo "🚀 Deploying Lambda function..."
         
+        # Create environment variables JSON file
+        cat > /tmp/lambda-env.json << 'ENVEOF'
+        {
+          "Variables": {
+            "DATABASE_TYPE": "dynamodb",
+            "USERS_TABLE": "travel-diary-prod-users-serverless",
+            "TRIPS_TABLE": "travel-diary-prod-trips-serverless",
+            "SESSIONS_TABLE": "travel-diary-prod-sessions-serverless",
+            "ENVIRONMENT": "prod",
+            "DEBUG": "false",
+            "SECRET_KEY": "${{ secrets.JWT_SECRET_KEY }}",
+            "GOOGLE_MAPS_API_KEY": "${{ secrets.GOOGLE_MAPS_API_KEY }}"
+          }
+        }
+        ENVEOF
+        
         # Check if Lambda function exists
         if aws lambda get-function --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend --region ${{ env.AWS_REGION }} 2>/dev/null; then
           echo "Updating existing Lambda function..."
@@ -163,7 +179,7 @@ jobs:
           # Update environment variables
           aws lambda update-function-configuration \
             --function-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-backend \
-            --environment 'Variables={"DATABASE_TYPE":"dynamodb","USERS_TABLE":"travel-diary-prod-users-serverless","TRIPS_TABLE":"travel-diary-prod-trips-serverless","SESSIONS_TABLE":"travel-diary-prod-sessions-serverless","ENVIRONMENT":"prod","DEBUG":"false","SECRET_KEY":"${{ secrets.JWT_SECRET_KEY }}","GOOGLE_MAPS_API_KEY":"${{ secrets.GOOGLE_MAPS_API_KEY }}"}' \
+            --environment file:///tmp/lambda-env.json \
             --region ${{ env.AWS_REGION }}
         else
           echo "Creating new Lambda function..."
@@ -175,26 +191,25 @@ jobs:
             echo "Creating Lambda execution role..."
             
             # Create trust policy
-            cat > /tmp/trust-policy.json << 'EOF'
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Principal": {
-        "Service": "lambda.amazonaws.com"
-      },
-      "Action": "sts:AssumeRole"
-    }
-  ]
-}
-EOF
+            cat > /tmp/trust-policy.json << 'TRUSTEOF'
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Principal": {
+                    "Service": "lambda.amazonaws.com"
+                  },
+                  "Action": "sts:AssumeRole"
+                }
+              ]
+            }
+            TRUSTEOF
             
             # Create IAM role
             aws iam create-role \
               --role-name ${{ env.PROJECT_NAME }}-${{ env.ENVIRONMENT }}-lambda-role \
-              --assume-role-policy-document file:///tmp/trust-policy.json \
-              --region ${{ env.AWS_REGION }}
+              --assume-role-policy-document file:///tmp/trust-policy.json
             
             # Attach basic execution policy
             aws iam attach-role-policy \
@@ -202,34 +217,34 @@ EOF
               --policy-arn arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
             
             # Create DynamoDB access policy
-            cat > /tmp/dynamodb-policy.json << 'EOF'
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "dynamodb:GetItem",
-        "dynamodb:PutItem",
-        "dynamodb:Query",
-        "dynamodb:Scan",
-        "dynamodb:UpdateItem",
-        "dynamodb:DeleteItem",
-        "dynamodb:BatchGetItem",
-        "dynamodb:BatchWriteItem"
-      ],
-      "Resource": [
-        "arn:aws:dynamodb:*:*:table/travel-diary-prod-users-serverless",
-        "arn:aws:dynamodb:*:*:table/travel-diary-prod-trips-serverless",
-        "arn:aws:dynamodb:*:*:table/travel-diary-prod-sessions-serverless",
-        "arn:aws:dynamodb:*:*:table/travel-diary-prod-users-serverless/index/*",
-        "arn:aws:dynamodb:*:*:table/travel-diary-prod-trips-serverless/index/*",
-        "arn:aws:dynamodb:*:*:table/travel-diary-prod-sessions-serverless/index/*"
-      ]
-    }
-  ]
-}
-EOF
+            cat > /tmp/dynamodb-policy.json << 'DYNAMOEOF'
+            {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "dynamodb:GetItem",
+                    "dynamodb:PutItem",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "dynamodb:UpdateItem",
+                    "dynamodb:DeleteItem",
+                    "dynamodb:BatchGetItem",
+                    "dynamodb:BatchWriteItem"
+                  ],
+                  "Resource": [
+                    "arn:aws:dynamodb:*:*:table/travel-diary-prod-users-serverless",
+                    "arn:aws:dynamodb:*:*:table/travel-diary-prod-trips-serverless",
+                    "arn:aws:dynamodb:*:*:table/travel-diary-prod-sessions-serverless",
+                    "arn:aws:dynamodb:*:*:table/travel-diary-prod-users-serverless/index/*",
+                    "arn:aws:dynamodb:*:*:table/travel-diary-prod-trips-serverless/index/*",
+                    "arn:aws:dynamodb:*:*:table/travel-diary-prod-sessions-serverless/index/*"
+                  ]
+                }
+              ]
+            }
+            DYNAMOEOF
             
             # Attach DynamoDB policy
             aws iam put-role-policy \
@@ -242,9 +257,7 @@ EOF
             
             # Wait for role to be ready
             echo "Waiting for IAM role to be ready..."
-            sleep 10
-            
-            rm /tmp/trust-policy.json /tmp/dynamodb-policy.json
+            sleep 15
           fi
           
           # Create Lambda function
@@ -256,9 +269,12 @@ EOF
             --zip-file fileb://backend.zip \
             --timeout 30 \
             --memory-size 512 \
-            --environment 'Variables={"DATABASE_TYPE":"dynamodb","USERS_TABLE":"travel-diary-prod-users-serverless","TRIPS_TABLE":"travel-diary-prod-trips-serverless","SESSIONS_TABLE":"travel-diary-prod-sessions-serverless","ENVIRONMENT":"prod","DEBUG":"false","SECRET_KEY":"${{ secrets.JWT_SECRET_KEY }}","GOOGLE_MAPS_API_KEY":"${{ secrets.GOOGLE_MAPS_API_KEY }}"}' \
+            --environment file:///tmp/lambda-env.json \
             --region ${{ env.AWS_REGION }}
         fi
+        
+        # Clean up temp files
+        rm -f /tmp/lambda-env.json /tmp/trust-policy.json /tmp/dynamodb-policy.json
         
         echo "✅ Lambda function deployed"
     
