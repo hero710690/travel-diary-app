@@ -1,19 +1,17 @@
 {
-  "name": "travel-diary-frontend",
-  "version": "0.1.0",
+  "name": "travel-diary-client",
+  "version": "1.0.0",
   "private": true,
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-scripts": "5.0.1",
-    "web-vitals": "^2.1.4"
+    "react-scripts": "5.0.1"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test --watchAll=false",
-    "eject": "react-scripts eject",
-    "test:deps": "node -e \"console.log('Testing critical dependencies...'); ['react', 'react-dom', 'react-scripts'].forEach(dep => { try { require.resolve(dep); console.log('✅', dep); } catch(e) { console.log('❌', dep, 'MISSING'); } });\""
+    "test": "react-scripts test",
+    "eject": "react-scripts eject"
   },
   "eslintConfig": {
     "extends": [
@@ -32,5 +30,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
+  },
+  "devDependencies": {
+    "@babel/plugin-proposal-private-property-in-object": "^7.21.11",
+    "babel-preset-react-app": "^10.1.0"
   }
 }
