@@ -26,7 +26,17 @@ const DashboardPage: React.FC = () => {
     ['trips', statusFilter],
     () => tripsAPI.getTrips({ status: statusFilter === 'all' ? undefined : statusFilter }),
     {
-      select: (response) => response.data,
+      select: (response) => {
+        const data = response.data;
+        // Ensure we always return an array
+        if (Array.isArray(data)) {
+          return data;
+        } else if (data && Array.isArray(data.trips)) {
+          return data.trips;
+        } else {
+          return [];
+        }
+      },
       retry: 1,
       staleTime: 5 * 60 * 1000, // 5 minutes
     }
@@ -84,7 +94,8 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  const trips = tripsData || [];
+  // Ensure trips is always a valid array
+  const trips = Array.isArray(tripsData) ? tripsData : [];
 
   return (
     <div className="space-y-6">

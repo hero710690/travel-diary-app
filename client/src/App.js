@@ -4,81 +4,177 @@ import './App.css';
 function App() {
   const [message, setMessage] = useState('Loading...');
   const [apiStatus, setApiStatus] = useState('Checking...');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Test API connection
     const testAPI = async () => {
       try {
-        // Try API through CloudFront first
-        let apiUrl = '/api/v1/auth/health';
-        let response = await fetch(apiUrl);
+        setIsLoading(true);
+        const apiUrl = 'https://aprb1rgwqf.execute-api.ap-northeast-1.amazonaws.com/prod/health';
         
-        if (!response.ok) {
-          // Fallback to direct API Gateway URL if available
-          const directApiUrl = process.env.REACT_APP_API_URL || '/api/v1/auth/health';
-          response = await fetch(directApiUrl);
-        }
+        console.log('Testing API URL:', apiUrl);
+        const response = await fetch(apiUrl);
+        
+        console.log('API Response status:', response.status);
+        console.log('API Response headers:', response.headers);
         
         if (response.ok) {
           const data = await response.json();
-          setApiStatus('✅ API Connected');
-          setMessage(`Backend: ${data.service || 'Travel Diary API'} v${data.version || '1.0.0'}`);
+          console.log('API Response data:', data);
+          setApiStatus('✅ Connected');
+          setMessage(`${data.service || 'Travel Diary API'} v${data.version || '1.0.0'}`);
         } else {
-          setApiStatus('❌ API Error');
-          setMessage(`Backend API returned status: ${response.status}`);
+          const errorText = await response.text();
+          console.log('API Error response:', errorText);
+          setApiStatus('❌ Error');
+          setMessage(`API returned status: ${response.status}`);
         }
       } catch (error) {
-        setApiStatus('❌ API Offline');
-        setMessage(`Cannot connect to backend API: ${error.message}`);
+        console.error('API Connection error:', error);
+        setApiStatus('❌ Offline');
+        setMessage(`Cannot connect to backend: ${error.message}`);
+      } finally {
+        setIsLoading(false);
       }
     };
 
     testAPI();
   }, []);
 
+  const handleTestAPI = async () => {
+    try {
+      const apiUrl = 'https://aprb1rgwqf.execute-api.ap-northeast-1.amazonaws.com/prod/health';
+      console.log('Testing API URL:', apiUrl);
+      
+      const response = await fetch(apiUrl);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('API Response data:', data);
+        alert('✅ API Connection Successful!\n\n' + JSON.stringify(data, null, 2));
+      } else {
+        const errorText = await response.text();
+        console.log('API Error response:', errorText);
+        alert(`❌ API Error!\nStatus: ${response.status}\nResponse: ${errorText}`);
+      }
+    } catch (error) {
+      console.error('API Test error:', error);
+      alert(`❌ API Connection Failed!\nError: ${error.message}`);
+    }
+  };
+
   return (
     <div className="App">
-      <header className="header">
-        <h1>🌍 Travel Diary</h1>
-        <p>Your serverless travel companion</p>
-      </header>
-      
+      {/* Hero Section */}
+      <section className="hero">
+        <div className="hero-content">
+          <h1>🌍 Travel Diary</h1>
+          <p className="hero-subtitle">Your Personal Journey Companion</p>
+          <p>Capture memories, plan adventures, and explore the world with our beautiful, serverless travel diary application. Built for wanderers, dreamers, and explorers.</p>
+          
+          <div className="cta-buttons">
+            <button className="btn btn-primary" onClick={() => window.location.reload()}>
+              🚀 Get Started
+            </button>
+            <button className="btn btn-secondary" onClick={handleTestAPI}>
+              🔗 Test Connection
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Main Content */}
       <main className="main-content">
         <div className="container">
-          <h2>Welcome to Travel Diary!</h2>
-          <p>Plan your trips, document your adventures, and create lasting memories.</p>
           
-          <div className="status-card">
-            <h3>System Status</h3>
-            <p><strong>Frontend:</strong> ✅ React App Running</p>
-            <p><strong>Backend:</strong> {apiStatus}</p>
-            <p><strong>Message:</strong> {message}</p>
-            <p><strong>Environment:</strong> {process.env.NODE_ENV}</p>
-          </div>
+          {/* Features Section */}
+          <section className="features-section">
+            <h2 className="section-title">Powerful Features for Every Traveler</h2>
+            <p className="section-subtitle">
+              Transform the way you travel with our comprehensive suite of tools designed to make every journey memorable and every moment worth capturing.
+            </p>
+            
+            <div className="features-grid">
+              {[
+                {
+                  icon: '✈️',
+                  title: 'Trip Planning',
+                  description: 'Plan your perfect journey with our intuitive trip planner. Set destinations, dates, and create detailed itineraries.'
+                },
+                {
+                  icon: '📝',
+                  title: 'Travel Journal',
+                  description: 'Document your adventures with rich text entries, photos, and memories that last a lifetime.'
+                },
+                {
+                  icon: '📸',
+                  title: 'Photo Gallery',
+                  description: 'Organize and showcase your travel photos with smart albums and location-based sorting.'
+                },
+                {
+                  icon: '🗺️',
+                  title: 'Interactive Maps',
+                  description: 'Visualize your journeys on beautiful interactive maps with route tracking and location pins.'
+                },
+                {
+                  icon: '💰',
+                  title: 'Expense Tracking',
+                  description: 'Keep track of your travel budget with detailed expense categories and spending analytics.'
+                },
+                {
+                  icon: '🔐',
+                  title: 'Secure & Private',
+                  description: 'Your travel memories are protected with enterprise-grade security and privacy controls.'
+                }
+              ].map((feature, index) => (
+                <div key={index} className="feature-card">
+                  <span className="feature-icon">{feature.icon}</span>
+                  <h4 className="feature-title">{feature.title}</h4>
+                  <p className="feature-description">{feature.description}</p>
+                </div>
+              ))}
+            </div>
+          </section>
 
-          <div className="features">
-            <h3>Features Available</h3>
-            <ul>
-              <li>✈️ Trip Planning</li>
-              <li>📝 Travel Journal</li>
-              <li>📸 Photo Gallery</li>
-              <li>🗺️ Interactive Maps</li>
-              <li>💰 Expense Tracking</li>
-              <li>🔐 User Authentication</li>
-            </ul>
-          </div>
+          {/* Status Section */}
+          <section className="status-section">
+            <h3 className="status-title">System Status</h3>
+            <div className="status-grid">
+              <div className="status-item">
+                <span className="status-label">Frontend Application</span>
+                <span className="status-value status-connected">✅ Active</span>
+              </div>
+              <div className="status-item">
+                <span className="status-label">Backend API</span>
+                <span className={`status-value ${
+                  isLoading ? 'status-checking' : 
+                  apiStatus.includes('✅') ? 'status-connected' : 'status-error'
+                }`}>
+                  {isLoading ? '⏳ Checking...' : apiStatus}
+                </span>
+              </div>
+              <div className="status-item">
+                <span className="status-label">Service</span>
+                <span className="status-value">{message}</span>
+              </div>
+              <div className="status-item">
+                <span className="status-label">Environment</span>
+                <span className="status-value">🌐 Production</span>
+              </div>
+              <div className="status-item">
+                <span className="status-label">Architecture</span>
+                <span className="status-value">🚀 Serverless</span>
+              </div>
+            </div>
+          </section>
 
+          {/* Actions */}
           <div className="actions">
-            <button className="btn" onClick={() => window.location.reload()}>
-              Refresh Status
+            <button className="btn btn-primary" onClick={() => window.location.reload()}>
+              🔄 Refresh Status
             </button>
-            <button className="btn" onClick={() => {
-              fetch('/api/v1/auth/health')
-                .then(res => res.json())
-                .then(data => alert(JSON.stringify(data, null, 2)))
-                .catch(err => alert('API Error: ' + err.message));
-            }}>
-              Test API
+            <button className="btn btn-secondary" onClick={handleTestAPI}>
+              🧪 Test API Connection
             </button>
           </div>
         </div>
