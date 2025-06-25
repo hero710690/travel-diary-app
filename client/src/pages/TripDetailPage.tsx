@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
-import { tripsAPI } from '../services/api';
+import { tripsService } from '../services/trips';
 import { 
   PencilIcon, 
   TrashIcon, 
@@ -12,7 +12,11 @@ import {
   MapPinIcon,
   ArrowPathIcon,
   CheckIcon,
-  XMarkIcon
+  XMarkIcon,
+  UserPlusIcon,
+  ShareIcon,
+  LinkIcon,
+  UsersIcon
 } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
@@ -47,9 +51,25 @@ const TripDetailPage: React.FC = () => {
     notes: ''
   });
 
+  // Collaboration & Sharing State
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'viewer' | 'editor'>('viewer');
+  const [shareLink, setShareLink] = useState('');
+  const [isGeneratingLink, setIsGeneratingLink] = useState(false);
+  const [collaborators, setCollaborators] = useState<Array<{
+    id: string;
+    email: string;
+    name: string;
+    role: 'owner' | 'editor' | 'viewer';
+    status: 'pending' | 'accepted';
+    joinedAt?: string;
+  }>>([]);
+
   const { data: tripResponse, isLoading, error, refetch } = useQuery(
     ['trip', id],
-    () => tripsAPI.getTripById(id!),
+    () => tripsService.getTrip(id!),
     {
       enabled: !!id,
       // Disable caching to ensure fresh data
@@ -59,9 +79,9 @@ const TripDetailPage: React.FC = () => {
   );
 
   // Extract trip data from response
-  const tripData = tripResponse?.data?.trip;
+  const tripData = tripResponse;
 
-  const deleteTripMutation = useMutation(tripsAPI.deleteTrip, {
+  const deleteTripMutation = useMutation(tripsService.deleteTrip, {
     onSuccess: () => {
       queryClient.invalidateQueries('trips');
       toast.success('Trip deleted successfully!');
@@ -75,7 +95,7 @@ const TripDetailPage: React.FC = () => {
 
   // Update itinerary mutation
   const updateItineraryMutation = useMutation(
-    (updatedItinerary: any[]) => tripsAPI.updateItinerary(id!, updatedItinerary),
+    (updatedItinerary: any[]) => tripsService.updateItinerary(id!, updatedItinerary),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['trip', id]);
@@ -90,8 +110,81 @@ const TripDetailPage: React.FC = () => {
   );
 
   const handleDeleteTrip = () => {
-    if (window.confirm(`Are you sure you want to delete "${tripData?.title}"? This action cannot be undone.`)) {
+    if (window.confirm(`Are you sure you want to delete "${tripData?.name}"? This action cannot be undone.`)) {
       deleteTripMutation.mutate(id!);
+    }
+  };
+
+  // Collaboration & Sharing Functions
+  const handleInviteUser = async () => {
+    if (!inviteEmail.trim()) {
+      toast.error('Please enter an email address');
+      return;
+    }
+
+    try {
+      // TODO: Replace with actual API call when backend is ready
+      console.log('Inviting user:', { email: inviteEmail, role: inviteRole, tripId: id });
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Add to collaborators list (mock data)
+      const newCollaborator = {
+        id: Date.now().toString(),
+        email: inviteEmail,
+        name: inviteEmail.split('@')[0],
+        role: inviteRole,
+        status: 'pending' as const,
+      };
+      
+      setCollaborators(prev => [...prev, newCollaborator]);
+      setInviteEmail('');
+      setShowInviteModal(false);
+      toast.success(`Invitation sent to ${inviteEmail}`);
+    } catch (error) {
+      toast.error('Failed to send invitation');
+    }
+  };
+
+  const handleGenerateShareLink = async () => {
+    setIsGeneratingLink(true);
+    try {
+      // TODO: Replace with actual API call when backend is ready
+      console.log('Generating share link for trip:', id);
+      
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Generate mock share link
+      const mockShareLink = `${window.location.origin}/trips/shared/${id}?token=${Date.now()}`;
+      setShareLink(mockShareLink);
+      toast.success('Share link generated!');
+    } catch (error) {
+      toast.error('Failed to generate share link');
+    } finally {
+      setIsGeneratingLink(false);
+    }
+  };
+
+  const handleCopyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(shareLink);
+      toast.success('Link copied to clipboard!');
+    } catch (error) {
+      toast.error('Failed to copy link');
+    }
+  };
+
+  const handleRemoveCollaborator = async (collaboratorId: string) => {
+    try {
+      // TODO: Replace with actual API call when backend is ready
+      console.log('Removing collaborator:', collaboratorId);
+      
+      setCollaborators(prev => prev.filter(c => c.id !== collaboratorId));
+      toast.success('Collaborator removed');
+    } catch (error) {
+      toast.error('Failed to remove collaborator');
     }
   };
 
@@ -108,7 +201,7 @@ const TripDetailPage: React.FC = () => {
     if (!tripData?.itinerary) return;
 
     // Find the original item in the backend data
-    const originalItemIndex = tripData.itinerary.findIndex((backendItem: any) => {
+    const originalItemIndex = tripData.itinerary?.findIndex((backendItem: any) => {
       return backendItem.place?.name === item.title || 
              backendItem.custom_title === item.title ||
              backendItem._id === item.id;
@@ -120,7 +213,7 @@ const TripDetailPage: React.FC = () => {
     }
 
     // Create updated itinerary with backend field names (using any to avoid type conflicts)
-    const updatedItinerary = [...tripData.itinerary];
+    const updatedItinerary = [...(tripData.itinerary || [])];
     const originalItem = updatedItinerary[originalItemIndex] as any;
     
     updatedItinerary[originalItemIndex] = {
@@ -144,7 +237,7 @@ const TripDetailPage: React.FC = () => {
       return [];
     }
 
-    const transformedItems = tripData.itinerary.map((item: any, index: number) => {
+    const transformedItems = (tripData.itinerary || []).map((item: any, index: number) => {
       try {
         let dayNumber = 1; // Default to day 1 if no trip dates
         
@@ -166,7 +259,7 @@ const TripDetailPage: React.FC = () => {
             const itemDate = new Date(item.date);
             if (!isNaN(itemDate.getTime())) {
               // Use the item's date to determine relative day
-              const firstItemDate = tripData.itinerary[0]?.date;
+              const firstItemDate = tripData.itinerary?.[0]?.date;
               if (firstItemDate) {
                 const baseDate = new Date(firstItemDate);
                 if (!isNaN(baseDate.getTime())) {
@@ -216,7 +309,7 @@ const TripDetailPage: React.FC = () => {
       }
       
       // Find the date range from itinerary items
-      const dates = tripData.itinerary
+      const dates = (tripData.itinerary || [])
         .map((item: any) => new Date(item.date))
         .filter((date: Date) => !isNaN(date.getTime()))
         .sort((a: Date, b: Date) => a.getTime() - b.getTime());
@@ -315,9 +408,9 @@ const TripDetailPage: React.FC = () => {
       {/* Header */}
       <div className="bg-white shadow rounded-lg p-6">
         <div className="flex justify-between items-start mb-4">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 mb-2">{tripData.title}</h1>
-            <p className="text-gray-600">{tripData.description}</p>
+          <div className="text-left">
+            <h1 className="text-2xl font-bold text-gray-900 mb-2 text-left">{tripData.name}</h1>
+            <p className="text-gray-600 text-left">{tripData.description}</p>
           </div>
           <div className="flex space-x-2">
             <button
@@ -334,6 +427,20 @@ const TripDetailPage: React.FC = () => {
               <MapIcon className="h-4 w-4 mr-2" />
               Plan Trip
             </Link>
+            <button
+              onClick={() => setShowInviteModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+            >
+              <UserPlusIcon className="h-4 w-4 mr-2" />
+              Invite
+            </button>
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="inline-flex items-center px-4 py-2 border border-purple-300 shadow-sm text-sm font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+            >
+              <ShareIcon className="h-4 w-4 mr-2" />
+              Share
+            </button>
             <Link
               to={`/trips/${id}/edit`}
               className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
@@ -353,17 +460,19 @@ const TripDetailPage: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <div>
-            <h3 className="font-medium text-gray-900">Destination</h3>
-            <p className="text-gray-600">{tripData.destination}</p>
+          <div className="text-left">
+            <h3 className="font-medium text-gray-900 text-left">Destination</h3>
+            <p className="text-gray-600 text-left">{tripData.destination}</p>
           </div>
-          <div>
-            <h3 className="font-medium text-gray-900">Duration</h3>
-            <p className="text-gray-600">{tripData.duration} days</p>
+          <div className="text-left">
+            <h3 className="font-medium text-gray-900 text-left">Duration</h3>
+            <p className="text-gray-600 text-left">
+              {Math.ceil((new Date(tripData.endDate).getTime() - new Date(tripData.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
+            </p>
           </div>
-          <div>
-            <h3 className="font-medium text-gray-900">Dates</h3>
-            <p className="text-gray-600">
+          <div className="text-left">
+            <h3 className="font-medium text-gray-900 text-left">Dates</h3>
+            <p className="text-gray-600 text-left">
               {(() => {
                 try {
                   const startDate = new Date(tripData.startDate);
@@ -378,10 +487,6 @@ const TripDetailPage: React.FC = () => {
                 }
               })()}
             </p>
-          </div>
-          <div>
-            <h3 className="font-medium text-gray-900">Status</h3>
-            <p className="text-gray-600 capitalize">{tripData.status}</p>
           </div>
         </div>
       </div>
@@ -418,59 +523,32 @@ const TripDetailPage: React.FC = () => {
           {activeTab === 'overview' && (
             <div className="space-y-6">
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Trip Summary</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-3 text-left">Trip Summary</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Budget</h4>
-                    <p className="text-gray-600">
-                      {tripData.totalBudget > 0 
-                        ? `${tripData.currency} ${tripData.totalBudget.toLocaleString()}`
-                        : 'Not set'
-                      }
-                    </p>
-                  </div>
-                  <div>
-                    <h4 className="font-medium text-gray-900 mb-2">Visibility</h4>
-                    <p className="text-gray-600">
-                      {tripData.isPublic ? 'Public' : 'Private'}
-                    </p>
-                  </div>
-                  {tripData.tags && tripData.tags.length > 0 && (
-                    <div className="md:col-span-2">
-                      <h4 className="font-medium text-gray-900 mb-2">Tags</h4>
-                      <div className="flex flex-wrap gap-2">
-                        {tripData.tags.map((tag: string, index: number) => (
-                          <span
-                            key={index}
-                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  {/* Budget and visibility sections removed as they're not in TripDisplay interface */}
                 </div>
+                
+                {/* Tags section removed as it's not in TripDisplay interface */}
               </div>
               
               <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-3">Quick Stats</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-3 text-left">Quick Stats</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <div className="flex items-center">
                       <CalendarIcon className="h-8 w-8 text-blue-600" />
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-blue-900">Planned Activities</p>
-                        <p className="text-2xl font-bold text-blue-600">{itinerary.length}</p>
+                      <div className="ml-3 text-left">
+                        <p className="text-sm font-medium text-blue-900 text-left">Planned Activities</p>
+                        <p className="text-2xl font-bold text-blue-600 text-left">{itinerary.length}</p>
                       </div>
                     </div>
                   </div>
                   <div className="bg-green-50 p-4 rounded-lg">
                     <div className="flex items-center">
                       <PaperAirplaneIcon className="h-8 w-8 text-green-600" />
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-green-900">Flights</p>
-                        <p className="text-2xl font-bold text-green-600">
+                      <div className="ml-3 text-left">
+                        <p className="text-sm font-medium text-green-900 text-left">Flights</p>
+                        <p className="text-2xl font-bold text-green-600 text-left">
                           {itinerary.filter(item => item.type === 'flight').length}
                         </p>
                       </div>
@@ -479,9 +557,9 @@ const TripDetailPage: React.FC = () => {
                   <div className="bg-purple-50 p-4 rounded-lg">
                     <div className="flex items-center">
                       <MapPinIcon className="h-8 w-8 text-purple-600" />
-                      <div className="ml-3">
-                        <p className="text-sm font-medium text-purple-900">Places</p>
-                        <p className="text-2xl font-bold text-purple-600">
+                      <div className="ml-3 text-left">
+                        <p className="text-sm font-medium text-purple-900 text-left">Places</p>
+                        <p className="text-2xl font-bold text-purple-600 text-left">
                           {itinerary.filter(item => item.type === 'activity').length}
                         </p>
                       </div>
@@ -495,7 +573,7 @@ const TripDetailPage: React.FC = () => {
           {activeTab === 'itinerary' && (
             <div className="space-y-6">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900">Planned Itinerary</h3>
+                <h3 className="text-lg font-medium text-gray-900 text-left">Planned Itinerary</h3>
                 <Link
                   to={`/trips/${id}/plan`}
                   className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
@@ -694,6 +772,190 @@ const TripDetailPage: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Invite Modal */}
+      {showInviteModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Invite Collaborator</h3>
+                <button
+                  onClick={() => setShowInviteModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    value={inviteEmail}
+                    onChange={(e) => setInviteEmail(e.target.value)}
+                    placeholder="Enter email address"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Role
+                  </label>
+                  <select
+                    value={inviteRole}
+                    onChange={(e) => setInviteRole(e.target.value as 'viewer' | 'editor')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="viewer">Viewer - Can view trip details</option>
+                    <option value="editor">Editor - Can edit trip details</option>
+                  </select>
+                </div>
+
+                {collaborators.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 mb-2">Current Collaborators</h4>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {collaborators.map((collaborator) => (
+                        <div key={collaborator.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                          <div className="flex items-center space-x-2">
+                            <UsersIcon className="h-4 w-4 text-gray-400" />
+                            <div>
+                              <p className="text-sm font-medium text-gray-900">{collaborator.name}</p>
+                              <p className="text-xs text-gray-500">{collaborator.email} • {collaborator.role}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <span className={`px-2 py-1 text-xs rounded-full ${
+                              collaborator.status === 'accepted' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {collaborator.status}
+                            </span>
+                            {collaborator.role !== 'owner' && (
+                              <button
+                                onClick={() => handleRemoveCollaborator(collaborator.id)}
+                                className="text-red-400 hover:text-red-600"
+                              >
+                                <XMarkIcon className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              
+              <div className="flex justify-end space-x-3 mt-6">
+                <button
+                  onClick={() => setShowInviteModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleInviteUser}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Send Invitation
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Share Trip</h3>
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <p className="text-sm text-gray-600 mb-3">
+                    Generate a shareable link that allows others to view your trip details.
+                  </p>
+                  
+                  {!shareLink ? (
+                    <button
+                      onClick={handleGenerateShareLink}
+                      disabled={isGeneratingLink}
+                      className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                    >
+                      <LinkIcon className="h-4 w-4 mr-2" />
+                      {isGeneratingLink ? 'Generating...' : 'Generate Share Link'}
+                    </button>
+                  ) : (
+                    <div className="space-y-3">
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="text"
+                          value={shareLink}
+                          readOnly
+                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
+                        />
+                        <button
+                          onClick={handleCopyShareLink}
+                          className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          Copy
+                        </button>
+                      </div>
+                      
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => {
+                            const text = `Check out my trip: ${tripData?.name} ${shareLink}`;
+                            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
+                          }}
+                          className="flex-1 px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          Share on Twitter
+                        </button>
+                        <button
+                          onClick={() => {
+                            const text = `Check out my trip: ${tripData?.name} ${shareLink}`;
+                            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}&quote=${encodeURIComponent(text)}`, '_blank');
+                          }}
+                          className="flex-1 px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                        >
+                          Share on Facebook
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex justify-end mt-6">
+                <button
+                  onClick={() => setShowShareModal(false)}
+                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

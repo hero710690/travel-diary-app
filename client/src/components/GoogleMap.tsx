@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Wrapper, Status } from '@googlemaps/react-wrapper';
+import GoogleMapFallback from './GoogleMapFallback';
 
 interface MapProps {
   center: google.maps.LatLngLiteral;
@@ -95,6 +96,13 @@ const MapComponent: React.FC<MapProps> = ({
 };
 
 const GoogleMap: React.FC<MapProps> = (props) => {
+  const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+  
+  // If no API key, show fallback
+  if (!apiKey) {
+    return <GoogleMapFallback {...props} />;
+  }
+
   const render = (status: Status) => {
     switch (status) {
       case Status.LOADING:
@@ -104,11 +112,7 @@ const GoogleMap: React.FC<MapProps> = (props) => {
           </div>
         );
       case Status.FAILURE:
-        return (
-          <div className="flex items-center justify-center h-96 bg-red-50">
-            <div className="text-red-500">Error loading map</div>
-          </div>
-        );
+        return <GoogleMapFallback {...props} />;
       case Status.SUCCESS:
         return <MapComponent {...props} />;
     }
@@ -116,7 +120,7 @@ const GoogleMap: React.FC<MapProps> = (props) => {
 
   return (
     <Wrapper 
-      apiKey={process.env.REACT_APP_GOOGLE_MAPS_API_KEY || ''} 
+      apiKey={apiKey} 
       render={render}
       libraries={['places', 'geometry']}
     />

@@ -87,7 +87,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
           {/* Basic Flight Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                 Airline *
               </label>
               <input
@@ -100,7 +100,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                 Flight Number *
               </label>
               <input
@@ -116,10 +116,10 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
 
           {/* Departure Info */}
           <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Departure</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3 text-left">Departure</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Airport Code *
                 </label>
                 <input
@@ -133,7 +133,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Departure Time *
                 </label>
                 <input
@@ -145,7 +145,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Airport Name
                 </label>
                 <input
@@ -157,7 +157,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Terminal
                 </label>
                 <input
@@ -169,7 +169,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Gate
                 </label>
                 <input
@@ -185,10 +185,10 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
 
           {/* Arrival Info */}
           <div className="border border-gray-200 rounded-lg p-4">
-            <h3 className="text-lg font-medium text-gray-900 mb-3">Arrival</h3>
+            <h3 className="text-lg font-medium text-gray-900 mb-3 text-left">Arrival</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Airport Code *
                 </label>
                 <input
@@ -202,7 +202,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Arrival Time *
                 </label>
                 <input
@@ -214,7 +214,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
                 />
               </div>
               <div className="md:col-span-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Airport Name
                 </label>
                 <input
@@ -226,7 +226,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Terminal
                 </label>
                 <input
@@ -238,7 +238,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Gate
                 </label>
                 <input
@@ -255,7 +255,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
           {/* Additional Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                 Duration
               </label>
               <input
@@ -267,7 +267,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                 Status
               </label>
               <select
@@ -284,7 +284,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
               </select>
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                 Seat Number
               </label>
               <input
@@ -296,7 +296,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                 Aircraft
               </label>
               <input
@@ -308,7 +308,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
               />
             </div>
             <div className="md:col-span-2">
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                 Booking Reference
               </label>
               <input

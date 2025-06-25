@@ -10,24 +10,42 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const { login, isAuthenticated, loading, user } = useAuth();
+  const { login, isAuthenticated, isLoading: authLoading, user } = useAuth();
   const navigate = useNavigate();
 
-  // Debug current auth state
-  console.log('LoginPage render - Auth state:', { isAuthenticated, loading, user: !!user });
-  console.log('LoginPage render - localStorage token:', localStorage.getItem('token'));
-  console.log('LoginPage render - localStorage user:', localStorage.getItem('user'));
+  // Add a direct API test function
+  const testDirectAPI = async () => {
+    console.log('🧪 DIRECT API TEST - Starting...');
+    try {
+      const response = await fetch('https://aprb1rgwqf.execute-api.ap-northeast-1.amazonaws.com/prod/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: 'testuser@example.com',
+          password: 'password123'
+        })
+      });
+      
+      console.log('🧪 DIRECT API TEST - Response:', response);
+      const data = await response.json();
+      console.log('🧪 DIRECT API TEST - Data:', data);
+    } catch (error) {
+      console.error('🧪 DIRECT API TEST - Error:', error);
+    }
+  };
 
   // Force redirect if authenticated (backup to PublicRoute)
   useEffect(() => {
-    console.log('LoginPage useEffect - isAuthenticated:', isAuthenticated, 'loading:', loading);
-    if (!loading && isAuthenticated) {
+    console.log('LoginPage useEffect - isAuthenticated:', isAuthenticated, 'authLoading:', authLoading);
+    if (!authLoading && isAuthenticated) {
       console.log('LoginPage - User is authenticated, forcing navigation to dashboard');
       setTimeout(() => {
         navigate('/dashboard', { replace: true });
       }, 100); // Small delay to ensure state is fully updated
     }
-  }, [isAuthenticated, loading, navigate]);
+  }, [isAuthenticated, authLoading, navigate]);
 
   const {
     register,
@@ -42,27 +60,30 @@ const LoginPage: React.FC = () => {
   });
 
   const onSubmit = async (data: LoginForm) => {
+    console.log('🔥 FORM SUBMITTED - onSubmit called with data:', data);
     setIsLoading(true);
     setError('');
     
     try {
-      console.log('Login attempt:', data);
+      console.log('🚀 Starting login attempt:', data);
       
       // Clear any existing auth data before login
-      localStorage.removeItem('token');
+      localStorage.removeItem('authToken');
       localStorage.removeItem('user');
-      console.log('Cleared existing localStorage data');
+      console.log('🧹 Cleared existing localStorage data');
       
-      await login(data);
-      console.log('Login successful - redirecting to dashboard');
+      console.log('📡 About to call login() function...');
+      await login(data.email, data.password);
+      console.log('✅ Login successful - redirecting to dashboard');
       
       // Small delay to ensure state is updated
       setTimeout(() => {
+        console.log('🔄 Redirecting to dashboard...');
         window.location.href = '/dashboard';
       }, 100);
       
     } catch (err: any) {
-      console.error('Login error:', err);
+      console.error('❌ Login error:', err);
       const errorMessage = err.response?.data?.message || err.response?.data?.detail || err.message || 'Login failed. Please check your credentials.';
       setError(errorMessage);
       setIsLoading(false);
@@ -89,6 +110,17 @@ const LoginPage: React.FC = () => {
             </p>
           </div>
 
+          {/* Direct API Test Button */}
+          <div className="mb-4">
+            <button
+              type="button"
+              onClick={testDirectAPI}
+              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            >
+              🧪 Test Direct API Call (Bypass Everything)
+            </button>
+          </div>
+
           {/* Error Message */}
           {error && (
             <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
@@ -97,7 +129,13 @@ const LoginPage: React.FC = () => {
           )}
 
           {/* Login Form */}
-          <form className="space-y-6" onSubmit={handleSubmit(onSubmit)}>
+          <form 
+            className="space-y-6" 
+            onSubmit={(e) => {
+              console.log('📝 Form onSubmit event triggered!', e);
+              handleSubmit(onSubmit)(e);
+            }}
+          >
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
                 Email
@@ -184,6 +222,10 @@ const LoginPage: React.FC = () => {
               <button
                 type="submit"
                 disabled={isLoading}
+                onClick={(e) => {
+                  console.log('🖱️ Submit button clicked!', e);
+                  console.log('🔍 Form validation state:', errors);
+                }}
                 className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 {isLoading ? (

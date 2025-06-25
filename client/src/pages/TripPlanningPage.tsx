@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { format, addDays, differenceInDays } from 'date-fns';
-import { tripsAPI } from '../services/api';
+import { tripsService } from '../services/trips';
 import { Trip, ItineraryItem, FlightInfo } from '../types';
 import { safeParseDate, addDaysToDate, getDaysDifferenceIgnoreTime } from '../utils/dateUtils';
 import GoogleMap from '../components/GoogleMap';
@@ -19,6 +19,9 @@ import {
   MapIcon,
   CalendarIcon,
   ClockIcon,
+  UsersIcon,
+  EyeIcon,
+  PencilIcon as PencilIconOutline,
 } from '@heroicons/react/24/outline';
 
 interface Place {
@@ -43,40 +46,56 @@ const TripPlanningPage: React.FC = () => {
   const [itinerary, setItinerary] = useState<ItineraryItem[]>([]);
   const [isMapReady, setIsMapReady] = useState(false);
 
+  // Collaborative Editing State
+  const [activeCollaborators, setActiveCollaborators] = useState<Array<{
+    id: string;
+    name: string;
+    email: string;
+    color: string;
+    lastSeen: Date;
+    currentlyEditing?: string; // item ID they're editing
+  }>>([]);
+  const [isCollaborativeMode, setIsCollaborativeMode] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
+  const [pendingChanges, setPendingChanges] = useState<string[]>([]);
+
   // Fetch trip data
   const { data: tripData, isLoading } = useQuery(
     ['trip', id],
-    () => tripsAPI.getTripById(id!),
+    () => tripsService.getTrip(id!),
     {
       enabled: !!id,
-      onSuccess: (response) => {
-        const trip = response.data.trip;
+      onSuccess: (trip) => {
         
         // Transform backend itinerary to frontend format
         if (trip.itinerary && trip.itinerary.length > 0) {
           const transformedItinerary = trip.itinerary.map((item: any, index: number) => {
             // Calculate day number from date using safe date parsing
-            const tripStartDate = safeParseDate(trip.startDate);
+            const tripStartDate = safeParseDate(trip.startDate || (trip as any).start_date);
             const itemDate = safeParseDate(item.date);
             
             // Use the new utility function to avoid timezone issues
             const dayDifference = getDaysDifferenceIgnoreTime(tripStartDate, itemDate);
-            const dayNumber = dayDifference + 1;
+            // Ensure day number is at least 1, even if the item date is before trip start
+            const dayNumber = Math.max(1, dayDifference + 1);
             
             console.log('📅 Day calculation debug:', {
               tripStartDate: tripStartDate.toISOString(),
               itemDate: itemDate.toISOString(),
               dayDifference,
               calculatedDay: dayNumber,
-              itemId: item._id
+              itemIndex: index
             });
 
             // Check if this is a flight item
             const isFlightItem = item.flightInfo || (item.place?.types && item.place.types.includes('flight'));
 
+            // Generate a unique ID if _id is not available
+            const itemId = item._id || item.id || `${item.place?.place_id || 'item'}_${index}_${Date.now()}`;
+
             return {
-              id: item._id || `item_${index}`,
-              day: Math.max(1, dayNumber),
+              id: itemId,
+              day: dayNumber,
               time: item.start_time || '09:00',
               title: item.custom_title || item.place?.name || 'Activity',
               description: item.custom_description || item.place?.address || '',
@@ -96,6 +115,7 @@ const TripPlanningPage: React.FC = () => {
           console.log('📥 Loaded and transformed itinerary:', transformedItinerary);
           setItinerary(transformedItinerary);
         } else {
+          console.log('📥 No itinerary data found, setting empty array');
           setItinerary([]);
         }
         
@@ -110,7 +130,7 @@ const TripPlanningPage: React.FC = () => {
 
   // Update itinerary mutation
   const updateItineraryMutation = useMutation(
-    (transformedItinerary: any[]) => tripsAPI.updateItinerary(id!, transformedItinerary),
+    (transformedItinerary: any[]) => tripsService.updateItinerary(id!, transformedItinerary),
     {
       onSuccess: () => {
         queryClient.invalidateQueries(['trip', id]);
@@ -220,9 +240,9 @@ const TripPlanningPage: React.FC = () => {
   };
 
   const generateDays = () => {
-    if (!tripData?.data.trip) return [];
+    if (!tripData) return [];
     
-    const trip = tripData.data.trip;
+    const trip = tripData;
     
     // Handle different date formats from backend
     let startDate: Date;
@@ -329,15 +349,27 @@ const TripPlanningPage: React.FC = () => {
   };
 
   const handleSaveItinerary = () => {
-    if (!tripData?.data.trip) {
+    if (!tripData) {
       toast.error('Trip data not available');
       return;
     }
 
+    if (!id) {
+      toast.error('Trip ID is missing');
+      console.error('❌ Trip ID is missing:', { id, tripData });
+      return;
+    }
+
+    console.log('🔍 Save itinerary debug:', {
+      tripId: id,
+      tripData: tripData,
+      itineraryLength: itinerary.length
+    });
+
     // Transform the itinerary to match backend schema
     const transformedItinerary = itinerary.map((item, index) => {
       // Calculate the actual date based on trip start date and day number
-      const tripStartDateValue = tripData?.data.trip.startDate;
+      const tripStartDateValue = tripData?.startDate;
       console.log('🔍 Trip start date value:', tripStartDateValue);
       
       const tripStartDate = safeParseDate(tripStartDateValue);
@@ -411,6 +443,75 @@ const TripPlanningPage: React.FC = () => {
     updateItineraryMutation.mutate(transformedItinerary);
   };
 
+  // Collaborative Editing Functions
+  const initializeCollaborativeMode = () => {
+    // TODO: Replace with actual WebSocket connection when backend is ready
+    console.log('Initializing collaborative mode for trip:', id);
+    
+    // Mock collaborative users
+    const mockCollaborators = [
+      {
+        id: 'user1',
+        name: 'Alice Johnson',
+        email: 'alice@example.com',
+        color: '#3B82F6', // blue
+        lastSeen: new Date(),
+      },
+      {
+        id: 'user2', 
+        name: 'Bob Smith',
+        email: 'bob@example.com',
+        color: '#10B981', // green
+        lastSeen: new Date(Date.now() - 30000), // 30 seconds ago
+      }
+    ];
+    
+    setActiveCollaborators(mockCollaborators);
+    setIsCollaborativeMode(true);
+    toast.success('Collaborative mode enabled');
+  };
+
+  const handleCollaborativeEdit = (itemId: string, updates: Partial<ItineraryItem>) => {
+    // Mark as pending change for real-time sync
+    setPendingChanges(prev => [...prev, itemId]);
+    
+    // Update local state immediately for responsive UI
+    handleUpdateItineraryItem(itemId, updates);
+    
+    // TODO: Send change to other collaborators via WebSocket
+    console.log('Broadcasting change:', { itemId, updates });
+    
+    // Simulate network delay and remove from pending
+    setTimeout(() => {
+      setPendingChanges(prev => prev.filter(id => id !== itemId));
+      setLastSyncTime(new Date());
+    }, 500);
+  };
+
+  const handleCollaboratorCursorMove = (collaboratorId: string, itemId?: string) => {
+    setActiveCollaborators(prev => prev.map(collab => 
+      collab.id === collaboratorId 
+        ? { ...collab, currentlyEditing: itemId, lastSeen: new Date() }
+        : collab
+    ));
+  };
+
+  const getCollaboratorEditingItem = (itemId: string) => {
+    return activeCollaborators.find(collab => collab.currentlyEditing === itemId);
+  };
+
+  // Initialize collaborative mode on component mount
+  useEffect(() => {
+    if (tripData && !isCollaborativeMode) {
+      // Auto-enable collaborative mode if trip has collaborators
+      // TODO: Check actual collaborator status from backend
+      const hasCollaborators = Math.random() > 0.5; // Mock condition
+      if (hasCollaborators) {
+        initializeCollaborativeMode();
+      }
+    }
+  }, [tripData, isCollaborativeMode]);
+
   const getMapMarkers = () => {
     return selectedPlaces
       .filter(place => place.geometry?.location)
@@ -428,7 +529,7 @@ const TripPlanningPage: React.FC = () => {
     return <LoadingSpinner />;
   }
 
-  if (!tripData?.data.trip) {
+  if (!tripData) {
     return (
       <div className="text-center py-12">
         <p className="text-red-600">Trip not found</p>
@@ -436,7 +537,7 @@ const TripPlanningPage: React.FC = () => {
     );
   }
 
-  const trip = tripData.data.trip;
+  const trip = tripData;
   const days = generateDays();
 
   // Debug logging
@@ -448,7 +549,7 @@ const TripPlanningPage: React.FC = () => {
     <DndProvider backend={HTML5Backend}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-6 text-left">
           <button
             onClick={() => navigate(`/trips/${id}`)}
             className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
@@ -458,9 +559,9 @@ const TripPlanningPage: React.FC = () => {
           </button>
           
           <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Plan Your Trip</h1>
-              <p className="text-gray-600">{trip.title} - {trip.destination}</p>
+            <div className="text-left">
+              <h1 className="text-2xl font-bold text-gray-900 text-left">Plan Your Trip</h1>
+              <p className="text-gray-600 text-left">{trip.name} - {trip.destination}</p>
             </div>
             <button
               onClick={handleSaveItinerary}
@@ -477,7 +578,7 @@ const TripPlanningPage: React.FC = () => {
           <div className="xl:col-span-1 space-y-4 lg:space-y-6">
             {/* Places Search */}
             <div className="bg-white rounded-lg shadow p-4 lg:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">Search Places</h2>
+              <h2 className="text-lg font-medium text-gray-900 mb-4 text-left">Search Places</h2>
               <PlacesSearch
                 onPlaceSelect={handlePlaceSelect}
                 placeholder="Search restaurants, attractions, hotels..."
@@ -486,7 +587,7 @@ const TripPlanningPage: React.FC = () => {
 
             {/* Selected Places */}
             <div className="bg-white rounded-lg shadow p-4 lg:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4">
+              <h2 className="text-lg font-medium text-gray-900 mb-4 text-left">
                 Selected Places ({selectedPlaces.length})
               </h2>
               <div className="space-y-2 max-h-80 lg:max-h-96 overflow-y-auto">
@@ -500,7 +601,7 @@ const TripPlanningPage: React.FC = () => {
                   />
                 ))}
                 {selectedPlaces.length === 0 && (
-                  <p className="text-gray-500 text-sm">
+                  <p className="text-gray-500 text-sm text-left">
                     Search and select places to add to your itinerary
                   </p>
                 )}
@@ -511,12 +612,12 @@ const TripPlanningPage: React.FC = () => {
           {/* Middle Panel - Map */}
           <div className="xl:col-span-1 lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-4 lg:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center text-left">
                 <MapIcon className="h-5 w-5 mr-2 flex-shrink-0" />
                 <span className="truncate">Map View</span>
-                {tripData?.data.trip && (
+                {tripData && (
                   <span className="ml-2 text-sm text-gray-500 truncate">
-                    - {tripData.data.trip.destination}
+                    - {tripData.destination}
                   </span>
                 )}
               </h2>
@@ -524,7 +625,7 @@ const TripPlanningPage: React.FC = () => {
                 <div className="w-full h-96 rounded-lg bg-gray-100 flex items-center justify-center mb-4">
                   <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                    <p className="text-gray-500">Loading map for {tripData?.data.trip?.destination}...</p>
+                    <p className="text-gray-500">Loading map for {tripData?.destination}...</p>
                   </div>
                 </div>
               )}
@@ -535,9 +636,10 @@ const TripPlanningPage: React.FC = () => {
                 markers={getMapMarkers()}
                 className={`w-full h-96 rounded-lg ${!isMapReady ? 'opacity-50' : ''}`}
               />
+              
               {isMapReady && (
-                <p className="text-xs text-gray-500 mt-2 text-center">
-                  📍 Centered on: {tripData?.data.trip?.destination}
+                <p className="text-xs text-gray-500 mt-2 text-left">
+                  📍 Centered on: {tripData?.destination}
                 </p>
               )}
             </div>
@@ -546,7 +648,7 @@ const TripPlanningPage: React.FC = () => {
           {/* Right Panel - Itinerary */}
           <div className="xl:col-span-1 lg:col-span-2 xl:lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-4 lg:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center text-left">
                 <CalendarIcon className="h-5 w-5 mr-2 flex-shrink-0" />
                 Daily Itinerary
               </h2>

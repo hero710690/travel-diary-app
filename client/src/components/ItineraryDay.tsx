@@ -116,11 +116,11 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
       }`}
     >
       <div className="flex items-center justify-between mb-3">
-        <div>
-          <h3 className="font-medium text-gray-900">
+        <div className="text-left">
+          <h3 className="font-medium text-gray-900 text-left">
             Day {day.dayNumber}
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 text-left">
             {format(day.date, 'EEEE, MMM d')}
           </p>
         </div>

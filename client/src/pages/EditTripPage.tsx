@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { useMutation, useQuery, useQueryClient } from 'react-query';
-import { tripsAPI } from '../services/api';
+import { tripsService } from '../services/trips';
 import { TripForm, Trip } from '../types';
 import { ArrowLeftIcon } from '@heroicons/react/24/outline';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -30,7 +30,7 @@ const EditTripPage: React.FC = () => {
   // Fetch trip data
   const { data: tripData, isLoading, isSuccess } = useQuery(
     ['trip', id],
-    () => tripsAPI.getTripById(id!),
+    () => tripsService.getTrip(id!),
     {
       enabled: !!id,
     }
@@ -38,8 +38,8 @@ const EditTripPage: React.FC = () => {
 
   // Update form when trip data is loaded
   useEffect(() => {
-    if (isSuccess && tripData?.data?.trip) {
-      const trip = tripData.data.trip;
+    if (isSuccess && tripData) {
+      const trip = tripData;
       console.log('📝 Loading trip data for editing:', trip);
       
       // Format dates properly for input[type="date"]
@@ -55,15 +55,15 @@ const EditTripPage: React.FC = () => {
 
       // Reset form with trip data
       const formData = {
-        title: trip.title || '',
+        title: trip.name || '', // TripDisplay uses 'name' instead of 'title'
         description: trip.description || '',
         destination: trip.destination || '',
         startDate: formatDateForInput(trip.startDate),
         endDate: formatDateForInput(trip.endDate),
-        totalBudget: trip.totalBudget || 0,
-        currency: trip.currency || 'USD',
-        isPublic: trip.isPublic || false,
-        tags: trip.tags?.join(', ') || '',
+        totalBudget: 0, // Not available in TripDisplay
+        currency: 'USD', // Not available in TripDisplay
+        isPublic: false, // Not available in TripDisplay
+        tags: '', // Not available in TripDisplay
       };
 
       console.log('📝 Setting form data:', formData);
@@ -72,7 +72,7 @@ const EditTripPage: React.FC = () => {
   }, [isSuccess, tripData, reset]);
 
   const updateTripMutation = useMutation(
-    (data: Partial<Trip>) => tripsAPI.updateTrip(id!, data),
+    (data: Partial<any>) => tripsService.updateTrip(id!, data),
     {
       onSuccess: (response) => {
         queryClient.invalidateQueries('trips');
@@ -114,7 +114,7 @@ const EditTripPage: React.FC = () => {
     return <LoadingSpinner />;
   }
 
-  if (!tripData?.data?.trip) {
+  if (!tripData) {
     return (
       <div className="max-w-2xl mx-auto">
         <div className="text-center py-12">
@@ -133,7 +133,7 @@ const EditTripPage: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="mb-6">
+      <div className="mb-6 text-left">
         <button
           onClick={() => navigate(-1)}
           className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700"
@@ -141,18 +141,18 @@ const EditTripPage: React.FC = () => {
           <ArrowLeftIcon className="h-4 w-4 mr-1" />
           Back
         </button>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900">Edit Trip</h1>
-        <p className="mt-1 text-sm text-gray-600">
+        <h1 className="mt-2 text-2xl font-bold text-gray-900 text-left">Edit Trip</h1>
+        <p className="mt-1 text-sm text-gray-600 text-left">
           Update your trip details and preferences.
         </p>
         
         {/* Debug info - can be removed in production */}
-        {tripData?.data?.trip && (
+        {tripData && (
           <div className="mt-4 p-3 bg-blue-50 rounded-lg">
             <p className="text-sm text-blue-800">
-              <strong>Editing:</strong> {tripData.data.trip.title} 
+              <strong>Editing:</strong> {tripData.name} 
               <span className="ml-2 text-blue-600">
-                ({tripData.data.trip.destination})
+                ({tripData.destination})
               </span>
             </p>
           </div>
@@ -165,7 +165,7 @@ const EditTripPage: React.FC = () => {
           
           <div className="grid grid-cols-1 gap-6">
             <div>
-              <label htmlFor="title" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="title" className="block text-left text-sm font-medium text-gray-700">
                 Trip Title *
               </label>
               <input
@@ -181,7 +181,7 @@ const EditTripPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="destination" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="destination" className="block text-left text-sm font-medium text-gray-700">
                 Destination *
               </label>
               <input
@@ -198,7 +198,7 @@ const EditTripPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="startDate" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="startDate" className="block text-left text-sm font-medium text-gray-700">
                   Start Date *
                 </label>
                 <input
@@ -213,7 +213,7 @@ const EditTripPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="endDate" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="endDate" className="block text-left text-sm font-medium text-gray-700">
                   End Date *
                 </label>
                 <input
@@ -237,7 +237,7 @@ const EditTripPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="description" className="block text-left text-sm font-medium text-gray-700">
                 Description
               </label>
               <textarea
@@ -251,7 +251,7 @@ const EditTripPage: React.FC = () => {
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label htmlFor="totalBudget" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="totalBudget" className="block text-left text-sm font-medium text-gray-700">
                   Total Budget
                 </label>
                 <input
@@ -272,7 +272,7 @@ const EditTripPage: React.FC = () => {
               </div>
 
               <div>
-                <label htmlFor="currency" className="block text-sm font-medium text-gray-700">
+                <label htmlFor="currency" className="block text-left text-sm font-medium text-gray-700">
                   Currency
                 </label>
                 <select
@@ -290,7 +290,7 @@ const EditTripPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="tags" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="tags" className="block text-left text-sm font-medium text-gray-700">
                 Tags
               </label>
               <input

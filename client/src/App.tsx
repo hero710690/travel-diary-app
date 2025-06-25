@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
-import { AuthProvider, useAuth } from './contexts/AuthContext';
+import { useAuth, AuthProvider } from './contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
 import './App.css';
 
@@ -33,19 +33,19 @@ const queryClient = new QueryClient({
   },
 });
 
-// Protected Route Component
+// Protected Route Component - Fixed version
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { loading, user, isAuthenticated } = useAuth();
+  const { isLoading, user, isAuthenticated } = useAuth();
 
-  console.log('ProtectedRoute - Check:', { 
-    loading, 
-    user: !!user, 
+  console.log('🔒 ProtectedRoute - Check (PRODUCTION MODE):', { 
+    isLoading, 
+    hasUser: !!user, 
     isAuthenticated,
     userEmail: user?.email
   });
 
-  if (loading) {
-    console.log('ProtectedRoute - Loading...');
+  if (isLoading) {
+    console.log('🔒 ProtectedRoute - Loading...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner />
@@ -53,26 +53,28 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
     );
   }
 
-  if (!isAuthenticated) {
-    console.log('ProtectedRoute - Not authenticated, redirecting to login');
+  // Since we're in testing mode and auth state is working, check both conditions
+  if (!isAuthenticated || !user) {
+    console.log('🔒 ProtectedRoute - Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
-  console.log('ProtectedRoute - Authenticated, rendering content');
+  console.log('🔒 ProtectedRoute - Authenticated, rendering content');
   return <>{children}</>;
 };
 
-// Public Route Component (redirect if authenticated)
+// Public Route Component - Fixed version  
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
-  console.log('PublicRoute - Check:', { 
+  console.log('🌐 PublicRoute - Check:', { 
     isAuthenticated, 
-    loading
+    isLoading,
+    hasUser: !!user
   });
 
-  if (loading) {
-    console.log('PublicRoute - Loading...');
+  if (isLoading) {
+    console.log('🌐 PublicRoute - Loading...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner />
@@ -80,20 +82,23 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     );
   }
 
-  if (isAuthenticated) {
-    console.log('PublicRoute - Authenticated, redirecting to dashboard');
+  // Only redirect if BOTH conditions are true (to prevent issues)
+  if (isAuthenticated && user) {
+    console.log('🌐 PublicRoute - Authenticated, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
-  console.log('PublicRoute - Not authenticated, showing public content');
+  console.log('🌐 PublicRoute - Not authenticated, showing public content');
   return <>{children}</>;
 };
 
-// Home Route Component - shows login if not authenticated, dashboard if authenticated
+// Home Route Component
 const HomeRoute: React.FC = () => {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth();
 
-  if (loading) {
+  console.log('🏠 HomeRoute - Check:', { isAuthenticated, isLoading, hasUser: !!user });
+
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner />
@@ -101,10 +106,12 @@ const HomeRoute: React.FC = () => {
     );
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && user) {
+    console.log('🏠 HomeRoute - Authenticated, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
+  console.log('🏠 HomeRoute - Not authenticated, redirecting to login');
   return <Navigate to="/login" replace />;
 };
 
@@ -130,10 +137,10 @@ function AppRoutes() {
         {/* Shared Trip Route (no auth required) */}
         <Route path="/trips/shared/:token" element={<SharedTripPage />} />
 
-        {/* Test Route for debugging login redirect */}
+        {/* Test Route for debugging */}
         <Route path="/test" element={<TestPage />} />
 
-        {/* Direct Dashboard Route for testing (bypasses ProtectedRoute) */}
+        {/* Direct Routes for testing (bypass protection) */}
         <Route path="/dashboard-direct" element={
           <Layout>
             <DashboardPage />
@@ -189,11 +196,11 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
 
-        {/* Debug Route */}
-        <Route path="/debug/maps" element={
-          <div className="min-h-screen bg-gray-50 py-8">
+        {/* Debug Routes */}
+        <Route path="/maps-debug" element={
+          <Layout>
             <GoogleMapsDebug />
-          </div>
+          </Layout>
         } />
 
         {/* 404 Route */}

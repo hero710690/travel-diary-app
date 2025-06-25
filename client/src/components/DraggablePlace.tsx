@@ -64,17 +64,17 @@ const DraggablePlace: React.FC<DraggablePlaceProps> = ({ place, onRemove }) => {
           <div className="text-lg flex-shrink-0">
             {placeIcon}
           </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="text-sm font-medium text-gray-900 break-words line-clamp-2">
+          <div className="flex-1 min-w-0 text-left">
+            <h4 className="text-sm font-medium text-gray-900 break-words line-clamp-2 text-left">
               {place.name}
             </h4>
-            <p className="text-xs text-gray-500 break-words line-clamp-2 mt-1">
+            <p className="text-xs text-gray-500 break-words line-clamp-2 mt-1 text-left">
               {place.formatted_address}
             </p>
             {place.rating && (
               <div className="flex items-center mt-2">
                 <StarIcon className="h-3 w-3 text-yellow-400 fill-current flex-shrink-0" />
-                <span className="text-xs text-gray-600 ml-1">
+                <span className="text-xs text-gray-600 ml-1 text-left">
                   {place.rating.toFixed(1)}
                 </span>
               </div>
@@ -84,13 +84,13 @@ const DraggablePlace: React.FC<DraggablePlaceProps> = ({ place, onRemove }) => {
                 {place.types.slice(0, 2).map((type) => (
                   <span
                     key={type}
-                    className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded break-words"
+                    className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 rounded break-words text-left"
                   >
                     {type.replace(/_/g, ' ')}
                   </span>
                 ))}
                 {place.types.length > 2 && (
-                  <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-200 text-gray-500 rounded">
+                  <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-200 text-gray-500 rounded text-left">
                     +{place.types.length - 2}
                   </span>
                 )}

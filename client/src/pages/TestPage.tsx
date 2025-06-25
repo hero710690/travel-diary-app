@@ -2,7 +2,7 @@ import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 const TestPage: React.FC = () => {
-  const { user, isAuthenticated, loading } = useAuth();
+  const { user, isAuthenticated, isLoading } = useAuth();
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center">
@@ -13,9 +13,9 @@ const TestPage: React.FC = () => {
         <div className="bg-gray-100 p-4 rounded-lg">
           <h3 className="font-semibold mb-2">Debug Info:</h3>
           <ul className="text-sm space-y-1">
-            <li><strong>Loading:</strong> {loading ? 'true' : 'false'}</li>
+            <li><strong>Loading:</strong> {isLoading ? 'true' : 'false'}</li>
             <li><strong>Authenticated:</strong> {isAuthenticated ? 'true' : 'false'}</li>
-            <li><strong>User:</strong> {user ? user.name : 'null'}</li>
+            <li><strong>User:</strong> {user ? user.nickname : 'null'}</li>
             <li><strong>Email:</strong> {user ? user.email : 'null'}</li>
           </ul>
         </div>

@@ -15,16 +15,16 @@ const ProfilePage: React.FC = () => {
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
               {user?.avatar ? (
-                <img className="h-16 w-16 rounded-full" src={user.avatar} alt={user.name} />
+                <img className="h-16 w-16 rounded-full" src={user.avatar} alt={user.nickname} />
               ) : (
                 <div className="h-16 w-16 rounded-full bg-blue-500 flex items-center justify-center">
                   <span className="text-xl font-medium text-white">
-                    {user?.name?.charAt(0).toUpperCase()}
+                    {user?.nickname?.charAt(0).toUpperCase()}
                   </span>
                 </div>
               )}
               <div>
-                <h2 className="text-xl font-medium text-gray-900">{user?.name}</h2>
+                <h2 className="text-xl font-medium text-gray-900">{user?.nickname}</h2>
                 <p className="text-gray-600">{user?.email}</p>
               </div>
             </div>
@@ -32,15 +32,11 @@ const ProfilePage: React.FC = () => {
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <div>
                 <label className="block text-sm font-medium text-gray-700">Name</label>
-                <p className="mt-1 text-sm text-gray-900">{user?.name}</p>
+                <p className="mt-1 text-sm text-gray-900">{user?.nickname}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Email</label>
                 <p className="mt-1 text-sm text-gray-900">{user?.email}</p>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700">Preferred Currency</label>
-                <p className="mt-1 text-sm text-gray-900">{user?.preferredCurrency}</p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700">Member Since</label>

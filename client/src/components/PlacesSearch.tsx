@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { MagnifyingGlassIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import PlacesSearchFallback from './PlacesSearchFallback';
 
 interface Place {
   place_id: string;
@@ -20,6 +21,23 @@ interface PlacesSearchProps {
 }
 
 const PlacesSearch: React.FC<PlacesSearchProps> = ({
+  onPlaceSelect,
+  placeholder = "Search for places...",
+  className = ""
+}) => {
+  // Check if API key is missing
+  const apiKey = process.env.REACT_APP_GOOGLE_MAPS_API_KEY || '';
+  const shouldUseFallback = !apiKey;
+
+  // Return fallback if API key is missing
+  if (shouldUseFallback) {
+    return <PlacesSearchFallback onPlaceSelect={onPlaceSelect} placeholder={placeholder} className={className} />;
+  }
+
+  return <PlacesSearchComponent onPlaceSelect={onPlaceSelect} placeholder={placeholder} className={className} />;
+};
+
+const PlacesSearchComponent: React.FC<PlacesSearchProps> = ({
   onPlaceSelect,
   placeholder = "Search for places...",
   className = ""
@@ -195,9 +213,9 @@ const PlacesSearch: React.FC<PlacesSearchProps> = ({
             >
               <div className="flex items-center gap-3">
                 <MapPinIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-gray-900 break-words line-clamp-1">{place.name}</div>
-                  <div className="text-sm text-gray-500 break-words line-clamp-2">{place.formatted_address}</div>
+                <div className="flex-1 min-w-0 text-left">
+                  <div className="font-medium text-gray-900 break-words line-clamp-1 text-left">{place.name}</div>
+                  <div className="text-sm text-gray-500 break-words line-clamp-2 text-left">{place.formatted_address}</div>
                 </div>
               </div>
             </div>

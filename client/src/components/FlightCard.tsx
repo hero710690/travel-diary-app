@@ -56,7 +56,7 @@ const FlightCard: React.FC<FlightCardProps> = ({
       <div className="flex items-center justify-between mb-3 gap-2">
         <div className="flex items-center space-x-2 min-w-0 flex-1">
           <PaperAirplaneIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
-          <span className="font-semibold text-gray-900 truncate">
+          <span className="font-semibold text-gray-900 truncate text-left">
             {flightInfo.airline} {flightInfo.flightNumber}
           </span>
         </div>
@@ -75,18 +75,18 @@ const FlightCard: React.FC<FlightCardProps> = ({
 
       {/* Flight Route */}
       <div className="flex items-center justify-between mb-3 gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="text-sm font-medium text-gray-900">
+        <div className="flex-1 min-w-0 text-left">
+          <div className="text-sm font-medium text-gray-900 text-center">
             {flightInfo.departure.airportCode}
           </div>
-          <div className="text-xs text-gray-500 break-words">
+          <div className="text-xs text-gray-500 break-words text-left">
             {flightInfo.departure.airport}
           </div>
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-gray-600 text-center">
             Dep: {formatTime(flightInfo.departure.time)}
           </div>
           {flightInfo.departure.terminal && (
-            <div className="text-xs text-gray-500 break-words">
+            <div className="text-xs text-gray-500 break-words text-left">
               Terminal {flightInfo.departure.terminal}
               {flightInfo.departure.gate && `, Gate ${flightInfo.departure.gate}`}
             </div>
@@ -106,18 +106,18 @@ const FlightCard: React.FC<FlightCardProps> = ({
           )}
         </div>
 
-        <div className="flex-1 text-right min-w-0">
-          <div className="text-sm font-medium text-gray-900">
+        <div className="flex-1 text-left min-w-0">
+          <div className="text-sm font-medium text-gray-900 text-center">
             {flightInfo.arrival.airportCode}
           </div>
-          <div className="text-xs text-gray-500 break-words">
+          <div className="text-xs text-gray-500 break-words text-left">
             {flightInfo.arrival.airport}
           </div>
-          <div className="text-xs text-gray-600">
+          <div className="text-xs text-gray-600 text-center">
             Arr: {formatTime(flightInfo.arrival.time)}
           </div>
           {flightInfo.arrival.terminal && (
-            <div className="text-xs text-gray-500 break-words">
+            <div className="text-xs text-gray-500 break-words text-left">
               Terminal {flightInfo.arrival.terminal}
               {flightInfo.arrival.gate && `, Gate ${flightInfo.arrival.gate}`}
             </div>
@@ -128,15 +128,15 @@ const FlightCard: React.FC<FlightCardProps> = ({
       {/* Additional Info */}
       {(flightInfo.seatNumber || flightInfo.bookingReference || flightInfo.aircraft) && (
         <div className="border-t border-gray-100 pt-3 mt-3">
-          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600">
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600 text-left">
             {flightInfo.seatNumber && (
-              <span className="whitespace-nowrap">Seat: {flightInfo.seatNumber}</span>
+              <span className="whitespace-nowrap text-left">Seat: {flightInfo.seatNumber}</span>
             )}
             {flightInfo.aircraft && (
-              <span className="break-words">Aircraft: {flightInfo.aircraft}</span>
+              <span className="break-words text-left">Aircraft: {flightInfo.aircraft}</span>
             )}
             {flightInfo.bookingReference && (
-              <span className="break-words">Ref: {flightInfo.bookingReference}</span>
+              <span className="break-words text-left">Ref: {flightInfo.bookingReference}</span>
             )}
           </div>
         </div>

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useParams } from 'react-router-dom';
 import { useQuery } from 'react-query';
-import { tripsAPI } from '../services/api';
+import { tripsService } from '../services/trips';
 import LoadingSpinner from '../components/LoadingSpinner';
 
 const SharedTripPage: React.FC = () => {
@@ -9,10 +9,10 @@ const SharedTripPage: React.FC = () => {
 
   const { data: tripData, isLoading, error } = useQuery(
     ['sharedTrip', token],
-    () => tripsAPI.getSharedTrip(token!),
+    () => tripsService.getSharedTrip(token!),
     {
       enabled: !!token,
-      select: (response) => response.data.trip,
+      select: (response) => response,
     }
   );
 
@@ -28,8 +28,8 @@ const SharedTripPage: React.FC = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900 mb-4">Trip Not Found</h1>
-          <p className="text-gray-600">The shared trip link is invalid or has expired.</p>
+          <h1 className="text-2xl font-bold text-gray-900 mb-4 text-left">Trip Not Found</h1>
+          <p className="text-gray-600 text-left">The shared trip link is invalid or has expired.</p>
         </div>
       </div>
     );
@@ -40,14 +40,13 @@ const SharedTripPage: React.FC = () => {
       <div className="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="bg-white shadow rounded-lg">
           <div className="px-6 py-4 border-b border-gray-200">
-            <h1 className="text-2xl font-bold text-gray-900">{tripData.title}</h1>
-            <p className="text-gray-600">Shared by {tripData.owner.name}</p>
+            <h1 className="text-2xl font-bold text-gray-900 text-left">{tripData.name}</h1>
           </div>
           
           <div className="p-6">
             <div className="space-y-6">
               <div>
-                <h2 className="text-lg font-medium text-gray-900 mb-2">Trip Details</h2>
+                <h2 className="text-lg font-medium text-gray-900 mb-2 text-left">Trip Details</h2>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
                     <h3 className="font-medium text-gray-900">Destination</h3>
@@ -55,11 +54,9 @@ const SharedTripPage: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-medium text-gray-900">Duration</h3>
-                    <p className="text-gray-600">{tripData.duration} days</p>
-                  </div>
-                  <div>
-                    <h3 className="font-medium text-gray-900">Status</h3>
-                    <p className="text-gray-600 capitalize">{tripData.status}</p>
+                    <p className="text-gray-600">
+                      {Math.ceil((new Date(tripData.endDate).getTime() - new Date(tripData.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
+                    </p>
                   </div>
                 </div>
               </div>
