@@ -26,13 +26,13 @@ const DashboardPage: React.FC = () => {
     ['trips', statusFilter],
     () => tripsAPI.getTrips({ status: statusFilter === 'all' ? undefined : statusFilter }),
     {
-      select: (response) => {
+      select: (response: any) => {
         const data = response.data;
         // Ensure we always return an array
         if (Array.isArray(data)) {
           return data;
-        } else if (data && Array.isArray(data.trips)) {
-          return data.trips;
+        } else if (data && Array.isArray((data as any).trips)) {
+          return (data as any).trips;
         } else {
           return [];
         }
@@ -210,21 +210,21 @@ const DashboardPage: React.FC = () => {
                   <div className="flex space-x-2">
                     <Link
                       to={`/trips/${trip._id}`}
-                      className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className="inline-flex items-center h-8 px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 text-gray-700 hover:bg-gray-100 active:bg-gray-200 rounded-md"
                     >
                       <EyeIcon className="h-4 w-4 mr-1" />
                       View
                     </Link>
                     <Link
                       to={`/trips/${trip._id}/plan`}
-                      className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className="inline-flex items-center h-8 px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 text-gray-700 hover:bg-gray-100 active:bg-gray-200 rounded-md"
                     >
                       <MapIcon className="h-4 w-4 mr-1" />
                       Plan
                     </Link>
                     <Link
                       to={`/trips/${trip._id}/edit`}
-                      className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-sm leading-4 font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                      className="inline-flex items-center h-8 px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 text-gray-700 hover:bg-gray-100 active:bg-gray-200 rounded-md"
                     >
                       <PencilIcon className="h-4 w-4 mr-1" />
                       Edit
@@ -234,7 +234,7 @@ const DashboardPage: React.FC = () => {
                     <button
                       onClick={() => handleDeleteTrip(trip._id, trip.title)}
                       disabled={deleteTripMutation.isLoading}
-                      className="inline-flex items-center px-3 py-1 border border-red-300 shadow-sm text-sm leading-4 font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center h-8 px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 text-red-600 hover:text-red-700 hover:bg-red-50 active:bg-red-100 rounded-md disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <TrashIcon className="h-4 w-4 mr-1" />
                       {deleteTripMutation.isLoading ? 'Deleting...' : 'Delete'}

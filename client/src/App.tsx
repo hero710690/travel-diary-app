@@ -4,11 +4,13 @@ import { QueryClient, QueryClientProvider } from 'react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import './App.css';
 
 // Pages
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
+import TestPage from './pages/TestPage';
 import TripDetailPage from './pages/TripDetailPage';
 import CreateTripPage from './pages/CreateTripPage';
 import EditTripPage from './pages/EditTripPage';
@@ -33,9 +35,17 @@ const queryClient = new QueryClient({
 
 // Protected Route Component
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
+  const { loading, user, isAuthenticated } = useAuth();
+
+  console.log('ProtectedRoute - Check:', { 
+    loading, 
+    user: !!user, 
+    isAuthenticated,
+    userEmail: user?.email
+  });
 
   if (loading) {
+    console.log('ProtectedRoute - Loading...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner />
@@ -44,9 +54,11 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   }
 
   if (!isAuthenticated) {
+    console.log('ProtectedRoute - Not authenticated, redirecting to login');
     return <Navigate to="/login" replace />;
   }
 
+  console.log('ProtectedRoute - Authenticated, rendering content');
   return <>{children}</>;
 };
 
@@ -54,7 +66,13 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
+  console.log('PublicRoute - Check:', { 
+    isAuthenticated, 
+    loading
+  });
+
   if (loading) {
+    console.log('PublicRoute - Loading...');
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <LoadingSpinner />
@@ -63,9 +81,11 @@ const PublicRoute: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   }
 
   if (isAuthenticated) {
+    console.log('PublicRoute - Authenticated, redirecting to dashboard');
     return <Navigate to="/dashboard" replace />;
   }
 
+  console.log('PublicRoute - Not authenticated, showing public content');
   return <>{children}</>;
 };
 
@@ -109,6 +129,16 @@ function AppRoutes() {
         
         {/* Shared Trip Route (no auth required) */}
         <Route path="/trips/shared/:token" element={<SharedTripPage />} />
+
+        {/* Test Route for debugging login redirect */}
+        <Route path="/test" element={<TestPage />} />
+
+        {/* Direct Dashboard Route for testing (bypasses ProtectedRoute) */}
+        <Route path="/dashboard-direct" element={
+          <Layout>
+            <DashboardPage />
+          </Layout>
+        } />
 
         {/* Protected Routes */}
         <Route path="/dashboard" element={

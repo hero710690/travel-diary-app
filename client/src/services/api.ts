@@ -50,7 +50,7 @@ export const authAPI = {
   register: (data: RegisterForm): Promise<AxiosResponse<{ token: string; user: User; message: string }>> =>
     api.post('/auth/register', data),
   
-  getMe: (): Promise<AxiosResponse<User>> =>
+  getMe: (): Promise<AxiosResponse<{ user: User }>> =>
     api.get('/auth/me'),
   
   updateProfile: (data: Partial<User>): Promise<AxiosResponse<{ user: User; message: string }>> =>

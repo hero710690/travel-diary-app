@@ -1,12 +1,14 @@
 export interface User {
-  _id: string;
+  _id?: string; // MongoDB style ID (optional for backward compatibility)
+  user_id?: string; // API Gateway style ID
+  id?: string; // Generic ID (optional)
   email: string;
   name: string;
   avatar?: string;
-  preferredCurrency: string;
-  isEmailVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
+  preferredCurrency?: string;
+  isEmailVerified?: boolean;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Place {
