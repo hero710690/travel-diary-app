@@ -18,6 +18,32 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
   const [editTime, setEditTime] = useState(item.time);
   const [editDuration, setEditDuration] = useState(item.duration || 60);
 
+  // Helper functions for duration display
+  const formatDuration = (minutes: number): string => {
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (hours === 0) {
+      return `${mins}m`;
+    } else if (mins === 0) {
+      return `${hours}h`;
+    } else {
+      return `${hours}h ${mins}m`;
+    }
+  };
+
+  const getDurationOptions = () => {
+    const options = [];
+    // Add common durations
+    const commonDurations = [15, 30, 45, 60, 90, 120, 180, 240, 300, 360, 480];
+    for (const duration of commonDurations) {
+      options.push({
+        value: duration,
+        label: formatDuration(duration)
+      });
+    }
+    return options;
+  };
+
   const [{ isDragging }, drag] = useDrag(() => ({
     type: 'itinerary-item',
     item: item,
@@ -73,16 +99,17 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
               </div>
               <div className="flex items-center space-x-2">
                 <span className="text-xs text-gray-500">Duration:</span>
-                <input
-                  type="number"
+                <select
                   value={editDuration}
-                  onChange={(e) => setEditDuration(parseInt(e.target.value) || 60)}
-                  min="15"
-                  max="480"
-                  step="15"
-                  className="text-xs border border-gray-300 rounded px-2 py-1 w-16 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                <span className="text-xs text-gray-500">min</span>
+                  onChange={(e) => setEditDuration(parseInt(e.target.value))}
+                  className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  {getDurationOptions().map(option => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </div>
               <div className="flex items-center space-x-2">
                 <button
@@ -127,7 +154,7 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
               )}
               {item.duration && (
                 <p className="text-xs text-gray-400 mt-1">
-                  Duration: {item.duration} minutes
+                  Duration: {formatDuration(item.duration)}
                 </p>
               )}
             </div>

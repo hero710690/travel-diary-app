@@ -50,6 +50,25 @@ export interface FlightInfo {
   status?: 'scheduled' | 'delayed' | 'cancelled' | 'boarding' | 'departed' | 'arrived';
 }
 
+export interface HotelInfo {
+  name: string;
+  address: string;
+  checkInDate: string;
+  checkOutDate: string;
+  nights: number;
+  roomType?: string;
+  confirmationNumber?: string;
+  phone?: string;
+  rating?: number;
+  pricePerNight?: number;
+  totalPrice?: number;
+  amenities?: string[];
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+}
+
 export interface ItineraryItem {
   id: string;
   _id?: string;
@@ -70,6 +89,8 @@ export interface ItineraryItem {
   notes?: string;
   // Flight-specific information
   flightInfo?: FlightInfo;
+  // Hotel-specific information
+  hotelInfo?: HotelInfo;
   // Legacy fields for backward compatibility
   place?: Place;
   date?: string;

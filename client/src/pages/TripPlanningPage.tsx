@@ -9,6 +9,7 @@ import { Trip, ItineraryItem, FlightInfo } from '../types';
 import { safeParseDate, addDaysToDate, getDaysDifferenceIgnoreTime } from '../utils/dateUtils';
 import GoogleMap from '../components/GoogleMap';
 import PlacesSearch from '../components/PlacesSearch';
+import HotelSearch from '../components/HotelSearch';
 import DraggablePlace from '../components/DraggablePlace';
 import ItineraryDay from '../components/ItineraryDay';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -22,6 +23,8 @@ import {
   UsersIcon,
   EyeIcon,
   PencilIcon as PencilIconOutline,
+  BuildingOfficeIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline';
 
 interface Place {
@@ -35,6 +38,240 @@ interface Place {
   rating?: number;
   types?: string[];
 }
+
+// Hotel Form Component
+const HotelFormComponent: React.FC<{
+  onSubmit: (hotelInfo: any) => void;
+  onCancel: () => void;
+  tripStartDate?: string;
+  tripEndDate?: string;
+}> = ({ onSubmit, onCancel, tripStartDate, tripEndDate }) => {
+  const [formData, setFormData] = useState({
+    name: '',
+    address: '',
+    checkInDate: tripStartDate || '',
+    checkOutDate: tripEndDate || '',
+    nights: 1,
+    roomType: '',
+    confirmationNumber: '',
+    phone: '',
+    rating: 0,
+    pricePerNight: '',
+    totalPrice: '',
+    coordinates: undefined as { lat: number; lng: number } | undefined
+  });
+  const [selectedPlace, setSelectedPlace] = useState<any>(null);
+
+  const handleHotelSelect = (hotel: any) => {
+    console.log('Selected hotel:', hotel);
+    setSelectedPlace(hotel);
+    setFormData(prev => ({
+      ...prev,
+      name: hotel.name,
+      address: hotel.formatted_address,
+      rating: hotel.rating || 0,
+      coordinates: hotel.geometry?.location ? {
+        lat: hotel.geometry.location.lat(),
+        lng: hotel.geometry.location.lng()
+      } : undefined
+    }));
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.name || !formData.address) {
+      toast.error('Please select a hotel from the search results');
+      return;
+    }
+    
+    // Calculate nights
+    const checkIn = new Date(formData.checkInDate);
+    const checkOut = new Date(formData.checkOutDate);
+    const nights = Math.ceil((checkOut.getTime() - checkIn.getTime()) / (1000 * 60 * 60 * 24));
+    
+    if (nights <= 0) {
+      toast.error('Check-out date must be after check-in date');
+      return;
+    }
+    
+    const hotelInfo = {
+      ...formData,
+      nights,
+      pricePerNight: formData.pricePerNight ? parseFloat(formData.pricePerNight) : undefined,
+      totalPrice: formData.totalPrice ? parseFloat(formData.totalPrice) : undefined
+    };
+    
+    onSubmit(hotelInfo);
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+          Search & Select Hotel *
+        </label>
+        <HotelSearch
+          onHotelSelect={handleHotelSelect}
+          placeholder="Search for hotels..."
+          className="w-full"
+        />
+        {selectedPlace && (
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+            <div className="flex items-start">
+              <BuildingOfficeIcon className="h-5 w-5 text-blue-600 mr-2 mt-0.5" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-sm font-medium text-gray-900">{selectedPlace.name}</h4>
+                  {selectedPlace.rating && (
+                    <div className="flex items-center">
+                      <span className="text-xs text-yellow-600 font-medium">
+                        ⭐ {selectedPlace.rating}
+                      </span>
+                    </div>
+                  )}
+                </div>
+                <p className="text-xs text-gray-600 mt-1">{selectedPlace.formatted_address}</p>
+                {selectedPlace.price_level && (
+                  <div className="mt-1">
+                    <span className="text-xs text-green-600">
+                      {'$'.repeat(selectedPlace.price_level)} Price Level
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+            Check-in Date *
+          </label>
+          <input
+            type="date"
+            required
+            value={formData.checkInDate}
+            onChange={(e) => setFormData({ ...formData, checkInDate: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+            Check-out Date *
+          </label>
+          <input
+            type="date"
+            required
+            value={formData.checkOutDate}
+            onChange={(e) => setFormData({ ...formData, checkOutDate: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+            Room Type
+          </label>
+          <select
+            value={formData.roomType}
+            onChange={(e) => setFormData({ ...formData, roomType: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value="">Select room type</option>
+            <option value="Standard Room">Standard Room</option>
+            <option value="Deluxe Room">Deluxe Room</option>
+            <option value="Suite">Suite</option>
+            <option value="Executive Room">Executive Room</option>
+            <option value="Family Room">Family Room</option>
+            <option value="Single Room">Single Room</option>
+            <option value="Double Room">Double Room</option>
+            <option value="Twin Room">Twin Room</option>
+          </select>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+            Total Price ($)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            value={formData.totalPrice}
+            onChange={(e) => setFormData({ ...formData, totalPrice: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="0.00"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+            Price per Night ($)
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            value={formData.pricePerNight}
+            onChange={(e) => setFormData({ ...formData, pricePerNight: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="0.00"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+            Confirmation Number
+          </label>
+          <input
+            type="text"
+            value={formData.confirmationNumber}
+            onChange={(e) => setFormData({ ...formData, confirmationNumber: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="Enter confirmation number"
+          />
+        </div>
+      </div>
+
+      {formData.checkInDate && formData.checkOutDate && (
+        <div className="bg-gray-50 p-3 rounded-md">
+          <div className="text-sm text-gray-600">
+            <strong>Stay Duration:</strong> {
+              Math.ceil((new Date(formData.checkOutDate).getTime() - new Date(formData.checkInDate).getTime()) / (1000 * 60 * 60 * 24))
+            } night{Math.ceil((new Date(formData.checkOutDate).getTime() - new Date(formData.checkInDate).getTime()) / (1000 * 60 * 60 * 24)) !== 1 ? 's' : ''}
+          </div>
+          {formData.pricePerNight && (
+            <div className="text-sm text-gray-600 mt-1">
+              <strong>Estimated Total:</strong> ${(
+                parseFloat(formData.pricePerNight) * 
+                Math.ceil((new Date(formData.checkOutDate).getTime() - new Date(formData.checkInDate).getTime()) / (1000 * 60 * 60 * 24))
+              ).toFixed(2)}
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="flex justify-end space-x-3 pt-4">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Cancel
+        </button>
+        <button
+          type="submit"
+          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          Add Hotel Stay
+        </button>
+      </div>
+    </form>
+  );
+};
 
 const TripPlanningPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -58,6 +295,15 @@ const TripPlanningPage: React.FC = () => {
   const [isCollaborativeMode, setIsCollaborativeMode] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<Date>(new Date());
   const [pendingChanges, setPendingChanges] = useState<string[]>([]);
+
+  // Hotel Stay State
+  const [showHotelModal, setShowHotelModal] = useState(false);
+  const [hotelStays, setHotelStays] = useState<Array<{
+    id: string;
+    hotelInfo: any; // HotelInfo type
+    startDay: number;
+    endDay: number;
+  }>>([]);
 
   // Fetch trip data
   const { data: tripData, isLoading } = useQuery(
@@ -512,6 +758,68 @@ const TripPlanningPage: React.FC = () => {
     }
   }, [tripData, isCollaborativeMode]);
 
+  // Hotel Stay Functions
+  const handleAddHotel = (hotelInfo: any) => {
+    const checkInDate = new Date(hotelInfo.checkInDate);
+    const checkOutDate = new Date(hotelInfo.checkOutDate);
+    const tripStartDate = new Date(tripData?.startDate || new Date());
+    
+    // Calculate which days the hotel stay spans
+    const startDay = Math.max(1, Math.ceil((checkInDate.getTime() - tripStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
+    const endDay = Math.ceil((checkOutDate.getTime() - tripStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    
+    const newHotelStay = {
+      id: `hotel_${Date.now()}`,
+      hotelInfo,
+      startDay,
+      endDay
+    };
+    
+    setHotelStays(prev => [...prev, newHotelStay]);
+    
+    // Add hotel items to itinerary for each day
+    const hotelItems: any[] = [];
+    for (let day = startDay; day <= endDay; day++) {
+      const isFirstDay = day === startDay;
+      const isLastDay = day === endDay;
+      
+      hotelItems.push({
+        id: `${newHotelStay.id}_day_${day}`,
+        day,
+        time: isFirstDay ? '15:00' : '00:00', // Check-in time or midnight for continuing stays
+        title: hotelInfo.name,
+        description: `${hotelInfo.address} - ${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Hotel Stay'}`,
+        type: 'accommodation',
+        duration: isFirstDay || isLastDay ? 30 : 0, // 30 min for check-in/out, 0 for overnight
+        hotelInfo,
+        location: {
+          name: hotelInfo.name,
+          address: hotelInfo.address,
+          coordinates: hotelInfo.coordinates
+        },
+        notes: `${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Staying at'} ${hotelInfo.name}${hotelInfo.confirmationNumber ? ` (Confirmation: ${hotelInfo.confirmationNumber})` : ''}`
+      });
+    }
+    
+    setItinerary(prev => [...prev, ...hotelItems]);
+    setShowHotelModal(false);
+    toast.success(`Hotel stay added for ${endDay - startDay + 1} day${endDay - startDay + 1 !== 1 ? 's' : ''}`);
+  };
+
+  const handleRemoveHotel = (hotelStayId: string) => {
+    // Remove hotel stay from state
+    setHotelStays(prev => prev.filter(stay => stay.id !== hotelStayId));
+    
+    // Remove all related itinerary items
+    setItinerary(prev => prev.filter(item => !item.id.startsWith(hotelStayId)));
+    
+    toast.success('Hotel stay removed');
+  };
+
+  const getHotelForDay = (dayNumber: number) => {
+    return hotelStays.find(stay => dayNumber >= stay.startDay && dayNumber <= stay.endDay);
+  };
+
   const getMapMarkers = () => {
     return selectedPlaces
       .filter(place => place.geometry?.location)
@@ -563,13 +871,22 @@ const TripPlanningPage: React.FC = () => {
               <h1 className="text-2xl font-bold text-gray-900 text-left">Plan Your Trip</h1>
               <p className="text-gray-600 text-left">{trip.name} - {trip.destination}</p>
             </div>
-            <button
-              onClick={handleSaveItinerary}
-              disabled={updateItineraryMutation.isLoading}
-              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-            >
-              {updateItineraryMutation.isLoading ? 'Saving...' : 'Save Itinerary'}
-            </button>
+            <div className="flex space-x-3">
+              <button
+                onClick={() => setShowHotelModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <BuildingOfficeIcon className="h-4 w-4 mr-2" />
+                Add Hotel
+              </button>
+              <button
+                onClick={handleSaveItinerary}
+                disabled={updateItineraryMutation.isLoading}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                {updateItineraryMutation.isLoading ? 'Saving...' : 'Save Itinerary'}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -680,6 +997,32 @@ const TripPlanningPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Hotel Modal */}
+      {showHotelModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Add Hotel Stay</h3>
+                <button
+                  onClick={() => setShowHotelModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <HotelFormComponent
+                onSubmit={handleAddHotel}
+                onCancel={() => setShowHotelModal(false)}
+                tripStartDate={tripData?.startDate}
+                tripEndDate={tripData?.endDate}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </DndProvider>
   );
 };

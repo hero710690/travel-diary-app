@@ -1,108 +1,122 @@
-# 🗺️ Google Maps API Setup Guide
+# Google Maps API Setup Guide
 
-To use the Trip Planning feature with Google Maps integration, you need to set up a Google Maps API key.
+## Current Issue
+The Google Maps functionality is currently not working because the API key is invalid. The application will show fallback components with manual place entry until a valid API key is configured.
 
-## Step 1: Get Google Maps API Key
+## How to Fix Google Maps
 
-1. **Go to Google Cloud Console**: https://console.cloud.google.com/
-2. **Create a new project** or select an existing one
-3. **Enable the following APIs**:
-   - Maps JavaScript API
-   - Places API
-   - Geocoding API
-4. **Create credentials**:
-   - Go to "Credentials" in the left sidebar
-   - Click "Create Credentials" → "API Key"
-   - Copy your API key
+### Step 1: Get a Google Maps API Key
 
-## Step 2: Configure API Key Restrictions (Recommended)
+1. **Go to Google Cloud Console**
+   - Visit: https://console.cloud.google.com/
 
-1. **Click on your API key** to edit it
-2. **Set Application restrictions**:
-   - Choose "HTTP referrers (web sites)"
-   - Add: `http://localhost:3000/*` and `https://yourdomain.com/*`
-3. **Set API restrictions**:
-   - Choose "Restrict key"
-   - Select: Maps JavaScript API, Places API, Geocoding API
+2. **Create or Select a Project**
+   - Create a new project or select an existing one
 
-## Step 3: Add API Key to Your App
+3. **Enable Required APIs**
+   - Go to "APIs & Services" > "Library"
+   - Enable these APIs:
+     - **Maps JavaScript API**
+     - **Places API**
+     - **Geocoding API** (optional, for reverse geocoding)
 
-1. **Create environment file**:
+4. **Create API Key**
+   - Go to "APIs & Services" > "Credentials"
+   - Click "Create Credentials" > "API Key"
+   - Copy the generated API key
+
+### Step 2: Configure API Key Restrictions (Recommended)
+
+1. **Application Restrictions**
+   - Set "HTTP referrers (web sites)"
+   - Add your domain: `https://d16hcqzmptnoh8.cloudfront.net/*`
+   - Add localhost for development: `http://localhost:3000/*`
+
+2. **API Restrictions**
+   - Restrict key to only the APIs you enabled:
+     - Maps JavaScript API
+     - Places API
+     - Geocoding API
+
+### Step 3: Update Environment Variables
+
+1. **Update .env file**
    ```bash
-   cd /Users/jeanlee/travel-diary-app/client
-   cp .env.example .env
+   # Replace the invalid key with your new key
+   REACT_APP_GOOGLE_MAPS_API_KEY=YOUR_NEW_API_KEY_HERE
    ```
 
-2. **Edit the .env file**:
+2. **Rebuild and Deploy**
    ```bash
-   REACT_APP_GOOGLE_MAPS_API_KEY=your_actual_api_key_here
-   REACT_APP_API_URL=http://localhost:5001/api
+   npm run build
+   aws s3 sync build/ s3://travel-diary-prod-frontend --region ap-northeast-1 --delete
+   # Create CloudFront invalidation
    ```
 
-3. **Restart the application**:
+### Step 4: Test the Integration
+
+1. **Visit the Trip Planning Page**
+   - Go to any trip and click "Plan Trip"
+   - The map should now load properly
+   - Places search should work
+
+2. **Verify Functionality**
+   - ✅ Map displays correctly
+   - ✅ Places search returns results
+   - ✅ Clicking on map shows location details
+   - ✅ Markers appear for planned locations
+
+## Current Fallback Features
+
+While Google Maps is not working, the application provides:
+
+### Map Fallback
+- Shows location coordinates
+- Lists planned locations
+- Provides setup instructions
+
+### Places Search Fallback
+- Manual place entry form
+- Add places by name and address
+- Still integrates with itinerary
+
+## Cost Considerations
+
+Google Maps APIs have usage-based pricing:
+- **Maps JavaScript API**: $7 per 1,000 loads
+- **Places API**: $17 per 1,000 requests
+- **Geocoding API**: $5 per 1,000 requests
+
+**Free Tier**: $200 credit per month (covers ~28K map loads)
+
+## Security Best Practices
+
+1. **Always restrict your API key**
+2. **Monitor usage in Google Cloud Console**
+3. **Set up billing alerts**
+4. **Use environment variables (never commit keys to code)**
+
+## Troubleshooting
+
+### Common Issues:
+1. **"REQUEST_DENIED"** - API key invalid or APIs not enabled
+2. **"OVER_QUERY_LIMIT"** - Exceeded quota limits
+3. **"INVALID_REQUEST"** - Check API restrictions
+4. **Map not loading** - Check browser console for errors
+
+### Debug Steps:
+1. Test API key with curl:
    ```bash
-   cd /Users/jeanlee/travel-diary-app
-   docker-compose down
-   docker-compose up -d
+   curl "https://maps.googleapis.com/maps/api/js?key=YOUR_KEY&libraries=places"
    ```
+2. Check browser network tab for failed requests
+3. Verify API key restrictions match your domain
+4. Check Google Cloud Console for quota usage
 
-## Step 4: Test the Trip Planning Feature
+## Support
 
-1. **Go to your app**: http://localhost:3000
-2. **Create or open a trip**
-3. **Click "Plan Trip"** button
-4. **You should see**:
-   - Google Maps interface
-   - Places search functionality
-   - Drag and drop itinerary planning
-
-## 🎯 Features Available:
-
-### 🔍 **Places Search**
-- Search for restaurants, attractions, hotels
-- Auto-complete suggestions
-- Place details with ratings
-
-### 🗺️ **Interactive Map**
-- Click on map to select locations
-- View selected places as markers
-- Zoom and pan around your destination
-
-### 📅 **Drag & Drop Itinerary**
-- Drag places from search results
-- Drop onto specific days
-- Organize your daily schedule
-- Set times and durations
-
-### 💾 **Save & Sync**
-- Save your itinerary to the trip
-- Sync across all devices
-- Share with travel companions
-
-## 🚨 Important Notes:
-
-- **Free Tier**: Google Maps API has a generous free tier
-- **Billing**: Set up billing account for production use
-- **Quotas**: Monitor your API usage in Google Cloud Console
-- **Security**: Never commit API keys to version control
-
-## 🔧 Troubleshooting:
-
-### Map not loading?
-- Check if API key is correctly set in `.env`
-- Verify APIs are enabled in Google Cloud Console
-- Check browser console for error messages
-
-### Places search not working?
-- Ensure Places API is enabled
-- Check API key restrictions
-- Verify network connectivity
-
-### Need help?
-- Check Google Maps Platform documentation
-- Review API quotas and billing
-- Test with a simple HTML page first
-
-## 🎉 You're Ready!
-
-Once configured, your Travel Diary app will have full Google Maps integration for trip planning!
+If you need help setting up Google Maps:
+1. Check the browser console for error messages
+2. Verify API key configuration in Google Cloud Console
+3. Test with a simple HTML page first
+4. Contact Google Cloud Support for API-specific issues

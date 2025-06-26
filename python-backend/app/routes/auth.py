@@ -75,9 +75,20 @@ async def login(user_data: UserLogin):
     # Create access token
     access_token = create_access_token(data={"sub": user.email})
     
+    # Transform user object to match frontend expectations
+    user_data_response = {
+        "user_id": str(user.id),  # Convert ObjectId to string
+        "email": user.email,
+        "name": user.full_name or user.username,  # Use full_name or fallback to username
+        "username": user.username,
+        "is_active": user.is_active,
+        "created_at": user.created_at,
+        "updated_at": user.updated_at
+    }
+    
     return {
         "message": "Login successful",
-        "user": user,
+        "user": user_data_response,
         "token": access_token
     }
 
@@ -109,10 +120,21 @@ async def login_form(form_data: OAuth2PasswordRequestForm = Depends()):
     }
 
 
-@router.get("/me", response_model=User)
+@router.get("/me", response_model=dict)
 async def get_current_user_info(current_user: User = Depends(get_current_user)):
     """Get current user information"""
-    return current_user
+    # Transform user object to match frontend expectations
+    user_data = {
+        "user_id": str(current_user.id),  # Convert ObjectId to string
+        "email": current_user.email,
+        "name": current_user.full_name or current_user.username,  # Use full_name or fallback to username
+        "username": current_user.username,
+        "is_active": current_user.is_active,
+        "created_at": current_user.created_at,
+        "updated_at": current_user.updated_at
+    }
+    
+    return {"user": user_data}
 
 
 @router.get("/health")

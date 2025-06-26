@@ -4,6 +4,7 @@ import { API_CONFIG } from '../config/api';
 export interface User {
   id: string;
   email: string;
+  name?: string;
   nickname?: string;
   avatar?: string;
   createdAt?: string;
@@ -39,7 +40,8 @@ const transformUser = (apiUser: { user_id: string; email: string; name: string }
   return {
     id: apiUser.user_id,
     email: apiUser.email,
-    nickname: apiUser.name,
+    name: apiUser.name,
+    nickname: apiUser.name, // Keep nickname for backward compatibility
   };
 };
 

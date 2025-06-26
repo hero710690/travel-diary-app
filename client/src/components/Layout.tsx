@@ -32,7 +32,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
     navigate('/login');
   };
 
-  const userName = user?.nickname || user?.email?.split('@')[0] || 'User';
+  const userName = user?.name || user?.nickname || user?.email?.split('@')[0] || 'User';
 
   return (
     <div className="flex h-screen bg-gray-50">

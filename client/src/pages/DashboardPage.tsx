@@ -116,7 +116,7 @@ const DashboardPage: React.FC = () => {
     }
     // Map frontend filter names to backend status values
     const statusMapping = {
-      'planning': 'planned',  // Frontend tab "planning" maps to backend status "planned"
+      'planning': 'planning',  // Use consistent 'planning' status
       'ongoing': 'ongoing',
       'completed': 'completed'
     };
@@ -128,7 +128,7 @@ const DashboardPage: React.FC = () => {
   // Calculate counts for each status using correct backend values
   const tripCounts = {
     all: trips.length,
-    planning: trips.filter(trip => trip.status === 'planned').length,  // Backend uses 'planned'
+    planning: trips.filter(trip => trip.status === 'planning').length,  // Use consistent 'planning' status
     ongoing: trips.filter(trip => trip.status === 'ongoing').length,
     completed: trips.filter(trip => trip.status === 'completed').length,
   };

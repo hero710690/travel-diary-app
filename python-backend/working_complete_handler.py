@@ -439,7 +439,7 @@ def handle_create_trip(event, context):
             'end_date': end_date,
             'destination': destination,
             'budget': Decimal(str(budget)) if budget else None,
-            'status': body.get('status', 'planned'),
+            'status': body.get('status', 'planning'),
             'itinerary': [],  # Initialize empty itinerary
             'created_at': datetime.utcnow().isoformat(),
             'updated_at': datetime.utcnow().isoformat(),

@@ -237,45 +237,87 @@ const TripDetailPage: React.FC = () => {
       return [];
     }
 
+    console.log('🔍 Raw itinerary data:', {
+      tripId: id, // Use the ID from useParams instead
+      tripStartDate: tripData.startDate,
+      tripEndDate: tripData.endDate,
+      itineraryItems: tripData.itinerary.map((item: any, index: number) => ({
+        index,
+        id: item._id,
+        title: item.custom_title || item.place?.name,
+        date: item.date,
+        start_time: item.start_time
+      }))
+    });
+
     const transformedItems = (tripData.itinerary || []).map((item: any, index: number) => {
       try {
         let dayNumber = 1; // Default to day 1 if no trip dates
         
-        // Only calculate day number if we have valid trip dates
-        if (tripData.startDate && tripData.endDate) {
+        // Calculate day number based on item date and trip start date
+        if (tripData.startDate && item.date) {
           const tripStartDate = new Date(tripData.startDate);
           const itemDate = new Date(item.date);
           
           // Validate dates
-          if (isNaN(tripStartDate.getTime()) || isNaN(itemDate.getTime())) {
-            // Use a simple day assignment based on item order if dates are invalid
-            dayNumber = Math.floor(index / 2) + 1; // Roughly 2 items per day
+          if (!isNaN(tripStartDate.getTime()) && !isNaN(itemDate.getTime())) {
+            // Use date strings directly and create UTC dates to avoid timezone issues
+            const tripStartStr = tripData.startDate.split('T')[0]; // Get YYYY-MM-DD part
+            const itemDateStr = item.date.split('T')[0]; // Get YYYY-MM-DD part
+            
+            // Create UTC dates to avoid timezone shifts
+            const tripStart = new Date(tripStartStr + 'T00:00:00.000Z');
+            const itemDay = new Date(itemDateStr + 'T00:00:00.000Z');
+            
+            // Calculate the difference in days
+            const timeDiff = itemDay.getTime() - tripStart.getTime();
+            const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+            
+            // Simple approach: use daysDiff + 1, but ensure minimum of index + 1 for proper distribution
+            dayNumber = Math.max(index + 1, daysDiff + 1);
+            
+            console.log('📅 Day calculation (UTC fixed):', {
+              itemId: item._id,
+              itemTitle: item.custom_title || item.place?.name,
+              tripStartStr,
+              itemDateStr,
+              tripStart: tripStart.toISOString(),
+              itemDay: itemDay.toISOString(),
+              timeDiff,
+              daysDiff,
+              calculatedDay: dayNumber,
+              index
+            });
           } else {
-            dayNumber = Math.floor((itemDate.getTime() - tripStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+            // If dates are invalid, use sequential assignment
+            dayNumber = index + 1;
+            console.warn('⚠️ Invalid dates, using sequential assignment:', {
+              itemId: item._id,
+              itemTitle: item.custom_title || item.place?.name,
+              tripStartDate: tripData.startDate,
+              itemDate: item.date,
+              assignedDay: dayNumber,
+              index
+            });
           }
         } else {
-          // Fallback: assign items to days based on their dates or order
-          if (item.date) {
-            const itemDate = new Date(item.date);
-            if (!isNaN(itemDate.getTime())) {
-              // Use the item's date to determine relative day
-              const firstItemDate = tripData.itinerary?.[0]?.date;
-              if (firstItemDate) {
-                const baseDate = new Date(firstItemDate);
-                if (!isNaN(baseDate.getTime())) {
-                  dayNumber = Math.floor((itemDate.getTime() - baseDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                }
-              }
-            }
-          }
-          if (dayNumber < 1) dayNumber = Math.floor(index / 2) + 1; // Final fallback
+          // If no dates available, use sequential assignment
+          dayNumber = index + 1;
+          console.warn('⚠️ Missing dates, using sequential assignment:', {
+            itemId: item._id,
+            itemTitle: item.custom_title || item.place?.name,
+            hasTripStartDate: !!tripData.startDate,
+            hasItemDate: !!item.date,
+            assignedDay: dayNumber,
+            index
+          });
         }
 
         const isFlightItem = item.flightInfo || (item.place?.types && item.place.types.includes('flight'));
 
         const transformedItem = {
           id: item._id || `item_${index}`,
-          day: Math.max(1, dayNumber),
+          day: dayNumber,
           time: item.start_time || '09:00',
           title: item.custom_title || item.place?.name || 'Activity',
           description: item.custom_description || item.place?.address || '',

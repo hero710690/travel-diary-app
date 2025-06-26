@@ -13,29 +13,6 @@ const LoginPage: React.FC = () => {
   const { login, isAuthenticated, isLoading: authLoading, user } = useAuth();
   const navigate = useNavigate();
 
-  // Add a direct API test function
-  const testDirectAPI = async () => {
-    console.log('🧪 DIRECT API TEST - Starting...');
-    try {
-      const response = await fetch('https://aprb1rgwqf.execute-api.ap-northeast-1.amazonaws.com/prod/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          email: 'testuser@example.com',
-          password: 'password123'
-        })
-      });
-      
-      console.log('🧪 DIRECT API TEST - Response:', response);
-      const data = await response.json();
-      console.log('🧪 DIRECT API TEST - Data:', data);
-    } catch (error) {
-      console.error('🧪 DIRECT API TEST - Error:', error);
-    }
-  };
-
   // Force redirect if authenticated (backup to PublicRoute)
   useEffect(() => {
     console.log('LoginPage useEffect - isAuthenticated:', isAuthenticated, 'authLoading:', authLoading);
@@ -108,17 +85,6 @@ const LoginPage: React.FC = () => {
             <p className="mt-2 text-sm text-gray-600">
               Please sign in to your account
             </p>
-          </div>
-
-          {/* Direct API Test Button */}
-          <div className="mb-4">
-            <button
-              type="button"
-              onClick={testDirectAPI}
-              className="w-full flex justify-center py-2 px-4 border border-gray-300 rounded-lg shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              🧪 Test Direct API Call (Bypass Everything)
-            </button>
           </div>
 
           {/* Error Message */}

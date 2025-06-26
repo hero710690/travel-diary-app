@@ -4,6 +4,7 @@ import { authService } from '../services/auth';
 export interface User {
   id: string;
   email: string;
+  name?: string;
   nickname?: string;
   avatar?: string;
   createdAt?: string;

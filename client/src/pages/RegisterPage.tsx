@@ -50,7 +50,7 @@ const RegisterPage: React.FC = () => {
         <form className="mt-8 space-y-6" onSubmit={handleSubmit(onSubmit)}>
           <div className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 text-left">
                 Full Name
               </label>
               <input
@@ -72,7 +72,7 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700 text-left">
                 Email address
               </label>
               <input
@@ -94,7 +94,7 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700 text-left">
                 Password
               </label>
               <div className="mt-1 relative">
@@ -129,7 +129,7 @@ const RegisterPage: React.FC = () => {
             </div>
 
             <div>
-              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 text-left">
                 Confirm Password
               </label>
               <div className="mt-1 relative">
