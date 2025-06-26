@@ -1,4 +1,5 @@
 # Dependencies
+.env
 node_modules/
 __pycache__/
 *.pyc
@@ -18,7 +19,6 @@ backend.zip
 lambda-package/
 
 # Environment variables
-client/.env
 .env.local
 .env.development.local
 .env.test.local
