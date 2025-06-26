@@ -6,10 +6,11 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { format, addDays, differenceInDays } from 'date-fns';
 import { tripsService } from '../services/trips';
 import { Trip, ItineraryItem, FlightInfo } from '../types';
-import { safeParseDate, addDaysToDate, getDaysDifferenceIgnoreTime } from '../utils/dateUtils';
+import { safeParseDate, addDaysToDate, getDaysDifferenceIgnoreTime, combineDateAndTime } from '../utils/dateUtils';
 import GoogleMap from '../components/GoogleMap';
 import PlacesSearch from '../components/PlacesSearch';
 import HotelSearch from '../components/HotelSearch';
+import FlightForm from '../components/FlightForm';
 import DraggablePlace from '../components/DraggablePlace';
 import ItineraryDay from '../components/ItineraryDay';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -305,6 +306,9 @@ const TripPlanningPage: React.FC = () => {
     endDay: number;
   }>>([]);
 
+  // Flight State
+  const [showFlightModal, setShowFlightModal] = useState(false);
+
   // Fetch trip data
   const { data: tripData, isLoading } = useQuery(
     ['trip', id],
@@ -328,13 +332,25 @@ const TripPlanningPage: React.FC = () => {
             console.log('📅 Day calculation debug:', {
               tripStartDate: tripStartDate.toISOString(),
               itemDate: itemDate.toISOString(),
+              tripStartDateLocal: tripStartDate.toString(),
+              itemDateLocal: itemDate.toString(),
               dayDifference,
               calculatedDay: dayNumber,
-              itemIndex: index
+              itemIndex: index,
+              itemTitle: item.custom_title || item.place?.name
             });
 
             // Check if this is a flight item
             const isFlightItem = item.flightInfo || (item.place?.types && item.place.types.includes('flight'));
+            
+            console.log('🔍 Loading item debug:', {
+              itemIndex: index,
+              hasFlightInfo: !!item.flightInfo,
+              placeTypes: item.place?.types,
+              isFlightItem,
+              customTitle: item.custom_title,
+              placeName: item.place?.name
+            });
 
             // Generate a unique ID if _id is not available
             const itemId = item._id || item.id || `${item.place?.place_id || 'item'}_${index}_${Date.now()}`;
@@ -475,6 +491,17 @@ const TripPlanningPage: React.FC = () => {
     }
   };
 
+  // Handle updating user interest rating for places
+  const handleUpdatePlaceInterest = (placeId: string, rating: number) => {
+    setSelectedPlaces(prev => 
+      prev.map(place => 
+        place.place_id === placeId 
+          ? { ...place, userInterestRating: rating }
+          : place
+      )
+    );
+  };
+
   const handleMapPlaceSelect = (place: any) => {
     const newPlace: Place = {
       place_id: place.place_id || `custom_${Date.now()}`,
@@ -572,26 +599,101 @@ const TripPlanningPage: React.FC = () => {
     ));
   };
 
-  const handleAddFlight = (dayNumber: number, flightInfo: FlightInfo, time: string) => {
-    const newFlightItem: ItineraryItem = {
-      id: `flight_${dayNumber}_${Date.now()}`,
-      day: dayNumber,
-      time: time,
-      title: `${flightInfo.airline} ${flightInfo.flightNumber}`,
-      description: `${flightInfo.departure.airportCode} → ${flightInfo.arrival.airportCode}`,
-      location: {
-        name: `${flightInfo.departure.airport} to ${flightInfo.arrival.airport}`,
-        address: `${flightInfo.departure.airportCode} → ${flightInfo.arrival.airportCode}`,
-        coordinates: undefined, // Flights don't have single coordinates
-      },
-      duration: flightInfo.duration ? parseInt(flightInfo.duration.replace(/[^\d]/g, '')) * 60 : 120, // Convert to minutes
-      type: 'flight',
-      flightInfo: flightInfo,
-      notes: flightInfo.bookingReference ? `Booking: ${flightInfo.bookingReference}` : '',
-    };
+  // Unified handleAddFlight function to work with both ItineraryDay and FlightForm
+  const handleAddFlight = (
+    dayNumberOrFlightInfo: number | any, 
+    flightInfoOrTime?: any | string, 
+    time?: string
+  ) => {
+    let newFlightItem: ItineraryItem;
+    
+    if (typeof dayNumberOrFlightInfo === 'number') {
+      // Old signature: (dayNumber: number, flightInfo: any, time: string) - from ItineraryDay
+      const dayNumber = dayNumberOrFlightInfo;
+      const flightInfo = flightInfoOrTime as any;
+      const flightTime = time as string;
+      
+      newFlightItem = {
+        id: `flight_${dayNumber}_${Date.now()}`,
+        day: dayNumber,
+        time: flightTime,
+        title: `${flightInfo.airline} ${flightInfo.flightNumber}`,
+        description: `${flightInfo.departure.airportCode} → ${flightInfo.arrival.airportCode}`,
+        location: {
+          name: `${flightInfo.departure.airport} to ${flightInfo.arrival.airport}`,
+          address: `${flightInfo.departure.airportCode} → ${flightInfo.arrival.airportCode}`,
+          coordinates: undefined,
+        },
+        duration: flightInfo.duration ? parseInt(flightInfo.duration.replace(/[^\d]/g, '')) * 60 : 120,
+        type: 'flight',
+        flightInfo: flightInfo,
+        notes: flightInfo.bookingReference ? `Booking: ${flightInfo.bookingReference}` : '',
+      };
+    } else {
+      // New signature: (flightInfo: any) - from FlightForm
+      const flightInfo = dayNumberOrFlightInfo;
+      const tripStartDate = tripData?.startDate || new Date().toISOString();
+      
+      // Use arrival date for day calculation (since trip starts in arrival country)
+      const arrivalDate = flightInfo.arrival.date;
+      const dayNumber = calculateDayNumber(arrivalDate, tripStartDate);
+      
+      console.log('✈️ Flight day calculation:', {
+        flightNumber: `${flightInfo.airline} ${flightInfo.flightNumber}`,
+        departureDate: flightInfo.departure.date,
+        arrivalDate: flightInfo.arrival.date,
+        tripStartDate,
+        calculatedDay: dayNumber
+      });
+      
+      // Ensure airport codes and names are properly set
+      const departureDisplay = flightInfo.departure.airportCode || flightInfo.departure.airport || 'Unknown';
+      const arrivalDisplay = flightInfo.arrival.airportCode || flightInfo.arrival.airport || 'Unknown';
+      
+      newFlightItem = {
+        id: `flight_${Date.now()}`,
+        day: dayNumber,
+        time: flightInfo.arrival.time, // Use arrival time for sorting
+        title: `${flightInfo.airline} ${flightInfo.flightNumber}`,
+        description: `${departureDisplay} → ${arrivalDisplay}`,
+        location: {
+          name: `${flightInfo.arrival.airport} - Arrival`,
+          address: flightInfo.arrival.airport,
+          coordinates: undefined,
+        },
+        duration: flightInfo.duration ? parseInt(flightInfo.duration.replace(/[^\d]/g, '')) * 60 : 120,
+        type: 'flight',
+        flightInfo: {
+          airline: flightInfo.airline,
+          flightNumber: flightInfo.flightNumber,
+          departure: {
+            airport: flightInfo.departure.airport || '',
+            airportCode: flightInfo.departure.airportCode || '', // ✅ Fixed: was using .airport
+            date: flightInfo.departure.date, // ✅ Save departure date
+            time: flightInfo.departure.time
+          },
+          arrival: {
+            airport: flightInfo.arrival.airport || '',
+            airportCode: flightInfo.arrival.airportCode || '', // ✅ Fixed: was using .airport
+            date: flightInfo.arrival.date, // ✅ Save arrival date
+            time: flightInfo.arrival.time
+          },
+          duration: flightInfo.duration,
+          aircraft: flightInfo.aircraft,
+          bookingReference: flightInfo.bookingReference
+        },
+        notes: `Flight from ${departureDisplay} to ${arrivalDisplay}${flightInfo.bookingReference ? ` (Confirmation: ${flightInfo.bookingReference})` : ''}`
+      };
+      
+      setShowFlightModal(false);
+      toast.success(`Flight ${flightInfo.airline} ${flightInfo.flightNumber} added to Day ${dayNumber}`);
+    }
 
     setItinerary(prev => [...prev, newFlightItem]);
-    toast.success('Flight added to itinerary!');
+    
+    if (typeof dayNumberOrFlightInfo === 'number') {
+      toast.success('Flight added to itinerary!');
+    }
   };
 
   const handleSaveItinerary = () => {
@@ -621,17 +723,42 @@ const TripPlanningPage: React.FC = () => {
       const tripStartDate = safeParseDate(tripStartDateValue);
       console.log('🔍 Parsed trip start date:', tripStartDate, 'isValid:', !isNaN(tripStartDate.getTime()));
       
+      // Add comprehensive debugging
+      console.log('🔍 Timezone debugging:', {
+        tripStartDateValue,
+        tripStartDateParsed: tripStartDate.toISOString(),
+        tripStartDateLocal: tripStartDate.toString(),
+        userTimezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        timezoneOffset: new Date().getTimezoneOffset()
+      });
+      
       const itemDate = addDaysToDate(tripStartDate, item.day - 1);
+      const combinedDateTime = combineDateAndTime(itemDate, item.time);
+      
       console.log('🔍 Save calculation debug:', {
         itemId: item.id,
         itemDay: item.day,
+        itemTime: item.time,
         tripStartDate: tripStartDate.toISOString(),
         calculatedDate: itemDate.toISOString(),
+        combinedDateTime: combinedDateTime.toISOString(),
         dayOffset: item.day - 1
       });
 
       // Handle flight items differently
       if (item.type === 'flight' && item.flightInfo) {
+        console.log('🔍 Saving flight item:', {
+          itemId: item.id,
+          title: item.title,
+          hasFlightInfo: !!item.flightInfo,
+          flightInfo: item.flightInfo
+        });
+        
+        // For flights, use the arrival date/time from flightInfo instead of combineDateAndTime
+        const arrivalDate = item.flightInfo.arrival.date;
+        const arrivalTime = item.flightInfo.arrival.time;
+        const flightDateTime = new Date(`${arrivalDate}T${arrivalTime}:00.000Z`);
+        
         return {
           place: {
             name: item.title,
@@ -642,7 +769,7 @@ const TripPlanningPage: React.FC = () => {
             rating: 0,
             photos: [] // Add missing photos field
           },
-          date: itemDate.toISOString(),
+          date: flightDateTime.toISOString(),
           start_time: item.time,
           end_time: item.time,
           estimated_duration: item.duration || 120,
@@ -667,7 +794,7 @@ const TripPlanningPage: React.FC = () => {
           rating: 0,
           photos: [] // Add missing photos field
         },
-        date: itemDate.toISOString(),
+        date: combinedDateTime.toISOString(),
         start_time: item.time,
         end_time: item.time, // Could calculate based on duration
         estimated_duration: item.duration || 60,
@@ -759,14 +886,44 @@ const TripPlanningPage: React.FC = () => {
   }, [tripData, isCollaborativeMode]);
 
   // Hotel Stay Functions
+  // Utility function for consistent day calculation
+  const calculateDayNumber = (itemDate: string, tripStartDate: string): number => {
+    try {
+      // Use date strings directly and create UTC dates to avoid timezone issues
+      const tripStartStr = tripStartDate.split('T')[0]; // Get YYYY-MM-DD part
+      const itemDateStr = itemDate.split('T')[0]; // Get YYYY-MM-DD part
+      
+      // Create UTC dates to avoid timezone shifts
+      const tripStart = new Date(tripStartStr + 'T00:00:00.000Z');
+      const itemDay = new Date(itemDateStr + 'T00:00:00.000Z');
+      
+      // Calculate the difference in days
+      const timeDiff = itemDay.getTime() - tripStart.getTime();
+      const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+      
+      // Use the date-based calculation, minimum Day 1
+      return Math.max(1, daysDiff + 1);
+    } catch (error) {
+      console.error('Error calculating day number:', error);
+      return 1;
+    }
+  };
+
   const handleAddHotel = (hotelInfo: any) => {
-    const checkInDate = new Date(hotelInfo.checkInDate);
-    const checkOutDate = new Date(hotelInfo.checkOutDate);
-    const tripStartDate = new Date(tripData?.startDate || new Date());
+    const tripStartDate = tripData?.startDate || new Date().toISOString();
     
-    // Calculate which days the hotel stay spans
-    const startDay = Math.max(1, Math.ceil((checkInDate.getTime() - tripStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1);
-    const endDay = Math.ceil((checkOutDate.getTime() - tripStartDate.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+    // Use consistent day calculation
+    const startDay = calculateDayNumber(hotelInfo.checkInDate, tripStartDate);
+    const endDay = calculateDayNumber(hotelInfo.checkOutDate, tripStartDate);
+    
+    console.log('🏨 Hotel day calculation:', {
+      hotelName: hotelInfo.name,
+      checkInDate: hotelInfo.checkInDate,
+      checkOutDate: hotelInfo.checkOutDate,
+      tripStartDate,
+      startDay,
+      endDay
+    });
     
     const newHotelStay = {
       id: `hotel_${Date.now()}`,
@@ -783,14 +940,20 @@ const TripPlanningPage: React.FC = () => {
       const isFirstDay = day === startDay;
       const isLastDay = day === endDay;
       
+      // Calculate the actual date for this day using UTC-safe function
+      const tripStart = safeParseDate(tripStartDate);
+      const dayDate = addDaysToDate(tripStart, day - 1);
+      const dayDateStr = dayDate.toISOString().split('T')[0];
+      
       hotelItems.push({
         id: `${newHotelStay.id}_day_${day}`,
         day,
-        time: isFirstDay ? '15:00' : '00:00', // Check-in time or midnight for continuing stays
+        date: dayDateStr, // Add the actual date
+        time: isFirstDay ? '15:00' : isLastDay ? '11:00' : '00:00', // Check-in at 3PM, check-out at 11AM, midnight for continuing stays
         title: hotelInfo.name,
         description: `${hotelInfo.address} - ${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Hotel Stay'}`,
         type: 'accommodation',
-        duration: isFirstDay || isLastDay ? 30 : 0, // 30 min for check-in/out, 0 for overnight
+        // Remove duration for hotel stays since check-in/check-out times are more relevant
         hotelInfo,
         location: {
           name: hotelInfo.name,
@@ -880,6 +1043,15 @@ const TripPlanningPage: React.FC = () => {
                 Add Hotel
               </button>
               <button
+                onClick={() => setShowFlightModal(true)}
+                className="inline-flex items-center px-4 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                Add Flight
+              </button>
+              <button
                 onClick={handleSaveItinerary}
                 disabled={updateItineraryMutation.isLoading}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
@@ -915,6 +1087,7 @@ const TripPlanningPage: React.FC = () => {
                     onRemove={() => setSelectedPlaces(prev => 
                       prev.filter(p => p.place_id !== place.place_id)
                     )}
+                    onUpdateInterest={handleUpdatePlaceInterest}
                   />
                 ))}
                 {selectedPlaces.length === 0 && (
@@ -988,7 +1161,7 @@ const TripPlanningPage: React.FC = () => {
                       onRemoveItem={handleRemoveFromItinerary}
                       onUpdateItem={handleUpdateItineraryItem}
                       onMoveItem={handleMoveItineraryItem}
-                      onAddFlight={handleAddFlight}
+                      // onAddFlight removed - using top-level Add Flight button instead
                     />
                   ))
                 )}
@@ -1016,6 +1189,32 @@ const TripPlanningPage: React.FC = () => {
               <HotelFormComponent
                 onSubmit={handleAddHotel}
                 onCancel={() => setShowHotelModal(false)}
+                tripStartDate={tripData?.startDate}
+                tripEndDate={tripData?.endDate}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Flight Modal */}
+      {showFlightModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Add Flight</h3>
+                <button
+                  onClick={() => setShowFlightModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <FlightForm
+                onSave={handleAddFlight}
+                onCancel={() => setShowFlightModal(false)}
                 tripStartDate={tripData?.startDate}
                 tripEndDate={tripData?.endDate}
               />

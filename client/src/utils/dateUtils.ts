@@ -1,10 +1,10 @@
 import { parseISO, isValid } from 'date-fns';
 
 /**
- * Safely parse a date string and return a valid Date object
+ * Safely parse a date string and return a valid Date object in UTC
  * @param dateString - The date string to parse
  * @param fallback - Fallback date if parsing fails (defaults to current date)
- * @returns A valid Date object
+ * @returns A valid Date object in UTC
  */
 export const safeParseDate = (dateString: string | undefined, fallback?: Date): Date => {
   if (!dateString) {
@@ -18,8 +18,8 @@ export const safeParseDate = (dateString: string | undefined, fallback?: Date): 
     if (dateString.includes('T')) {
       date = parseISO(dateString);
     } else {
-      // Try parsing as YYYY-MM-DD
-      date = new Date(dateString + 'T00:00:00');
+      // Parse as YYYY-MM-DD and ensure it's treated as UTC to avoid timezone shifts
+      date = new Date(dateString + 'T00:00:00.000Z');
     }
     
     // Check if date is valid
@@ -47,16 +47,19 @@ export const getDaysDifference = (startDate: Date, endDate: Date): number => {
 };
 
 /**
- * Add days to a date, ensuring we work with date-only values to avoid timezone issues
+ * Add days to a date, ensuring we work with UTC dates to avoid timezone issues
  * @param date - Base date
  * @param days - Number of days to add
- * @returns New date with days added (time set to midnight UTC)
+ * @returns New date with days added (in UTC)
  */
 export const addDaysToDate = (date: Date, days: number): Date => {
-  // Create a new date at midnight UTC to avoid timezone issues
-  const baseDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const newDate = new Date(baseDate);
-  newDate.setDate(newDate.getDate() + days);
+  // Work with UTC dates to avoid timezone conversion issues
+  const year = date.getUTCFullYear();
+  const month = date.getUTCMonth();
+  const day = date.getUTCDate();
+  
+  // Create a new UTC date
+  const newDate = new Date(Date.UTC(year, month, day + days));
   return newDate;
 };
 
@@ -67,8 +70,45 @@ export const addDaysToDate = (date: Date, days: number): Date => {
  * @returns Number of days difference
  */
 export const getDaysDifferenceIgnoreTime = (startDate: Date, endDate: Date): number => {
-  const start = new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate());
-  const end = new Date(endDate.getFullYear(), endDate.getMonth(), endDate.getDate());
+  // Use UTC methods to avoid timezone conversion issues
+  const start = new Date(Date.UTC(startDate.getUTCFullYear(), startDate.getUTCMonth(), startDate.getUTCDate()));
+  const end = new Date(Date.UTC(endDate.getUTCFullYear(), endDate.getUTCMonth(), endDate.getUTCDate()));
   const timeDiff = end.getTime() - start.getTime();
   return Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+};
+
+/**
+ * Combine a date and time string into a proper UTC datetime
+ * @param date - The base date
+ * @param timeString - Time in HH:MM format (e.g., "09:00")
+ * @returns Combined datetime in UTC
+ */
+export const combineDateAndTime = (date: Date, timeString: string): Date => {
+  // Parse the time string
+  const [hours, minutes] = timeString.split(':').map(Number);
+  
+  console.log('🔍 combineDateAndTime debug:', {
+    inputDate: date.toISOString(),
+    inputTime: timeString,
+    dateUTCYear: date.getUTCFullYear(),
+    dateUTCMonth: date.getUTCMonth(),
+    dateUTCDate: date.getUTCDate(),
+    parsedHours: hours,
+    parsedMinutes: minutes
+  });
+  
+  // Create a new date in UTC with the specified time
+  const combinedDate = new Date(Date.UTC(
+    date.getUTCFullYear(),
+    date.getUTCMonth(),
+    date.getUTCDate(),
+    hours,
+    minutes,
+    0,
+    0
+  ));
+  
+  console.log('🔍 combineDateAndTime result:', combinedDate.toISOString());
+  
+  return combinedDate;
 };

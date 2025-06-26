@@ -1,17 +1,31 @@
 # 旅行日記 Web App - Frontend Development To-Do List
 
-**文件版本：** 1.2  
-**日期：** 2025年6月24日  
+**文件版本：** 1.3  
+**日期：** 2025年6月26日  
 **目標：** 支援 PRD 1.0 版本之核心功能，並整合現有後端 API  
-**狀態：** Phase 1 & 2 Core Features Completed ✅
+**狀態：** Phase 1 & 2 Core Features Completed ✅ + New Features Added ✨
 
 Based on the PRD and backend API specifications, here's a refined frontend development to-do list organized by priority and implementation phases:
 
-## Rules:
-1. Don't modify the style and theme
-2. Don't create new files unless it's necessary
-3. Try make changes in the same file when fixing any issue
-4. remove every unnecessary file after deploy to lambda or S3
+## ✨ New Features Added (2025-06-26)
+
+### Timezone Consistency Fix ✅ COMPLETED
+- [x] **DateTime Field Consistency**: Fixed timezone conversion issues causing incorrect datetime storage ✅
+  - [x] Fixed `addDaysToDate` function to work with UTC dates ✅
+  - [x] Updated `safeParseDate` to handle YYYY-MM-DD as UTC ✅
+  - [x] Added `combineDateAndTime` utility for proper datetime combination ✅
+  - [x] Updated save operations to use combined UTC datetime ✅
+  - [x] Enhanced debug logging for timezone tracking ✅
+  - [x] Resolved issue where 9:00 AM on 2025-09-24 was stored as "2025-09-23T16:00:00.000Z" ✅
+
+### User Interest Rating System ✅ COMPLETED
+- [x] **Star Rating for Places**: Allow users to mark their level of interest (1-5 stars) on place cards ✅
+  - [x] Added `userInterestRating` field to Place interface ✅
+  - [x] Enhanced DraggablePlace component with interactive star rating UI ✅
+  - [x] Implemented hover effects and visual feedback ✅
+  - [x] Added click handlers with drag conflict prevention ✅
+  - [x] Integrated with TripPlanningPage state management ✅
+  - [x] Used outline/solid star icons for better UX ✅
 
 ## Phase 1: Core Infrastructure & User Account System ✅ COMPLETED
 

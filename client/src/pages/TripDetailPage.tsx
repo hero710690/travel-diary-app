@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { tripsService } from '../services/trips';
+import { safeParseDate, getDaysDifferenceIgnoreTime } from '../utils/dateUtils';
+// FlightForm import removed - flight editing disabled in planned itinerary
 import { 
   PencilIcon, 
   TrashIcon, 
@@ -50,6 +52,10 @@ const TripDetailPage: React.FC = () => {
     duration: 0,
     notes: ''
   });
+
+  // Flight Edit State - REMOVED (flight editing disabled in planned itinerary)
+  // const [showFlightEditModal, setShowFlightEditModal] = useState(false);
+  // const [editingFlight, setEditingFlight] = useState<any>(null);
 
   // Collaboration & Sharing State
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -108,6 +114,9 @@ const TripDetailPage: React.FC = () => {
       },
     }
   );
+
+  // Flight Edit Functions - REMOVED (flight editing disabled in planned itinerary)
+  // Flight editing is now only available in the trip planning page
 
   const handleDeleteTrip = () => {
     if (window.confirm(`Are you sure you want to delete "${tripData?.name}"? This action cannot be undone.`)) {
@@ -189,6 +198,17 @@ const TripDetailPage: React.FC = () => {
   };
 
   const handleEditActivity = (item: ItineraryItem) => {
+    // Only allow editing for non-flight activities
+    if (item.type === 'flight' && item.flightInfo) {
+      // Flight editing is disabled in planned itinerary tab
+      toast('Flight editing is not available in this view. Please use the trip planning page to modify flights.', {
+        duration: 4000,
+        icon: 'ℹ️'
+      });
+      return;
+    }
+    
+    // For other activities, use the regular edit form
     setEditingItem(item.id);
     setEditForm({
       time: item.time,
@@ -241,12 +261,14 @@ const TripDetailPage: React.FC = () => {
       tripId: id, // Use the ID from useParams instead
       tripStartDate: tripData.startDate,
       tripEndDate: tripData.endDate,
+      totalItems: tripData.itinerary.length,
       itineraryItems: tripData.itinerary.map((item: any, index: number) => ({
         index,
         id: item._id,
         title: item.custom_title || item.place?.name,
         date: item.date,
-        start_time: item.start_time
+        start_time: item.start_time,
+        type: item.type
       }))
     });
 
@@ -261,32 +283,102 @@ const TripDetailPage: React.FC = () => {
           
           // Validate dates
           if (!isNaN(tripStartDate.getTime()) && !isNaN(itemDate.getTime())) {
-            // Use date strings directly and create UTC dates to avoid timezone issues
-            const tripStartStr = tripData.startDate.split('T')[0]; // Get YYYY-MM-DD part
-            const itemDateStr = item.date.split('T')[0]; // Get YYYY-MM-DD part
+            // For flights, calculate the correct arrival date
+            let effectiveDate = item.date;
+            const isFlightItem = item.flightInfo && (item.flightInfo.departure || item.flightInfo.arrival);
             
-            // Create UTC dates to avoid timezone shifts
-            const tripStart = new Date(tripStartStr + 'T00:00:00.000Z');
-            const itemDay = new Date(itemDateStr + 'T00:00:00.000Z');
+            if (isFlightItem) {
+              // Use arrival date from database if available (new format)
+              if (item.flightInfo.arrival && item.flightInfo.arrival.date) {
+                effectiveDate = item.flightInfo.arrival.date + 'T' + (item.flightInfo.arrival.time || '00:00') + ':00.000Z';
+                console.log('🛩️ Using flight arrival date from database:', {
+                  originalDate: item.date,
+                  arrivalDate: effectiveDate,
+                  flightInfo: item.flightInfo
+                });
+              } else {
+                // Fallback: Calculate arrival date for old format flights
+                const departureTime = item.flightInfo.departure?.time || '00:00';
+                const arrivalTime = item.flightInfo.arrival?.time || item.start_time || '00:00';
+                
+                // Parse departure and arrival times
+                const [depHour, depMin] = departureTime.split(':').map(Number);
+                const [arrHour, arrMin] = arrivalTime.split(':').map(Number);
+                
+                // Create departure datetime
+                const departureDate = new Date(item.date);
+                departureDate.setHours(depHour, depMin, 0, 0);
+                
+                // Create arrival datetime (assume same day first, then adjust if needed)
+                const arrivalDate = new Date(item.date);
+                arrivalDate.setHours(arrHour, arrMin, 0, 0);
+                
+                // If arrival time is earlier than departure time, it's likely next day
+                if (arrivalDate.getTime() < departureDate.getTime()) {
+                  arrivalDate.setDate(arrivalDate.getDate() + 1);
+                }
+                
+                // For international flights, there might be timezone differences
+                // If we have duration info, we can be more precise
+                if (item.flightInfo.duration) {
+                  const durationMatch = item.flightInfo.duration.match(/(\d+)h?\s*(\d+)?m?/);
+                  if (durationMatch) {
+                    const hours = parseInt(durationMatch[1]) || 0;
+                    const minutes = parseInt(durationMatch[2]) || 0;
+                    const calculatedArrival = new Date(departureDate.getTime() + (hours * 60 + minutes) * 60 * 1000);
+                    
+                    // Use calculated arrival if it makes more sense
+                    if (Math.abs(calculatedArrival.getTime() - arrivalDate.getTime()) < 24 * 60 * 60 * 1000) {
+                      effectiveDate = calculatedArrival.toISOString();
+                    } else {
+                      effectiveDate = arrivalDate.toISOString();
+                    }
+                  } else {
+                    effectiveDate = arrivalDate.toISOString();
+                  }
+                } else {
+                  effectiveDate = arrivalDate.toISOString();
+                }
+                
+                console.log('🛩️ Calculated flight arrival date (legacy format):', {
+                  originalDate: item.date,
+                  departureTime,
+                  arrivalTime,
+                  calculatedArrivalDate: effectiveDate,
+                  flightInfo: item.flightInfo
+                });
+              }
+            }
             
-            // Calculate the difference in days
-            const timeDiff = itemDay.getTime() - tripStart.getTime();
-            const daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+            // Use UTC-consistent date utilities to avoid timezone issues
+            const tripStartDate = safeParseDate(tripData.startDate);
+            const itemDate = safeParseDate(effectiveDate);
             
-            // Simple approach: use daysDiff + 1, but ensure minimum of index + 1 for proper distribution
-            dayNumber = Math.max(index + 1, daysDiff + 1);
+            // Calculate the difference in days using UTC-consistent function
+            const daysDiff = getDaysDifferenceIgnoreTime(tripStartDate, itemDate);
             
-            console.log('📅 Day calculation (UTC fixed):', {
+            // Use date-based calculation for ALL items to ensure consistency
+            dayNumber = Math.max(1, daysDiff + 1);
+            
+            console.log('📅 Day calculation (date-based for all items) - DETAILED DEBUG:', {
               itemId: item._id,
               itemTitle: item.custom_title || item.place?.name,
-              tripStartStr,
-              itemDateStr,
-              tripStart: tripStart.toISOString(),
-              itemDay: itemDay.toISOString(),
-              timeDiff,
+              itemType: item.type || 'activity',
+              isFlightItem: !!isFlightItem,
+              originalDate: item.date,
+              effectiveDate,
+              tripStartDate: tripStartDate.toISOString(),
+              itemDate: itemDate.toISOString(),
+              tripStartDateLocal: tripStartDate.toString(),
+              itemDateLocal: itemDate.toString(),
               daysDiff,
               calculatedDay: dayNumber,
-              index
+              index,
+              method: 'date-based-for-all',
+              // Additional debug info
+              tripStartDateRaw: tripData.startDate,
+              shouldBeDay1: daysDiff === 0,
+              finalDayAssignment: dayNumber
             });
           } else {
             // If dates are invalid, use sequential assignment
@@ -339,7 +431,40 @@ const TripDetailPage: React.FC = () => {
       }
     }).filter(item => item !== null) as ItineraryItem[];
     
-    return transformedItems;
+    // Smart deduplication: Remove true duplicates but allow multiple items on same day
+    const deduplicatedItems = transformedItems.reduce((acc: ItineraryItem[], current: ItineraryItem) => {
+      const isDuplicate = acc.some(item => 
+        item.title === current.title && 
+        item.day === current.day && 
+        item.time === current.time &&
+        item.type === current.type &&
+        // For hotels, also check description to distinguish check-in vs check-out vs stay
+        item.description === current.description
+      );
+      
+      if (!isDuplicate) {
+        acc.push(current);
+      } else {
+        console.warn('🚫 True duplicate detected and removed:', {
+          title: current.title,
+          day: current.day,
+          time: current.time,
+          type: current.type,
+          description: current.description
+        });
+      }
+      
+      return acc;
+    }, []);
+    
+    console.log('📊 Smart deduplication results:', {
+      originalCount: transformedItems.length,
+      deduplicatedCount: deduplicatedItems.length,
+      removedDuplicates: transformedItems.length - deduplicatedItems.length,
+      allowsMultipleItemsPerDay: true
+    });
+    
+    return deduplicatedItems;
   };
 
   // Generate days for the trip
@@ -350,15 +475,24 @@ const TripDetailPage: React.FC = () => {
         return [];
       }
       
-      // Find the date range from itinerary items
+      // Find the date range from itinerary items using UTC-safe parsing
       const dates = (tripData.itinerary || [])
-        .map((item: any) => new Date(item.date))
+        .map((item: any) => safeParseDate(item.date))
         .filter((date: Date) => !isNaN(date.getTime()))
         .sort((a: Date, b: Date) => a.getTime() - b.getTime());
       
       if (dates.length === 0) {
         return [{ dayNumber: 1, date: new Date() }]; // Fallback to single day
       }
+      
+      console.log('📅 Generating days from itinerary items:', {
+        itemCount: tripData.itinerary.length,
+        validDates: dates.length,
+        dateRange: dates.length > 0 ? {
+          start: dates[0].toISOString(),
+          end: dates[dates.length - 1].toISOString()
+        } : null
+      });
       
       const startDate = dates[0];
       const endDate = dates[dates.length - 1];
@@ -380,13 +514,21 @@ const TripDetailPage: React.FC = () => {
     }
     
     try {
-      const startDate = new Date(tripData.startDate);
-      const endDate = new Date(tripData.endDate);
+      const startDate = safeParseDate(tripData.startDate);
+      const endDate = safeParseDate(tripData.endDate);
       
       // Validate dates
       if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+        console.warn('Invalid trip dates:', { startDate: tripData.startDate, endDate: tripData.endDate });
         return [];
       }
+      
+      console.log('📅 Generating days with UTC-safe parsing:', {
+        startDateRaw: tripData.startDate,
+        endDateRaw: tripData.endDate,
+        startDateParsed: startDate.toISOString(),
+        endDateParsed: endDate.toISOString()
+      });
       
       const days = [];
       let currentDate = new Date(startDate);
@@ -661,11 +803,11 @@ const TripDetailPage: React.FC = () => {
                     return (
                       <div key={day.dayNumber} className="border border-gray-200 rounded-lg p-4">
                         <div className="flex items-center justify-between mb-4">
-                          <div>
-                            <h4 className="font-medium text-gray-900">
+                          <div className="text-left">
+                            <h4 className="font-medium text-gray-900 text-left">
                               Day {day.dayNumber}
                             </h4>
-                            <p className="text-sm text-gray-500">
+                            <p className="text-sm text-gray-500 text-left">
                               {(() => {
                                 try {
                                   return format(day.date, 'EEEE, MMMM d, yyyy');
@@ -780,21 +922,21 @@ const TripDetailPage: React.FC = () => {
                                           <PencilIcon className="h-3 w-3" />
                                         </button>
                                       </div>
-                                      <h5 className="text-sm font-medium text-gray-900 break-words">
+                                      <h5 className="text-sm font-medium text-gray-900 break-words text-left">
                                         {item.title}
                                       </h5>
                                       {item.description && (
-                                        <p className="text-xs text-gray-500 break-words mt-1">
+                                        <p className="text-xs text-gray-500 break-words mt-1 text-left">
                                           {item.description}
                                         </p>
                                       )}
                                       {item.duration && (
-                                        <p className="text-xs text-gray-400 mt-1">
+                                        <p className="text-xs text-gray-400 mt-1 text-left">
                                           Duration: {item.duration} minutes
                                         </p>
                                       )}
                                       {item.notes && (
-                                        <p className="text-xs text-gray-600 mt-1 italic">
+                                        <p className="text-xs text-gray-600 mt-1 italic text-left">
                                           Note: {item.notes}
                                         </p>
                                       )}
@@ -998,6 +1140,9 @@ const TripDetailPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Flight Edit Modal - REMOVED (flight editing disabled in planned itinerary) */}
+      {/* Flight editing is now only available in the trip planning page */}
     </div>
   );
 };
