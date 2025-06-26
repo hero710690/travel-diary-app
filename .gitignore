@@ -18,12 +18,11 @@ backend.zip
 lambda-package/
 
 # Environment variables
-.env
+client/.env
 .env.local
 .env.development.local
 .env.test.local
 .env.production.local
-
 # Terraform
 *.tfstate
 *.tfstate.*
