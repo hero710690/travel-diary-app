@@ -191,7 +191,9 @@ const HotelCard: React.FC<HotelCardProps> = ({
         <div className="flex-1">
           <div className="flex items-center mb-2">
             <BuildingOfficeIcon className="h-5 w-5 text-blue-600 mr-2" />
-            <h3 className="text-lg font-medium text-gray-900">{hotelInfo.name}</h3>
+            <div className="flex-1">
+              <h3 className="text-lg font-medium text-gray-900 text-left">{hotelInfo.name}</h3>
+            </div>
             {hotelInfo.rating && (
               <div className="flex items-center ml-2">
                 {renderStars(hotelInfo.rating)}
@@ -200,9 +202,9 @@ const HotelCard: React.FC<HotelCardProps> = ({
           </div>
 
           <div className="space-y-2 text-sm text-gray-600">
-            <div className="flex items-center">
-              <MapPinIcon className="h-4 w-4 mr-2" />
-              <span>{hotelInfo.address}</span>
+            <div className="flex items-start">
+              <MapPinIcon className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 text-left">{hotelInfo.address}</div>
             </div>
 
             <div className="flex items-center">
@@ -215,7 +217,7 @@ const HotelCard: React.FC<HotelCardProps> = ({
 
             {hotelInfo.roomType && (
               <div className="flex items-center">
-                <ClockIcon className="h-4 w-4 mr-2" />
+                <BuildingOfficeIcon className="h-4 w-4 mr-2" />
                 <span>{hotelInfo.roomType}</span>
               </div>
             )}
@@ -228,7 +230,7 @@ const HotelCard: React.FC<HotelCardProps> = ({
             )}
 
             {hotelInfo.confirmationNumber && (
-              <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 text-left">
                 Confirmation: {hotelInfo.confirmationNumber}
               </div>
             )}

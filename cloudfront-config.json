@@ -1,0 +1,49 @@
+{
+  "CallerReference": "travel-diary-spa-routing-2025-06-24",
+  "Comment": "Travel Diary SPA with proper routing",
+  "DefaultRootObject": "index.html",
+  "Origins": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "Id": "travel-diary-s3-origin",
+        "DomainName": "travel-diary-prod-frontend.s3-website-ap-northeast-1.amazonaws.com",
+        "CustomOriginConfig": {
+          "HTTPPort": 80,
+          "HTTPSPort": 443,
+          "OriginProtocolPolicy": "http-only"
+        }
+      }
+    ]
+  },
+  "DefaultCacheBehavior": {
+    "TargetOriginId": "travel-diary-s3-origin",
+    "ViewerProtocolPolicy": "redirect-to-https",
+    "TrustedSigners": {
+      "Enabled": false,
+      "Quantity": 0
+    },
+    "ForwardedValues": {
+      "QueryString": false,
+      "Cookies": {
+        "Forward": "none"
+      }
+    },
+    "MinTTL": 0,
+    "DefaultTTL": 86400,
+    "MaxTTL": 31536000
+  },
+  "CustomErrorResponses": {
+    "Quantity": 1,
+    "Items": [
+      {
+        "ErrorCode": 404,
+        "ResponsePagePath": "/index.html",
+        "ResponseCode": "200",
+        "ErrorCachingMinTTL": 300
+      }
+    ]
+  },
+  "Enabled": true,
+  "PriceClass": "PriceClass_100"
+}

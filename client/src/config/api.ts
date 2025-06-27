@@ -20,6 +20,14 @@ export const API_ENDPOINTS = {
     GET: (id: string) => `/trips/${id}`,
     UPDATE: (id: string) => `/trips/${id}`,
     DELETE: (id: string) => `/trips/${id}`,
+    // Collaboration endpoints
+    INVITE: (id: string) => `/trips/${id}/invite`,
+    SHARE: (id: string) => `/trips/${id}/share`,
+  },
+  // Collaboration
+  COLLABORATION: {
+    RESPOND_INVITE: '/invite/respond',
+    SHARED_TRIP: (token: string) => `/shared/${token}`,
   },
   // Health
   HEALTH: '/health',

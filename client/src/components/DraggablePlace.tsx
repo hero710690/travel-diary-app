@@ -72,7 +72,7 @@ const DraggablePlace: React.FC<DraggablePlaceProps> = ({ place, onRemove }) => {
               {place.formatted_address}
             </p>
             {place.rating && (
-              <div className="flex items-center mt-2">
+              <div className="flex items-center mt-2 justify-start">
                 <StarIcon className="h-3 w-3 text-yellow-400 fill-current flex-shrink-0" />
                 <span className="text-xs text-gray-600 ml-1 text-left">
                   {place.rating.toFixed(1)}
@@ -80,7 +80,7 @@ const DraggablePlace: React.FC<DraggablePlaceProps> = ({ place, onRemove }) => {
               </div>
             )}
             {place.types && place.types.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
+              <div className="flex flex-wrap gap-1 mt-2 justify-start">
                 {place.types.slice(0, 2).map((type) => (
                   <span
                     key={type}

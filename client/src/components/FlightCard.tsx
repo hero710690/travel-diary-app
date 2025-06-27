@@ -3,7 +3,9 @@ import {
   PaperAirplaneIcon, 
   ClockIcon, 
   MapPinIcon,
-  InformationCircleIcon
+  InformationCircleIcon,
+  PencilIcon,
+  TrashIcon
 } from '@heroicons/react/24/outline';
 import { FlightInfo } from '../types';
 
@@ -148,17 +150,19 @@ const FlightCard: React.FC<FlightCardProps> = ({
           {onEdit && (
             <button
               onClick={onEdit}
-              className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+              title="Edit Flight"
             >
-              Edit
+              <PencilIcon className="h-4 w-4" />
             </button>
           )}
           {onDelete && (
             <button
               onClick={onDelete}
-              className="text-xs text-red-600 hover:text-red-800 font-medium"
+              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+              title="Remove Flight"
             >
-              Remove
+              <TrashIcon className="h-4 w-4" />
             </button>
           )}
         </div>

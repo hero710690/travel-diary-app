@@ -4,10 +4,10 @@ import { format } from 'date-fns';
 import { ItineraryItem, FlightInfo } from '../types';
 import DraggableItineraryItem from './DraggableItineraryItem';
 import FlightCard from './FlightCard';
-import FlightForm from './FlightForm';
+import FlightForm from './FlightForm'; // Restored for editing existing flights
 import { 
-  PlusIcon, 
-  PaperAirplaneIcon 
+  PlusIcon 
+  // PaperAirplaneIcon removed - no longer needed for add buttons 
 } from '@heroicons/react/24/outline';
 
 interface Place {
@@ -28,7 +28,7 @@ interface ItineraryDayProps {
   onRemoveItem: (itemId: string) => void;
   onUpdateItem?: (itemId: string, updates: Partial<ItineraryItem>) => void;
   onMoveItem?: (itemId: string, newDay: number) => void;
-  onAddFlight?: (dayNumber: number, flightInfo: FlightInfo, time: string) => void;
+  // onAddFlight removed - using top-level Add Flight button instead
 }
 
 const ItineraryDay: React.FC<ItineraryDayProps> = ({ 
@@ -37,9 +37,10 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
   onDrop, 
   onRemoveItem,
   onUpdateItem,
-  onMoveItem,
-  onAddFlight
+  onMoveItem
+  // onAddFlight removed - using top-level Add Flight button instead
 }) => {
+  // Flight form state for editing existing flights only (not for adding new ones)
   const [showFlightForm, setShowFlightForm] = useState(false);
   const [editingFlight, setEditingFlight] = useState<ItineraryItem | null>(null);
 
@@ -74,15 +75,10 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
     return timeA.localeCompare(timeB);
   });
 
-  const handleAddFlight = (flightInfo: FlightInfo) => {
-    if (onAddFlight) {
-      // Use arrival time as the default time for the itinerary item (when traveler reaches destination)
-      const time = flightInfo.arrival.time;
-      onAddFlight(day.dayNumber, flightInfo, time);
-    }
-    setShowFlightForm(false);
-  };
+  // Flight handling functions removed - using top-level Add Flight button instead
+  // const handleAddFlight = (flightInfo: FlightInfo) => { ... }
 
+  // Flight editing functions (for existing flights only)
   const handleEditFlight = (item: ItineraryItem) => {
     setEditingFlight(item);
     setShowFlightForm(true);
@@ -128,16 +124,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
           <div className="text-xs text-gray-400">
             {items.length} {items.length === 1 ? 'activity' : 'activities'}
           </div>
-          {onAddFlight && (
-            <button
-              onClick={() => setShowFlightForm(true)}
-              className="inline-flex items-center px-2 py-1 text-xs font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              title="Add Flight"
-            >
-              <PaperAirplaneIcon className="h-3 w-3 mr-1" />
-              Flight
-            </button>
-          )}
+          {/* Flight button removed - using top-level Add Flight button instead */}
         </div>
       </div>
 
@@ -147,15 +134,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
             <p className="text-sm text-gray-500 mb-2">
               {isOver ? 'Drop here to add to this day' : 'Drag places here to plan your day'}
             </p>
-            {onAddFlight && (
-              <button
-                onClick={() => setShowFlightForm(true)}
-                className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <PaperAirplaneIcon className="h-4 w-4 mr-2" />
-                Add Flight Information
-              </button>
-            )}
+            {/* Flight button removed - using top-level Add Flight button instead */}
           </div>
         ) : (
           sortedItems.map((item) => (
@@ -187,11 +166,11 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
         </div>
       )}
 
-      {/* Flight Form Modal */}
-      {showFlightForm && (
+      {/* Flight Form Modal - for editing existing flights only */}
+      {showFlightForm && editingFlight && (
         <FlightForm
-          initialData={editingFlight?.flightInfo}
-          onSave={editingFlight ? handleUpdateFlight : handleAddFlight}
+          initialData={editingFlight.flightInfo}
+          onSave={handleUpdateFlight}
           onCancel={handleCancelFlightForm}
         />
       )}

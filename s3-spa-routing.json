@@ -1,0 +1,42 @@
+{
+  "IndexDocument": {
+    "Suffix": "index.html"
+  },
+  "ErrorDocument": {
+    "Key": "error.html"
+  },
+  "RoutingRules": [
+    {
+      "Condition": {
+        "KeyPrefixEquals": "dashboard"
+      },
+      "Redirect": {
+        "ReplaceKeyWith": "index.html"
+      }
+    },
+    {
+      "Condition": {
+        "KeyPrefixEquals": "trips"
+      },
+      "Redirect": {
+        "ReplaceKeyWith": "index.html"
+      }
+    },
+    {
+      "Condition": {
+        "KeyPrefixEquals": "login"
+      },
+      "Redirect": {
+        "ReplaceKeyWith": "index.html"
+      }
+    },
+    {
+      "Condition": {
+        "KeyPrefixEquals": "register"
+      },
+      "Redirect": {
+        "ReplaceKeyWith": "index.html"
+      }
+    }
+  ]
+}

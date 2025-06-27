@@ -38,6 +38,12 @@ interface Place {
   photos?: google.maps.places.PlacePhoto[];
   rating?: number;
   types?: string[];
+  user_ratings_total?: number;
+  vicinity?: string;
+  address_components?: google.maps.GeocoderAddressComponent[];
+  plus_code?: google.maps.places.PlacePlusCode;
+  business_status?: string;
+  editorial_summary?: string;
 }
 
 // Hotel Form Component
@@ -320,25 +326,34 @@ const TripPlanningPage: React.FC = () => {
         // Transform backend itinerary to frontend format
         if (trip.itinerary && trip.itinerary.length > 0) {
           const transformedItinerary = trip.itinerary.map((item: any, index: number) => {
-            // Calculate day number from date using safe date parsing
-            const tripStartDate = safeParseDate(trip.startDate || (trip as any).start_date);
-            const itemDate = safeParseDate(item.date);
+            // Prioritize explicit day field, fallback to date calculation
+            let dayNumber;
             
-            // Use the new utility function to avoid timezone issues
-            const dayDifference = getDaysDifferenceIgnoreTime(tripStartDate, itemDate);
-            // Ensure day number is at least 1, even if the item date is before trip start
-            const dayNumber = Math.max(1, dayDifference + 1);
-            
-            console.log('📅 Day calculation debug:', {
-              tripStartDate: tripStartDate.toISOString(),
-              itemDate: itemDate.toISOString(),
-              tripStartDateLocal: tripStartDate.toString(),
-              itemDateLocal: itemDate.toString(),
-              dayDifference,
-              calculatedDay: dayNumber,
-              itemIndex: index,
-              itemTitle: item.custom_title || item.place?.name
-            });
+            if (item.day && typeof item.day === 'number' && item.day > 0) {
+              // Use explicit day field if available
+              dayNumber = item.day;
+              console.log('📅 Using explicit day field:', dayNumber, 'for item:', item.custom_title || item.place?.name);
+            } else {
+              // Calculate day number from date using safe date parsing (fallback)
+              const tripStartDate = safeParseDate(trip.startDate || (trip as any).start_date);
+              const itemDate = safeParseDate(item.date);
+              
+              // Use the new utility function to avoid timezone issues
+              const dayDifference = getDaysDifferenceIgnoreTime(tripStartDate, itemDate);
+              // Ensure day number is at least 1, even if the item date is before trip start
+              dayNumber = Math.max(1, dayDifference + 1);
+              
+              console.log('📅 Day calculation debug (fallback):', {
+                tripStartDate: tripStartDate.toISOString(),
+                itemDate: itemDate.toISOString(),
+                tripStartDateLocal: tripStartDate.toString(),
+                itemDateLocal: itemDate.toString(),
+                dayDifference,
+                calculatedDay: dayNumber,
+                itemIndex: index,
+                itemTitle: item.custom_title || item.place?.name
+              });
+            }
 
             // Check if this is a flight item
             const isFlightItem = item.flightInfo || (item.place?.types && item.place.types.includes('flight'));
@@ -369,6 +384,7 @@ const TripPlanningPage: React.FC = () => {
               duration: item.estimated_duration || (isFlightItem ? 120 : 60),
               type: isFlightItem ? 'flight' as const : 'activity' as const,
               notes: item.notes || '',
+              userRating: item.userRating || undefined, // ✅ FIXED: Include user rating from backend
               // Include flight info if available
               flightInfo: item.flightInfo || undefined,
             };
@@ -474,12 +490,26 @@ const TripPlanningPage: React.FC = () => {
   };
 
   const handlePlaceSelect = (place: Place) => {
+    console.log('🎯 TripPlanningPage: Place selected from', place.name ? 'MAP/SEARCH' : 'UNKNOWN');
+    console.log('🎯 Place data received:', {
+      place_id: place.place_id,
+      name: place.name,
+      rating: place.rating,
+      types: place.types,
+      source: place.name && place.rating ? 'COMPLETE_DATA' : 'INCOMPLETE_DATA'
+    });
+    
     setSelectedPlaces(prev => {
       const exists = prev.find(p => p.place_id === place.place_id);
+      
       if (!exists) {
+        console.log('✅ Adding new place to selected places:', place.name);
+        console.log('✅ Place will show with rating:', place.rating ? `${place.rating} stars` : 'No rating');
         return [...prev, place];
+      } else {
+        console.log('⚠️ Place already exists:', place.name);
+        return prev;
       }
-      return prev;
     });
 
     // Update map center to selected place
@@ -491,24 +521,40 @@ const TripPlanningPage: React.FC = () => {
     }
   };
 
-  // Handle updating user interest rating for places
-  const handleUpdatePlaceInterest = (placeId: string, rating: number) => {
-    setSelectedPlaces(prev => 
-      prev.map(place => 
-        place.place_id === placeId 
-          ? { ...place, userInterestRating: rating }
-          : place
-      )
-    );
-  };
-
   const handleMapPlaceSelect = (place: any) => {
+    console.log('🗺️ Map place selected (RAW DATA):', place);
+    console.log('🗺️ Comparing to search format - Name:', place?.name, 'Rating:', place?.rating, 'Types:', place?.types);
+    
+    // Don't process if we don't have a valid place_id
+    if (!place?.place_id) {
+      console.log('❌ No valid place_id found, skipping place selection');
+      return;
+    }
+    
+    // Create place object that matches the search data format exactly
     const newPlace: Place = {
-      place_id: place.place_id || `custom_${Date.now()}`,
-      name: place.name || 'Selected Location',
-      formatted_address: place.formatted_address || '',
+      place_id: place.place_id,
+      name: place.name || place.vicinity || place.formatted_address || 'Unknown Location',
+      formatted_address: place.formatted_address || place.vicinity || '',
       geometry: place.geometry,
+      rating: place.rating, // Direct pass-through like search
+      types: place.types || [],
+      user_ratings_total: place.user_ratings_total,
+      vicinity: place.vicinity,
+      address_components: place.address_components,
+      plus_code: place.plus_code,
+      business_status: place.business_status,
+      editorial_summary: (place as any)?.editorial_summary,
     };
+    
+    console.log('🗺️ Final place object (SHOULD MATCH SEARCH FORMAT):', {
+      name: newPlace.name,
+      rating: newPlace.rating,
+      types: newPlace.types,
+      user_ratings_total: newPlace.user_ratings_total
+    });
+    
+    console.log('🗺️ Calling handlePlaceSelect with processed place');
     handlePlaceSelect(newPlace);
   };
 
@@ -578,6 +624,7 @@ const TripPlanningPage: React.FC = () => {
       },
       duration: 60, // Default 1 hour
       type: 'activity',
+      place: place, // Preserve the full place data including rating and types
     };
 
     setItinerary(prev => [...prev, newItineraryItem]);
@@ -588,9 +635,51 @@ const TripPlanningPage: React.FC = () => {
   };
 
   const handleUpdateItineraryItem = (itemId: string, updates: Partial<ItineraryItem>) => {
-    setItinerary(prev => prev.map(item => 
+    console.log('🔄 handleUpdateItineraryItem called:', itemId, updates);
+    
+    // Find the current item before update
+    const currentItem = itinerary.find(item => item.id === itemId);
+    console.log('📋 Current item before update:', currentItem);
+    
+    // Update local state immediately for responsive UI
+    const updatedItinerary = itinerary.map(item => 
       item.id === itemId ? { ...item, ...updates } : item
-    ));
+    );
+    
+    const updatedItem = updatedItinerary.find(item => item.id === itemId);
+    console.log('📝 Updated item after merge:', updatedItem);
+    console.log('🎯 Specifically userRating:', updatedItem?.userRating);
+    
+    setItinerary(updatedItinerary);
+
+    // Transform and save to database
+    const transformedItinerary = updatedItinerary.map(item => ({
+      _id: item.id,
+      day: item.day,
+      date: item.date,
+      start_time: item.time,
+      custom_title: item.title,
+      description: item.description,
+      estimated_duration: item.duration,
+      type: item.type,
+      notes: item.notes,
+      userRating: item.userRating, // Include user rating
+      // Include flight info if present
+      ...(item.flightInfo && { flightInfo: item.flightInfo }),
+      // Include place info if present
+      ...(item.place && { place: item.place })
+    }));
+    
+    const transformedItem = transformedItinerary.find(item => item._id === itemId);
+    console.log('🚀 Transformed item for DB:', transformedItem);
+    console.log('💾 DB userRating:', transformedItem?.userRating);
+    
+    updateItineraryMutation.mutate(transformedItinerary);
+
+    // Show success message for wish level updates
+    if (updates.userRating !== undefined) {
+      toast.success(`Wish level set to ${updates.userRating} heart${updates.userRating > 1 ? 's' : ''}!`);
+    }
   };
 
   const handleMoveItineraryItem = (itemId: string, newDay: number) => {
@@ -770,10 +859,12 @@ const TripPlanningPage: React.FC = () => {
             photos: [] // Add missing photos field
           },
           date: flightDateTime.toISOString(),
+          day: item.day, // ✅ FIXED: Preserve original day number
           start_time: item.time,
           end_time: item.time,
           estimated_duration: item.duration || 120,
           notes: item.notes || '',
+          userRating: item.userRating,
           order: index,
           is_custom: true,
           custom_title: item.title,
@@ -795,10 +886,12 @@ const TripPlanningPage: React.FC = () => {
           photos: [] // Add missing photos field
         },
         date: combinedDateTime.toISOString(),
+        day: item.day, // ✅ FIXED: Preserve original day number
         start_time: item.time,
         end_time: item.time, // Could calculate based on duration
         estimated_duration: item.duration || 60,
         notes: item.notes || '',
+        userRating: item.userRating,
         order: index,
         is_custom: true,
         custom_title: item.title,
@@ -993,6 +1086,9 @@ const TripPlanningPage: React.FC = () => {
         },
         title: place.name,
         id: place.place_id,
+        rating: place.rating,
+        address: place.formatted_address,
+        types: place.types,
       }));
   };
 
@@ -1087,7 +1183,6 @@ const TripPlanningPage: React.FC = () => {
                     onRemove={() => setSelectedPlaces(prev => 
                       prev.filter(p => p.place_id !== place.place_id)
                     )}
-                    onUpdateInterest={handleUpdatePlaceInterest}
                   />
                 ))}
                 {selectedPlaces.length === 0 && (

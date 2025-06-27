@@ -12,6 +12,11 @@ interface Place {
   photos?: google.maps.places.PlacePhoto[];
   rating?: number;
   types?: string[];
+  vicinity?: string;
+  address_components?: google.maps.GeocoderAddressComponent[];
+  plus_code?: google.maps.places.PlacePlusCode;
+  business_status?: string;
+  editorial_summary?: string;
 }
 
 interface PlacesSearchProps {
@@ -94,26 +99,29 @@ const PlacesSearchComponent: React.FC<PlacesSearchProps> = ({
     try {
       serviceRef.current.getPlacePredictions(request, (predictions, status) => {
         setIsLoading(false);
-        console.log('📍 Places API response:', status, predictions);
+        console.log('📍 PlacesSearch: Autocomplete status:', status);
         
         if (status === google.maps.places.PlacesServiceStatus.OK && predictions) {
-          const places: Place[] = predictions.map(prediction => ({
-            place_id: prediction.place_id,
-            name: prediction.structured_formatting.main_text,
-            formatted_address: prediction.description,
-          }));
+          const places: Place[] = predictions.map(prediction => {
+            return {
+              place_id: prediction.place_id,
+              name: prediction.structured_formatting?.main_text || prediction.description,
+              formatted_address: prediction.description,
+              types: prediction.types,
+            };
+          });
           
-          console.log('✅ Found places:', places);
+          console.log('✅ PlacesSearch: Found', places.length, 'places');
           setSuggestions(places);
           setShowSuggestions(true);
         } else {
-          console.log('❌ Places search failed:', status);
+          console.log('❌ PlacesSearch: Autocomplete failed:', status);
           setSuggestions([]);
           setShowSuggestions(false);
         }
       });
     } catch (error) {
-      console.error('❌ Error in places search:', error);
+      console.error('❌ PlacesSearch: Error in autocomplete search:', error);
       setIsLoading(false);
       setSuggestions([]);
       setShowSuggestions(false);
@@ -130,21 +138,43 @@ const PlacesSearchComponent: React.FC<PlacesSearchProps> = ({
 
     const request = {
       placeId: placeId,
-      fields: ['place_id', 'name', 'formatted_address', 'geometry', 'photos', 'rating', 'types']
+      fields: [
+        'place_id', 
+        'name', 
+        'formatted_address', 
+        'geometry', 
+        'photos', 
+        'rating', 
+        'types',
+        'user_ratings_total',
+        'price_level',
+        'vicinity',
+        'address_components', // For better landmark info
+        'plus_code',          // For location context
+        'business_status',    // For operational status
+        'editorial_summary'   // For place descriptions (if available)
+      ]
     };
+
+    console.log('🔍 PlacesSearch: Getting place details for:', placeId);
 
     try {
       placesServiceRef.current.getDetails(request, (place, status) => {
-        console.log('📍 Place details response:', status, place);
+        console.log('📍 PlacesSearch: Place details status:', status);
         
         if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+          console.log('✅ PlacesSearch: Got place details:', {
+            name: place.name,
+            rating: place.rating,
+            types: place.types
+          });
           onPlaceSelect(place as Place);
         } else {
-          console.log('❌ Failed to get place details:', status);
+          console.log('❌ PlacesSearch: Failed to get place details:', status);
         }
       });
     } catch (error) {
-      console.error('❌ Error getting place details:', error);
+      console.error('❌ PlacesSearch: Error getting place details:', error);
     }
   };
 

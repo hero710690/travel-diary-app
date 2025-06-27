@@ -18,8 +18,11 @@ import {
   UserPlusIcon,
   ShareIcon,
   LinkIcon,
-  UsersIcon
+  StarIcon,
+  UsersIcon,
+  HeartIcon
 } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import LoadingSpinner from '../components/LoadingSpinner';
 import toast from 'react-hot-toast';
 import { format, addDays } from 'date-fns';
@@ -39,6 +42,14 @@ interface ItineraryItem {
     coordinates?: any;
   };
   notes?: string;
+  userRating?: number; // User's experience rating (1-5 stars)
+  place?: {
+    name: string;
+    rating?: number;
+    user_ratings_total?: number;
+    types?: string[];
+    formatted_address?: string;
+  }; // Google place data
 }
 
 const TripDetailPage: React.FC = () => {
@@ -52,6 +63,10 @@ const TripDetailPage: React.FC = () => {
     duration: 0,
     notes: ''
   });
+
+  // Rating state
+  const [hoveredStar, setHoveredStar] = useState<number | null>(null);
+  const [ratingItemId, setRatingItemId] = useState<string | null>(null);
 
   // Flight Edit State - REMOVED (flight editing disabled in planned itinerary)
   // const [showFlightEditModal, setShowFlightEditModal] = useState(false);
@@ -251,6 +266,69 @@ const TripDetailPage: React.FC = () => {
     setEditForm({ time: '', duration: 0, notes: '' });
   };
 
+  const handleRatingClick = (itemId: string, rating: number) => {
+    if (!tripData?.itinerary) return;
+
+    // Find the original item in the backend data
+    const originalItemIndex = tripData.itinerary?.findIndex((backendItem: any) => {
+      return backendItem._id === itemId || backendItem.id === itemId;
+    });
+
+    if (originalItemIndex === -1) {
+      toast.error('Could not find item to update');
+      return;
+    }
+
+    // Create updated itinerary with rating
+    const updatedItinerary = [...(tripData.itinerary || [])];
+    const originalItem = updatedItinerary[originalItemIndex] as any;
+    
+    updatedItinerary[originalItemIndex] = {
+      ...originalItem,
+      userRating: rating
+    } as any;
+
+    updateItineraryMutation.mutate(updatedItinerary);
+    setRatingItemId(null);
+    setHoveredStar(null);
+  };
+
+  const renderRatingStars = (item: ItineraryItem) => {
+    const hearts = [];
+    const isRatingThisItem = ratingItemId === item.id;
+    
+    for (let i = 1; i <= 5; i++) {
+      const isFilled = i <= (isRatingThisItem && hoveredStar ? hoveredStar : item.userRating || 0);
+      hearts.push(
+        <button
+          key={i}
+          onClick={(e) => {
+            e.stopPropagation();
+            handleRatingClick(item.id, i);
+          }}
+          onMouseEnter={() => {
+            setRatingItemId(item.id);
+            setHoveredStar(i);
+          }}
+          onMouseLeave={() => {
+            if (!item.userRating) {
+              setHoveredStar(null);
+            }
+          }}
+          className="p-0.5 hover:scale-110 transition-transform"
+          title={`Wish level ${i} heart${i > 1 ? 's' : ''}`}
+        >
+          {isFilled ? (
+            <HeartIconSolid className="h-3 w-3 text-red-500" />
+          ) : (
+            <HeartIcon className="h-3 w-3 text-gray-300 hover:text-red-400" />
+          )}
+        </button>
+      );
+    }
+    return hearts;
+  };
+
   // Transform backend itinerary to frontend format
   const getTransformedItinerary = (): ItineraryItem[] => {
     if (!tripData?.itinerary || tripData.itinerary.length === 0) {
@@ -276,8 +354,13 @@ const TripDetailPage: React.FC = () => {
       try {
         let dayNumber = 1; // Default to day 1 if no trip dates
         
-        // Calculate day number based on item date and trip start date
-        if (tripData.startDate && item.date) {
+        // Prioritize explicit day field, fallback to date calculation (same fix as TripPlanningPage)
+        if (item.day && typeof item.day === 'number' && item.day > 0) {
+          // Use explicit day field if available
+          dayNumber = item.day;
+          console.log('📅 Using explicit day field:', dayNumber, 'for item:', item.custom_title || item.place?.name);
+        } else if (tripData.startDate && item.date) {
+          // Calculate day number based on item date and trip start date (fallback)
           const tripStartDate = new Date(tripData.startDate);
           const itemDate = new Date(item.date);
           
@@ -421,6 +504,7 @@ const TripDetailPage: React.FC = () => {
           duration: item.estimated_duration || (isFlightItem ? 120 : 60),
           type: isFlightItem ? 'flight' as const : 'activity' as const,
           notes: item.notes || '',
+          userRating: item.userRating || undefined, // ✅ FIXED: Include user rating for hearts display
           flightInfo: item.flightInfo || undefined,
         };
         
@@ -914,13 +998,6 @@ const TripDetailPage: React.FC = () => {
                                             </span>
                                           )}
                                         </div>
-                                        <button
-                                          onClick={() => handleEditActivity(item)}
-                                          className="text-gray-400 hover:text-gray-600 p-1"
-                                          title="Edit activity"
-                                        >
-                                          <PencilIcon className="h-3 w-3" />
-                                        </button>
                                       </div>
                                       <h5 className="text-sm font-medium text-gray-900 break-words text-left">
                                         {item.title}
@@ -930,6 +1007,46 @@ const TripDetailPage: React.FC = () => {
                                           {item.description}
                                         </p>
                                       )}
+                                      
+                                      {/* Google Rating and Place Types */}
+                                      {item.place && (
+                                        <div className="mt-2 space-y-1">
+                                          {/* Google Rating */}
+                                          {item.place.rating && (
+                                            <div className="flex items-center space-x-1">
+                                              <StarIcon className="h-3 w-3 text-yellow-400 fill-current flex-shrink-0" />
+                                              <span className="text-xs text-gray-600">
+                                                {item.place.rating.toFixed(1)} Google
+                                              </span>
+                                              {item.place.user_ratings_total && (
+                                                <span className="text-xs text-gray-400">
+                                                  ({item.place.user_ratings_total} reviews)
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+                                          
+                                          {/* Place Types */}
+                                          {item.place.types && item.place.types.length > 0 && (
+                                            <div className="flex flex-wrap gap-1">
+                                              {item.place.types.slice(0, 2).map((type) => (
+                                                <span
+                                                  key={type}
+                                                  className="inline-block px-1.5 py-0.5 text-xs bg-blue-50 text-blue-600 rounded text-left"
+                                                >
+                                                  {type.replace(/_/g, ' ')}
+                                                </span>
+                                              ))}
+                                              {item.place.types.length > 2 && (
+                                                <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-500 rounded">
+                                                  +{item.place.types.length - 2}
+                                                </span>
+                                              )}
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+                                      
                                       {item.duration && (
                                         <p className="text-xs text-gray-400 mt-1 text-left">
                                           Duration: {item.duration} minutes
@@ -939,6 +1056,18 @@ const TripDetailPage: React.FC = () => {
                                         <p className="text-xs text-gray-600 mt-1 italic text-left">
                                           Note: {item.notes}
                                         </p>
+                                      )}
+                                      
+                                      {/* User Wish Level - Only for non-flight items */}
+                                      {item.type !== 'flight' && (
+                                        <div className="mt-2">
+                                          <div className="flex items-center justify-between">
+                                            <span className="text-xs text-gray-500">Wish Level:</span>
+                                            <div className="flex items-center space-x-0.5">
+                                              {renderRatingStars(item)}
+                                            </div>
+                                          </div>
+                                        </div>
                                       )}
                                     </div>
                                   )}

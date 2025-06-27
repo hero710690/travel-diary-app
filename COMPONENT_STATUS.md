@@ -80,6 +80,19 @@
 
 ## 🚨 Known Issues
 
+### ~~Critical Priority~~ - **RESOLVED** ✅
+1. ~~**Heart Rating Loss Bug** - Heart ratings reset to 0 after "Save Itinerary"~~
+   - **Status**: **RESOLVED** - Fixed missing `userRating` field in save transformation
+   - **Solution**: Added proper field preservation in `handleSaveItinerary` function
+
+2. ~~**Day Movement Bug** - Items moved to Day 1 after "Save Itinerary"~~
+   - **Status**: **RESOLVED** - Fixed missing `day` field in save transformation
+   - **Solution**: Added proper day preservation in save/load cycle
+
+3. ~~**Trip Detail Date Bug** - Items showing `date: undefined` and wrong days~~
+   - **Status**: **RESOLVED** - Fixed loading logic to prioritize explicit `day` field
+   - **Solution**: Updated both TripPlanningPage and TripDetailPage loading transformations
+
 ### ~~High Priority~~ - **RESOLVED** ✅
 1. ~~**Daily Itinerary Display Bug** - Flight updates corrupting all activity cards~~
    - **Status**: **RESOLVED** - Fixed data structure handling in flight updates
@@ -89,6 +102,10 @@
 1. ~~**Flight Editing UI** - Missing from TripDetailPage~~
    - **Status**: **RESOLVED** - Flight editing now available via FlightForm modal
    - **Features**: Same form for adding new flights and editing existing flights
+
+2. ~~**Heart Rating Visual Feedback** - Hearts saved but didn't display~~
+   - **Status**: **RESOLVED** - Fixed missing `userRating` field in data loading
+   - **Solution**: Added proper field mapping in itinerary transformation
 
 ### Low Priority
 1. **ESLint Warnings** - Unused imports and variables
@@ -100,10 +117,10 @@
 ## 📊 Performance Metrics
 
 ### Bundle Sizes
-- **Current**: `main.efb10a73.js` (150.04 kB gzipped, -7 B)
-- **CSS**: `main.54453cae.css` (6.29 kB)
+- **Current**: `main.561c9fb2.js` (152.02 kB gzipped, +730 B)
+- **CSS**: `main.fb853a9e.css` (6.29 kB)
 - **Status**: ✅ Within acceptable limits
-- **Change**: Small decrease due to simplified day calculation logic
+- **Change**: Small increase due to enhanced map functionality and collaboration features
 
 ### Load Times
 - **First Contentful Paint**: ~1.2s
@@ -156,14 +173,204 @@
 
 ---
 
-*Last Updated: 2025-06-26 16:00*
+*Last Updated: 2025-06-26 20:40*
 *Next Review: 2025-06-28*
 
 ---
 
 ## 📋 Recent Changes (2025-06-26)
 
-### ✅ **TripDetailPage Date-Based Day Calculation Fix**
+### 🗺️ **Enhanced Map Functionality with Place Ratings** (20:40)
+- **User Request**: Display ratings and names of places in selected places and map cards
+- **Map Click Enhancement**: Now searches for nearby places (50m radius) to get detailed info including ratings
+- **Info Windows**: Click markers to see rich place information with star ratings
+- **Place Data**: Enhanced to include rating, types, user_ratings_total, and photos
+- **Visual Improvements**: 
+  - Google star ratings displayed in info windows
+  - Place types shown (restaurant, attraction, etc.)
+  - Formatted addresses in info windows
+  - Consistent rating display across all place cards
+- **Technical Changes**:
+  - Enhanced GoogleMap component with nearby search and place details
+  - Updated Place interface to include user_ratings_total
+  - Enhanced marker creation with info windows
+  - Improved handleMapPlaceSelect to capture rich place data
+- **Bundle Impact**: `main.561c9fb2.js` (152.02 kB gzipped, +730 B)
+- **Status**: ✅ **DEPLOYED** - Enhanced map experience with ratings and place info
+
+### 🚀 **Collaboration & Sharing Backend Implementation** (20:20)
+- **Major Feature**: Implemented comprehensive collaboration and sharing backend functionality
+- **Backend Enhancement**: Added 4 new API endpoints for collaboration features
+- **Lambda Function**: Updated `travel-diary-prod-backend` with collaboration support
+- **API Version**: Upgraded to v2.2.0 with collaboration features
+- **New Endpoints**:
+  - `POST /trips/{id}/invite` - Invite collaborators with role-based permissions
+  - `POST /trips/{id}/share` - Create secure shareable links with custom settings
+  - `GET /shared/{token}` - Public access to shared trips with password protection
+  - `POST /invite/respond` - Accept or decline collaboration invites
+- **Security Features**:
+  - Role-based access control (viewer, editor, admin)
+  - Secure token generation (SHA-256 hashed)
+  - Password protection for shared links
+  - Token expiration and validation
+- **Frontend Integration**: 
+  - Added collaboration service (`services/collaboration.ts`)
+  - Updated API configuration with new endpoints
+  - TypeScript interfaces for all collaboration data types
+- **Status**: ✅ **DEPLOYED** - Backend ready for UI integration
+- **Next Step**: Connect existing collaboration UI components to new backend APIs
+
+### ✅ **UI Consistency Improvements** (20:00)
+- **1. Trip Planning Page Heart Text Removal**: Removed "X hearts" text display for cleaner UI
+  - **Change**: Removed conditional text paragraph showing "{item.userRating} heart{s}"
+  - **Files**: `DraggableItineraryItem.tsx` (Trip Planning Page components)
+  - **Result**: Now shows only heart icons without redundant text, matching Trip Detail Page style
+  
+- **2. Flight Wish Level Exclusion**: Removed Wish Level section from flight cards in Trip Detail Page
+  - **Logic**: Flights don't need wish level ratings (they're transportation, not destinations)
+  - **Change**: Added conditional `{item.type !== 'flight' && (...)}` around Wish Level section
+  - **Files**: `TripDetailPage.tsx` (conditional rendering for non-flight items only)
+  - **Result**: Flight cards now show only flight details, activities show wish level hearts
+
+- **Bundle Impact**: `main.a2b5cff2.js` (151.29 kB gzipped, -3 B) - smaller and cleaner!
+- **Status**: ✅ **DEPLOYED** - Consistent heart UI across both pages, logical wish level display
+
+### ✅ **Trip Detail Page Heart Text Removal** (19:50)
+- **UI Improvement**: Removed numerical heart text display under Wish Level section
+- **User Preference**: Cleaner visual design with just heart icons, no "X hearts" text
+- **Change**: Removed conditional text display that showed "{item.userRating} heart{s}"
+- **Files Modified**: `TripDetailPage.tsx` (removed text paragraph element)
+- **Bundle Impact**: `main.523cb8c1.js` (151.29 kB gzipped, -15 B) - smaller bundle!
+- **Status**: ✅ **DEPLOYED** - Trip Detail Page now shows only heart icons without text
+- **Consistency**: Trip Planning Page still shows heart text, Trip Detail Page is now cleaner
+
+### ✅ **Trip Detail Page Heart Display Fix** (19:45)
+- **Issue**: Hearts not displaying on Trip Detail Page despite working on Trip Planning Page
+- **Root Cause**: `getTransformedItinerary` function missing `userRating` field in data transformation
+- **User Experience**: Users could set heart ratings but couldn't see them in trip detail view
+- **Fix Applied**: Added `userRating: item.userRating || undefined` to Trip Detail Page transformation
+- **Files Modified**: `TripDetailPage.tsx` (getTransformedItinerary function)
+- **Bundle Impact**: `main.5c8b5ed5.js` (151.31 kB gzipped, +8 B)
+- **Status**: ✅ **RESOLVED** - Hearts now display correctly on both Trip Planning and Trip Detail pages
+- **Complete Coverage**: All heart rating functionality now working end-to-end across all pages
+
+### 🚨 **CRITICAL BUG FIXES** - Data Integrity Issues Resolved (19:30)
+
+#### **⚠️ Three Critical Data Loss Bugs Fixed**
+
+**1. ❤️ Heart Rating Loss Bug - FIXED**
+- **Issue**: Heart ratings reset to 0 after clicking "Save Itinerary"
+- **Root Cause**: `handleSaveItinerary` transformation missing `userRating` field
+- **Impact**: Users lost all their wish level ratings when saving itinerary
+- **Fix**: Added `userRating: item.userRating` to save transformation
+- **Files**: `TripPlanningPage.tsx` (handleSaveItinerary function)
+- **Status**: ✅ **RESOLVED** - Heart ratings now persist through save operations
+
+**2. 📅 Day Movement Bug - FIXED**
+- **Issue**: Items from Day 2, Day 3, etc. moved to Day 1 after "Save Itinerary"
+- **Root Cause**: `handleSaveItinerary` transformation missing `day` field
+- **Impact**: Complete loss of day organization - all items collapsed to Day 1
+- **Fix**: Added `day: item.day` to save transformation
+- **Files**: `TripPlanningPage.tsx` (handleSaveItinerary function)
+- **Status**: ✅ **RESOLVED** - Items stay on correct days after save
+
+**3. 📋 Trip Detail Date Bug - FIXED**
+- **Issue**: Trip Detail Page showing `date: undefined` and wrong day assignments
+- **Root Cause**: Loading logic always calculated from date instead of using explicit `day` field
+- **Impact**: Items displayed on wrong days, sequential assignment instead of date-based
+- **Fix**: Prioritize explicit `day` field, fallback to date calculation
+- **Files**: `TripPlanningPage.tsx` and `TripDetailPage.tsx` (loading transformations)
+- **Status**: ✅ **RESOLVED** - Both pages now use consistent day assignment logic
+
+#### **🛠️ Technical Details**
+- **Data Transformation**: Fixed missing field preservation in save/load cycle
+- **State Management**: Ensured `userRating` and `day` fields survive all operations
+- **Cross-Page Consistency**: Applied same fixes to both TripPlanningPage and TripDetailPage
+- **Bundle Impact**: `main.b305ee19.js` (151.3 kB gzipped)
+- **Deployment**: ✅ **LIVE** - All critical bugs resolved
+
+#### **✅ User Impact**
+- **No More Data Loss**: Heart ratings and day assignments now persist correctly
+- **Reliable Save Operations**: "Save Itinerary" no longer corrupts user data
+- **Consistent Experience**: Same behavior across Trip Planning and Trip Detail pages
+- **Data Integrity**: All user input (ratings, day assignments) properly preserved
+
+### ✅ **Heart Rating Visual Feedback Fix** (18:45)
+- **Issue**: Hearts saved to database but didn't show visually (remained empty)
+- **Root Cause**: `item.userRating` was `undefined` due to missing field in data loading
+- **User Experience**: Users got success toast but hearts stayed empty - confusing UX
+- **Fix Applied**: 
+  - Added `userRating: item.userRating || undefined` to itinerary loading transformation
+  - Simplified state management to use `item.userRating` directly as single source of truth
+  - Removed complex local state that was causing conflicts
+- **Components Updated**: 
+  - **DraggableItineraryItem.tsx**: Simplified to use direct prop values
+  - **TripPlanningPage.tsx**: Fixed data loading transformation
+  - **TripDetailPage.tsx**: Applied same loading fix for consistency
+- **Bundle Impact**: `main.684d1510.js` (151.16 kB gzipped, +4 B)
+- **Status**: ✅ **RESOLVED** - Hearts now fill immediately and persist correctly
+
+### ✅ **Wish Level System with Heart Icons** (18:15)
+- **Concept Change**: Changed from "rating/score" to "wish level" - represents user's desire/interest level rather than place quality
+- **Visual Update**: Replaced star icons with heart icons to better represent personal wish/desire
+- **Icon Changes**: 
+  - **Stars** (⭐) → **Hearts** (❤️) 
+  - **Yellow color** → **Red color** for filled hearts
+  - **Gray hover** → **Red hover** for interactive feedback
+- **Text Updates**:
+  - "Your Rating" → "Wish Level"
+  - "Rate X stars" → "Wish level X hearts"
+  - "Rated X stars" → "X hearts"
+- **Database Save Fix**: Fixed `handleUpdateItineraryItem` to properly save wish levels to database
+- **Implementation**: 
+  - **DraggableItineraryItem**: Updated to use HeartIcon/HeartIconSolid with red colors
+  - **TripDetailPage**: Updated to use heart icons and wish level terminology
+  - **TripPlanningPage**: Fixed database save functionality with proper API call
+  - **Data Transformation**: Proper backend field mapping including `userRating` field
+- **User Experience**: 
+  - Hearts better represent personal desire/interest level
+  - Wish levels now persist across page refreshes and sessions
+  - Success feedback: "Wish level set to X hearts!"
+- **Bundle Impact**: Small increase of 220 bytes for heart icons and database save functionality
+- **Status**: ✅ Deployed - wish level system with hearts now working and saving properly
+
+### ✅ **Rating Functionality Repositioning** (Earlier today)
+- **Issue**: Rating functionality was in wrong location - users could rate places before visiting them
+- **User Experience Problem**: Rating places in "Selected Places" section doesn't make sense - users should rate based on actual experience
+- **Solution**: Moved rating functionality from places selection to itinerary items after they're added to daily schedule
+- **Implementation**: 
+  - **DraggablePlace Component**: Removed interactive rating functionality, now shows read-only Google ratings as stars
+  - **DraggableItineraryItem Component**: Added interactive 5-star rating system for user experience ratings
+  - **TripDetailPage**: Added rating functionality to itinerary items in trip detail view
+  - **Type Updates**: Added `userRating` field to ItineraryItem interfaces
+  - **Data Flow**: Ratings are now saved with itinerary items and persist across sessions
+- **User Experience**: Users can now rate places after visiting them, which makes more logical sense
+- **Visual Design**: 
+  - Places cards show Google ratings as read-only yellow stars with rating value
+  - Itinerary items show interactive rating stars that users can click to rate their experience
+  - Hover effects and visual feedback for rating interactions
+- **Bundle Impact**: Small increase of 450 bytes for enhanced rating functionality
+- **Status**: ✅ Deployed - rating functionality now appears in the correct location
+
+### ✅ **TripDetailPage Date-Based Day Calculation Fix** (Earlier today)
+- **Issue**: Rating functionality was in wrong location - users could rate places before visiting them
+- **User Experience Problem**: Rating places in "Selected Places" section doesn't make sense - users should rate based on actual experience
+- **Solution**: Moved rating functionality from places selection to itinerary items after they're added to daily schedule
+- **Implementation**: 
+  - **DraggablePlace Component**: Removed interactive rating functionality, now shows read-only Google ratings as stars
+  - **DraggableItineraryItem Component**: Added interactive 5-star rating system for user experience ratings
+  - **TripDetailPage**: Added rating functionality to itinerary items in trip detail view
+  - **Type Updates**: Added `userRating` field to ItineraryItem interfaces
+  - **Data Flow**: Ratings are now saved with itinerary items and persist across sessions
+- **User Experience**: Users can now rate places after visiting them, which makes more logical sense
+- **Visual Design**: 
+  - Places cards show Google ratings as read-only yellow stars with rating value
+  - Itinerary items show interactive rating stars that users can click to rate their experience
+  - Hover effects and visual feedback for rating interactions
+- **Bundle Impact**: Small increase of 450 bytes for enhanced rating functionality
+- **Status**: ✅ Deployed - rating functionality now appears in the correct location
+
+### ✅ **TripDetailPage Date-Based Day Calculation Fix** (Earlier today)
 - **Issue**: Strange day calculation logic causing items to appear on wrong days (e.g., hotel on 2025-09-25 appearing on Day 5 instead of Day 2)
 - **Root Cause**: TripDetailPage used sequential assignment (`index + 1`) for non-flight items instead of date-based calculation
 - **Problem**: Items with `daysDiff: 1` were assigned to `Day 5` based on array index rather than actual date

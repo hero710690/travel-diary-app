@@ -9,15 +9,24 @@ interface FlightFormProps {
   initialData?: Partial<FlightInfo>;
   onSave: (flightInfo: FlightInfo) => void;
   onCancel: () => void;
+  tripStartDate?: string;
+  tripEndDate?: string;
 }
 
-const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }) => {
+const FlightForm: React.FC<FlightFormProps> = ({ 
+  initialData, 
+  onSave, 
+  onCancel, 
+  tripStartDate, 
+  tripEndDate 
+}) => {
   const [formData, setFormData] = useState<FlightInfo>({
     airline: initialData?.airline || '',
     flightNumber: initialData?.flightNumber || '',
     departure: {
       airport: initialData?.departure?.airport || '',
       airportCode: initialData?.departure?.airportCode || '',
+      date: initialData?.departure?.date || tripStartDate?.split('T')[0] || '',
       time: initialData?.departure?.time || '',
       terminal: initialData?.departure?.terminal || '',
       gate: initialData?.departure?.gate || '',
@@ -25,6 +34,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
     arrival: {
       airport: initialData?.arrival?.airport || '',
       airportCode: initialData?.arrival?.airportCode || '',
+      date: initialData?.arrival?.date || tripStartDate?.split('T')[0] || '',
       time: initialData?.arrival?.time || '',
       terminal: initialData?.arrival?.terminal || '',
       gate: initialData?.arrival?.gate || '',
@@ -42,6 +52,7 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
     // Validate required fields
     if (!formData.airline || !formData.flightNumber || 
         !formData.departure.airportCode || !formData.arrival.airportCode ||
+        !formData.departure.date || !formData.arrival.date ||
         !formData.departure.time || !formData.arrival.time) {
       alert('Please fill in all required fields');
       return;
@@ -134,6 +145,20 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
+                  Departure Date *
+                </label>
+                <input
+                  type="date"
+                  value={formData.departure.date}
+                  onChange={(e) => updateField('departure.date', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min={tripStartDate?.split('T')[0]}
+                  max={tripEndDate?.split('T')[0]}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
                   Departure Time *
                 </label>
                 <input
@@ -198,6 +223,20 @@ const FlightForm: React.FC<FlightFormProps> = ({ initialData, onSave, onCancel }
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="e.g., LAX"
                   maxLength={3}
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
+                  Arrival Date *
+                </label>
+                <input
+                  type="date"
+                  value={formData.arrival.date}
+                  onChange={(e) => updateField('arrival.date', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  min={tripStartDate?.split('T')[0]}
+                  max={tripEndDate?.split('T')[0]}
                   required
                 />
               </div>

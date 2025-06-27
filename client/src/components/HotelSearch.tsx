@@ -220,7 +220,7 @@ const HotelSearch: React.FC<HotelSearchProps> = ({
                 <BuildingOfficeIcon className="h-5 w-5 text-blue-600 mr-3 mt-0.5 flex-shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-900 truncate">
+                    <p className="text-sm font-medium text-gray-900 truncate text-left">
                       {hotel.name}
                     </p>
                     {hotel.rating && (
@@ -231,12 +231,12 @@ const HotelSearch: React.FC<HotelSearchProps> = ({
                       </div>
                     )}
                   </div>
-                  <p className="text-xs text-gray-500 truncate mt-1">
+                  <p className="text-xs text-gray-500 truncate mt-1 text-left">
                     {hotel.formatted_address}
                   </p>
                   {hotel.price_level && (
                     <div className="mt-1">
-                      <span className="text-xs text-green-600">
+                      <span className="text-xs text-green-600 text-left">
                         {'$'.repeat(hotel.price_level)} Price Level
                       </span>
                     </div>

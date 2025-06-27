@@ -15,15 +15,28 @@ export interface Place {
   name: string;
   address?: string;
   placeId?: string;
+  place_id?: string; // Google Maps place ID
+  formatted_address?: string;
   coordinates?: {
     lat: number;
     lng: number;
   };
+  geometry?: {
+    location: google.maps.LatLng;
+  };
   rating?: number;
-  photos?: string[];
+  user_ratings_total?: number; // Google reviews count
+  userInterestRating?: number; // User's interest level (1-5 stars)
+  photos?: string[] | google.maps.places.PlacePhoto[]; // Support both formats
   phone?: string;
   website?: string;
   priceLevel?: number;
+  types?: string[]; // Google place types
+  vicinity?: string;
+  address_components?: google.maps.GeocoderAddressComponent[];
+  plus_code?: google.maps.places.PlacePlusCode;
+  business_status?: string;
+  editorial_summary?: string;
 }
 
 export interface FlightInfo {
@@ -32,6 +45,7 @@ export interface FlightInfo {
   departure: {
     airport: string;
     airportCode: string;
+    date: string; // YYYY-MM-DD format
     time: string;
     terminal?: string;
     gate?: string;
@@ -39,6 +53,7 @@ export interface FlightInfo {
   arrival: {
     airport: string;
     airportCode: string;
+    date: string; // YYYY-MM-DD format
     time: string;
     terminal?: string;
     gate?: string;
@@ -87,6 +102,7 @@ export interface ItineraryItem {
   duration?: number; // in minutes
   type: 'activity' | 'meal' | 'transport' | 'accommodation' | 'flight';
   notes?: string;
+  userRating?: number; // User's experience rating (1-5 stars) - added after visiting
   // Flight-specific information
   flightInfo?: FlightInfo;
   // Hotel-specific information
