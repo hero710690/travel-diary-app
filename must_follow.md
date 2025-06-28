@@ -10,3 +10,5 @@
 5. remove every unnecessary file after deploy to lambda or S3
 6. if the data structure or schema change, please update System inventory
 7. if there's any component changed or added, please update Component status
+8. commit the change and update the README.md every time
+9. should remove debug message or code before commit change

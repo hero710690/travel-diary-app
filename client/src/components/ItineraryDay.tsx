@@ -4,6 +4,7 @@ import { format } from 'date-fns';
 import { ItineraryItem, FlightInfo } from '../types';
 import DraggableItineraryItem from './DraggableItineraryItem';
 import FlightCard from './FlightCard';
+import HotelCard from './HotelCard';
 import FlightForm from './FlightForm'; // Restored for editing existing flights
 import { 
   PlusIcon 
@@ -28,6 +29,7 @@ interface ItineraryDayProps {
   onRemoveItem: (itemId: string) => void;
   onUpdateItem?: (itemId: string, updates: Partial<ItineraryItem>) => void;
   onMoveItem?: (itemId: string, newDay: number) => void;
+  onEditHotel?: (hotelStayId: string) => void;
   // onAddFlight removed - using top-level Add Flight button instead
 }
 
@@ -37,7 +39,8 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
   onDrop, 
   onRemoveItem,
   onUpdateItem,
-  onMoveItem
+  onMoveItem,
+  onEditHotel
   // onAddFlight removed - using top-level Add Flight button instead
 }) => {
   // Flight form state for editing existing flights only (not for adding new ones)
@@ -146,12 +149,29 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
                 onEdit={() => handleEditFlight(item)}
                 onDelete={() => onRemoveItem(item.id)}
               />
+            ) : item.type === 'accommodation' && item.hotelInfo ? (
+              <HotelCard
+                key={item.id}
+                hotelInfo={item.hotelInfo}
+                time={item.time}
+                isCheckIn={item.description?.includes('Check-in')}
+                isCheckOut={item.description?.includes('Check-out')}
+                onEdit={() => {
+                  // Extract hotel stay ID from item ID (format: hotelStayId_day_X)
+                  const hotelStayId = item.id.split('_day_')[0];
+                  if (onEditHotel) {
+                    onEditHotel(hotelStayId);
+                  }
+                }}
+                onDelete={() => onRemoveItem(item.id)}
+              />
             ) : (
               <DraggableItineraryItem
                 key={item.id}
                 item={item}
                 onRemove={onRemoveItem}
                 onUpdate={onUpdateItem}
+                onEditHotel={onEditHotel}
               />
             )
           ))

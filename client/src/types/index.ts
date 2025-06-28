@@ -77,6 +77,7 @@ export interface HotelInfo {
   rating?: number;
   pricePerNight?: number;
   totalPrice?: number;
+  notes?: string; // Add notes field
   amenities?: string[];
   coordinates?: {
     lat: number;

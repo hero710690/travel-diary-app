@@ -202,7 +202,7 @@ export const tripsService = {
   // Get shared trip (temporary compatibility method)
   getSharedTrip: async (token: string): Promise<TripDisplay> => {
     console.log('🚀 tripsService.getSharedTrip called with token:', token);
-    const response = await api.get<Trip>(getApiUrl(`/trips/shared/${token}`));
+    const response = await api.get<Trip>(getApiUrl(`/shared/${token}`));
     console.log('✅ tripsService.getSharedTrip response:', response.data);
     return transformTripForDisplay(response.data);
   },

@@ -14,6 +14,7 @@ import FlightForm from '../components/FlightForm';
 import DraggablePlace from '../components/DraggablePlace';
 import ItineraryDay from '../components/ItineraryDay';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ShareModal from '../components/ShareModal';
 import toast from 'react-hot-toast';
 import {
   ArrowLeftIcon,
@@ -26,6 +27,7 @@ import {
   PencilIcon as PencilIconOutline,
   BuildingOfficeIcon,
   XMarkIcon,
+  ShareIcon,
 } from '@heroicons/react/24/outline';
 
 interface Place {
@@ -52,20 +54,22 @@ const HotelFormComponent: React.FC<{
   onCancel: () => void;
   tripStartDate?: string;
   tripEndDate?: string;
-}> = ({ onSubmit, onCancel, tripStartDate, tripEndDate }) => {
+  initialData?: any;
+}> = ({ onSubmit, onCancel, tripStartDate, tripEndDate, initialData }) => {
   const [formData, setFormData] = useState({
-    name: '',
-    address: '',
-    checkInDate: tripStartDate || '',
-    checkOutDate: tripEndDate || '',
-    nights: 1,
-    roomType: '',
-    confirmationNumber: '',
-    phone: '',
-    rating: 0,
-    pricePerNight: '',
-    totalPrice: '',
-    coordinates: undefined as { lat: number; lng: number } | undefined
+    name: initialData?.name || '',
+    address: initialData?.address || '',
+    checkInDate: initialData?.checkInDate || tripStartDate || '',
+    checkOutDate: initialData?.checkOutDate || tripEndDate || '',
+    nights: initialData?.nights || 1,
+    roomType: initialData?.roomType || '',
+    confirmationNumber: initialData?.confirmationNumber || '',
+    phone: initialData?.phone || '',
+    rating: initialData?.rating || 0,
+    pricePerNight: initialData?.pricePerNight || '',
+    totalPrice: initialData?.totalPrice || '',
+    notes: initialData?.notes || '', // Add notes field
+    coordinates: initialData?.coordinates || undefined as { lat: number; lng: number } | undefined
   });
   const [selectedPlace, setSelectedPlace] = useState<any>(null);
 
@@ -243,6 +247,19 @@ const HotelFormComponent: React.FC<{
         </div>
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+          Notes
+        </label>
+        <textarea
+          value={formData.notes}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          placeholder="Add any special requests, preferences, or notes about this hotel stay..."
+          rows={3}
+        />
+      </div>
+
       {formData.checkInDate && formData.checkOutDate && (
         <div className="bg-gray-50 p-3 rounded-md">
           <div className="text-sm text-gray-600">
@@ -280,7 +297,17 @@ const HotelFormComponent: React.FC<{
   );
 };
 
-const TripPlanningPage: React.FC = () => {
+interface TripPlanningPageProps {
+  sharedTripData?: any;
+  isSharedMode?: boolean;
+  shareToken?: string;
+}
+
+const TripPlanningPage: React.FC<TripPlanningPageProps> = ({ 
+  sharedTripData, 
+  isSharedMode = false, 
+  shareToken 
+}) => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -311,16 +338,33 @@ const TripPlanningPage: React.FC = () => {
     startDay: number;
     endDay: number;
   }>>([]);
+  
+  // Hotel Editing State
+  const [editingHotel, setEditingHotel] = useState<{
+    id: string;
+    hotelInfo: any;
+    startDay: number;
+    endDay: number;
+  } | null>(null);
+  const [showHotelEditModal, setShowHotelEditModal] = useState(false);
 
   // Flight State
   const [showFlightModal, setShowFlightModal] = useState(false);
 
-  // Fetch trip data
+  // Share State
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // Fetch trip data (either from regular API or use shared data)
   const { data: tripData, isLoading } = useQuery(
-    ['trip', id],
-    () => tripsService.getTrip(id!),
+    ['trip', id, shareToken],
+    () => {
+      if (isSharedMode && sharedTripData) {
+        return Promise.resolve(sharedTripData);
+      }
+      return tripsService.getTrip(id!);
+    },
     {
-      enabled: !!id,
+      enabled: !!id || (isSharedMode && !!sharedTripData),
       onSuccess: (trip) => {
         
         // Transform backend itinerary to frontend format
@@ -357,12 +401,15 @@ const TripPlanningPage: React.FC = () => {
 
             // Check if this is a flight item
             const isFlightItem = item.flightInfo || (item.place?.types && item.place.types.includes('flight'));
+            const isAccommodationItem = item.hotelInfo || (item.place?.types && item.place.types.includes('lodging'));
             
             console.log('🔍 Loading item debug:', {
               itemIndex: index,
               hasFlightInfo: !!item.flightInfo,
+              hasHotelInfo: !!item.hotelInfo,
               placeTypes: item.place?.types,
               isFlightItem,
+              isAccommodationItem,
               customTitle: item.custom_title,
               placeName: item.place?.name
             });
@@ -382,11 +429,15 @@ const TripPlanningPage: React.FC = () => {
                 coordinates: item.place?.coordinates || undefined,
               },
               duration: item.estimated_duration || (isFlightItem ? 120 : 60),
-              type: isFlightItem ? 'flight' as const : 'activity' as const,
+              type: isFlightItem ? 'flight' as const : isAccommodationItem ? 'accommodation' as const : 'activity' as const,
               notes: item.notes || '',
               userRating: item.userRating || undefined, // ✅ FIXED: Include user rating from backend
               // Include flight info if available
               flightInfo: item.flightInfo || undefined,
+              // Include hotel info if available
+              hotelInfo: item.hotelInfo || undefined,
+              // ✅ PRESERVE: Include full place data with rating and types
+              place: item.place || undefined,
             };
           });
           
@@ -666,13 +717,25 @@ const TripPlanningPage: React.FC = () => {
       userRating: item.userRating, // Include user rating
       // Include flight info if present
       ...(item.flightInfo && { flightInfo: item.flightInfo }),
-      // Include place info if present
-      ...(item.place && { place: item.place })
+      // Include place info if present - PRESERVE ALL PLACE DATA
+      ...(item.place && { 
+        place: {
+          ...item.place,
+          // Ensure critical fields are preserved
+          rating: item.place.rating,
+          types: item.place.types,
+          user_ratings_total: item.place.user_ratings_total,
+          place_id: item.place.place_id || item.place.placeId
+        }
+      })
     }));
     
     const transformedItem = transformedItinerary.find(item => item._id === itemId);
     console.log('🚀 Transformed item for DB:', transformedItem);
     console.log('💾 DB userRating:', transformedItem?.userRating);
+    console.log('🏷️ DB place data:', transformedItem?.place);
+    console.log('⭐ DB place rating:', transformedItem?.place?.rating);
+    console.log('🏢 DB place types:', transformedItem?.place?.types);
     
     updateItineraryMutation.mutate(transformedItinerary);
 
@@ -874,16 +937,69 @@ const TripPlanningPage: React.FC = () => {
         };
       }
 
+      // Handle accommodation items differently
+      if (item.type === 'accommodation' && item.hotelInfo) {
+        console.log('🔍 Saving accommodation item:', {
+          itemId: item.id,
+          title: item.title,
+          hasHotelInfo: !!item.hotelInfo,
+          hotelInfo: item.hotelInfo
+        });
+        
+        return {
+          place: {
+            name: item.title,
+            address: (item.hotelInfo as any)?.address || item.description || '',
+            coordinates: (item.hotelInfo as any)?.coordinates || {},
+            place_id: (item.hotelInfo as any)?.place_id || item.id,
+            types: ['lodging', 'establishment'],
+            rating: (item.hotelInfo as any)?.rating || 0,
+            user_ratings_total: (item.hotelInfo as any)?.user_ratings_total && (item.hotelInfo as any).user_ratings_total > 0 ? (item.hotelInfo as any).user_ratings_total : undefined,
+            photos: (item.hotelInfo as any)?.photos || []
+          },
+          date: combinedDateTime.toISOString(),
+          day: item.day,
+          start_time: item.time,
+          end_time: item.time,
+          estimated_duration: item.duration || 1440, // 24 hours for hotel stays
+          notes: item.notes || '',
+          userRating: item.userRating,
+          order: index,
+          is_custom: true,
+          custom_title: item.title,
+          custom_description: item.description || '',
+          // Store hotel info for backend
+          hotelInfo: item.hotelInfo,
+          type: 'accommodation' // ✅ PRESERVE: Keep accommodation type
+        };
+      }
+
       // Handle regular activity items
       return {
-        place: {
+        place: item.place ? {
+          // ✅ PRESERVE: Use original place data with ratings and types
+          ...item.place,
+          // Ensure required fields are present
+          name: item.place.name || item.title,
+          address: item.place.formatted_address || item.place.address || item.description || item.location?.address || '',
+          coordinates: item.place.geometry?.location ? {
+            lat: typeof item.place.geometry.location.lat === 'function' ? item.place.geometry.location.lat() : item.place.geometry.location.lat,
+            lng: typeof item.place.geometry.location.lng === 'function' ? item.place.geometry.location.lng() : item.place.geometry.location.lng,
+          } : (item.location?.coordinates || {}),
+          place_id: item.place.place_id || item.place.placeId || item.id,
+          types: item.place.types || [],
+          rating: item.place.rating || 0,
+          user_ratings_total: item.place.user_ratings_total && item.place.user_ratings_total > 0 ? item.place.user_ratings_total : undefined,
+          photos: item.place.photos || []
+        } : {
+          // Fallback for items without place data
           name: item.title,
           address: item.description || item.location?.address || '',
-          coordinates: item.location?.coordinates || {}, // Use empty object instead of null
+          coordinates: item.location?.coordinates || {},
           place_id: item.id,
           types: [],
           rating: 0,
-          photos: [] // Add missing photos field
+          photos: []
         },
         date: combinedDateTime.toISOString(),
         day: item.day, // ✅ FIXED: Preserve original day number
@@ -1053,6 +1169,23 @@ const TripPlanningPage: React.FC = () => {
           address: hotelInfo.address,
           coordinates: hotelInfo.coordinates
         },
+        // ✅ ADD: Include place data with rating and types for hotel cards
+        place: {
+          name: hotelInfo.name,
+          address: hotelInfo.address,
+          formatted_address: hotelInfo.address,
+          place_id: hotelInfo.place_id || `hotel_${hotelInfo.name.replace(/\s+/g, '_')}`,
+          types: ['lodging', 'establishment'], // Standard hotel types
+          rating: hotelInfo.rating || 0,
+          user_ratings_total: hotelInfo.user_ratings_total && hotelInfo.user_ratings_total > 0 ? hotelInfo.user_ratings_total : undefined,
+          photos: hotelInfo.photos || [],
+          geometry: hotelInfo.coordinates ? {
+            location: {
+              lat: () => hotelInfo.coordinates.lat,
+              lng: () => hotelInfo.coordinates.lng
+            }
+          } : undefined
+        },
         notes: `${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Staying at'} ${hotelInfo.name}${hotelInfo.confirmationNumber ? ` (Confirmation: ${hotelInfo.confirmationNumber})` : ''}`
       });
     }
@@ -1070,6 +1203,106 @@ const TripPlanningPage: React.FC = () => {
     setItinerary(prev => prev.filter(item => !item.id.startsWith(hotelStayId)));
     
     toast.success('Hotel stay removed');
+  };
+
+  const handleEditHotel = (hotelStayId: string) => {
+    const hotelStay = hotelStays.find(stay => stay.id === hotelStayId);
+    if (hotelStay) {
+      setEditingHotel(hotelStay);
+      setShowHotelEditModal(true);
+    }
+  };
+
+  // Debug: Log function existence
+  console.log('🔧 handleEditHotel function defined:', !!handleEditHotel);
+
+  const handleUpdateHotel = (updatedHotelInfo: any) => {
+    if (!editingHotel) return;
+
+    const tripStartDate = tripData?.startDate || new Date().toISOString();
+    
+    // Calculate new day numbers
+    const newStartDay = calculateDayNumber(updatedHotelInfo.checkInDate, tripStartDate);
+    const newEndDay = calculateDayNumber(updatedHotelInfo.checkOutDate, tripStartDate);
+    
+    console.log('🏨 Hotel update calculation:', {
+      hotelName: updatedHotelInfo.name,
+      oldStartDay: editingHotel.startDay,
+      oldEndDay: editingHotel.endDay,
+      newStartDay,
+      newEndDay
+    });
+
+    // Remove old hotel items from itinerary
+    setItinerary(prev => prev.filter(item => !item.id.startsWith(editingHotel.id)));
+    
+    // Update hotel stay
+    const updatedHotelStay = {
+      ...editingHotel,
+      hotelInfo: updatedHotelInfo,
+      startDay: newStartDay,
+      endDay: newEndDay
+    };
+    
+    setHotelStays(prev => prev.map(stay => 
+      stay.id === editingHotel.id ? updatedHotelStay : stay
+    ));
+
+    // Add new hotel items to itinerary
+    const hotelItems: any[] = [];
+    for (let day = newStartDay; day <= newEndDay; day++) {
+      const isFirstDay = day === newStartDay;
+      const isLastDay = day === newEndDay;
+      
+      // Calculate the actual date for this day
+      const tripStart = safeParseDate(tripStartDate);
+      const dayDate = addDaysToDate(tripStart, day - 1);
+      const dayDateStr = dayDate.toISOString().split('T')[0];
+      
+      hotelItems.push({
+        id: `${updatedHotelStay.id}_day_${day}`,
+        day,
+        date: dayDateStr,
+        time: isFirstDay ? '15:00' : isLastDay ? '11:00' : '00:00',
+        title: updatedHotelInfo.name,
+        description: `${updatedHotelInfo.address} - ${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Hotel Stay'}`,
+        type: 'accommodation',
+        hotelInfo: updatedHotelInfo,
+        location: {
+          name: updatedHotelInfo.name,
+          address: updatedHotelInfo.address,
+          coordinates: updatedHotelInfo.coordinates
+        },
+        // ✅ ADD: Include place data with rating and types for hotel cards
+        place: {
+          name: updatedHotelInfo.name,
+          address: updatedHotelInfo.address,
+          formatted_address: updatedHotelInfo.address,
+          place_id: updatedHotelInfo.place_id || `hotel_${updatedHotelInfo.name.replace(/\s+/g, '_')}`,
+          types: ['lodging', 'establishment'],
+          rating: updatedHotelInfo.rating || 0,
+          user_ratings_total: updatedHotelInfo.user_ratings_total && updatedHotelInfo.user_ratings_total > 0 ? updatedHotelInfo.user_ratings_total : undefined,
+          photos: updatedHotelInfo.photos || [],
+          geometry: updatedHotelInfo.coordinates ? {
+            location: {
+              lat: () => updatedHotelInfo.coordinates.lat,
+              lng: () => updatedHotelInfo.coordinates.lng
+            }
+          } : undefined
+        },
+        notes: `${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Staying at'} ${updatedHotelInfo.name}${updatedHotelInfo.confirmationNumber ? ` (Confirmation: ${updatedHotelInfo.confirmationNumber})` : ''}`
+      });
+    }
+    
+    setItinerary(prev => [...prev, ...hotelItems]);
+    setShowHotelEditModal(false);
+    setEditingHotel(null);
+    toast.success('Hotel stay updated successfully');
+  };
+
+  const handleCancelHotelEdit = () => {
+    setShowHotelEditModal(false);
+    setEditingHotel(null);
   };
 
   const getHotelForDay = (dayNumber: number) => {
@@ -1131,6 +1364,15 @@ const TripPlanningPage: React.FC = () => {
               <p className="text-gray-600 text-left">{trip.name} - {trip.destination}</p>
             </div>
             <div className="flex space-x-3">
+              {!isSharedMode && (
+                <button
+                  onClick={() => setShowShareModal(true)}
+                  className="inline-flex items-center px-4 py-2 border border-purple-300 shadow-sm text-sm font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                >
+                  <ShareIcon className="h-4 w-4 mr-2" />
+                  Share Trip
+                </button>
+              )}
               <button
                 onClick={() => setShowHotelModal(true)}
                 className="inline-flex items-center px-4 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
@@ -1256,6 +1498,7 @@ const TripPlanningPage: React.FC = () => {
                       onRemoveItem={handleRemoveFromItinerary}
                       onUpdateItem={handleUpdateItineraryItem}
                       onMoveItem={handleMoveItineraryItem}
+                      onEditHotel={handleEditHotel}
                       // onAddFlight removed - using top-level Add Flight button instead
                     />
                   ))
@@ -1292,6 +1535,36 @@ const TripPlanningPage: React.FC = () => {
         </div>
       )}
 
+      {/* Hotel Edit Modal */}
+      {(() => {
+        console.log('🏨 Modal check - showHotelEditModal:', showHotelEditModal, 'editingHotel:', editingHotel);
+        return showHotelEditModal && editingHotel;
+      })() && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" style={{zIndex: 9999}}>
+          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Edit Hotel Stay</h3>
+                <button
+                  onClick={handleCancelHotelEdit}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <HotelFormComponent
+                initialData={editingHotel?.hotelInfo}
+                onSubmit={handleUpdateHotel}
+                onCancel={handleCancelHotelEdit}
+                tripStartDate={tripData?.startDate}
+                tripEndDate={tripData?.endDate}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Flight Modal */}
       {showFlightModal && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
@@ -1316,6 +1589,16 @@ const TripPlanningPage: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Share Modal */}
+      {!isSharedMode && (
+        <ShareModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          tripId={id!}
+          tripTitle={trip.name}
+        />
       )}
     </DndProvider>
   );

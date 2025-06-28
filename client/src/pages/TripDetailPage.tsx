@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { tripsService } from '../services/trips';
+import { collaborationService } from '../services/collaboration';
 import { safeParseDate, getDaysDifferenceIgnoreTime } from '../utils/dateUtils';
 // FlightForm import removed - flight editing disabled in planned itinerary
 import { 
@@ -12,6 +13,7 @@ import {
   ClockIcon,
   PaperAirplaneIcon,
   MapPinIcon,
+  BuildingOfficeIcon,
   ArrowPathIcon,
   CheckIcon,
   XMarkIcon,
@@ -24,6 +26,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import LoadingSpinner from '../components/LoadingSpinner';
+import ShareModal from '../components/ShareModal';
+import InviteCollaboratorModal from '../components/InviteCollaboratorModal';
 import toast from 'react-hot-toast';
 import { format, addDays } from 'date-fns';
 
@@ -174,18 +178,25 @@ const TripDetailPage: React.FC = () => {
   const handleGenerateShareLink = async () => {
     setIsGeneratingLink(true);
     try {
-      // TODO: Replace with actual API call when backend is ready
       console.log('Generating share link for trip:', id);
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Use real collaboration service to create share link
+      const response = await collaborationService.createShareLink(id!, {
+        is_public: true,
+        allow_comments: false,
+        password_protected: false,
+        expires_in_days: 30
+      });
       
-      // Generate mock share link
-      const mockShareLink = `${window.location.origin}/trips/shared/${id}?token=${Date.now()}`;
-      setShareLink(mockShareLink);
+      setShareLink(response.share_link.url);
       toast.success('Share link generated!');
-    } catch (error) {
-      toast.error('Failed to generate share link');
+      
+      if (response.email_sent) {
+        toast.success('Share link sent to your email!');
+      }
+    } catch (error: any) {
+      console.error('Failed to generate share link:', error);
+      toast.error(error.message || 'Failed to generate share link');
     } finally {
       setIsGeneratingLink(false);
     }
@@ -506,6 +517,7 @@ const TripDetailPage: React.FC = () => {
           notes: item.notes || '',
           userRating: item.userRating || undefined, // ✅ FIXED: Include user rating for hearts display
           flightInfo: item.flightInfo || undefined,
+          place: item.place || undefined, // ✅ PRESERVE: Include full place data with rating and types
         };
         
         return transformedItem;
@@ -1002,14 +1014,95 @@ const TripDetailPage: React.FC = () => {
                                       <h5 className="text-sm font-medium text-gray-900 break-words text-left">
                                         {item.title}
                                       </h5>
-                                      {item.description && (
-                                        <p className="text-xs text-gray-500 break-words mt-1 text-left">
-                                          {item.description}
-                                        </p>
+                                      
+                                      
+                                      {/* Flight Details - Only for flight items */}
+                                      {item.type === 'flight' && item.flightInfo && (
+                                        <div className="mt-2 p-2 bg-blue-50 rounded border text-left">
+                                          <div className="flex items-center justify-between text-sm">
+                                            <div className="text-center">
+                                              <div className="font-medium text-gray-900 text-center">
+                                                {item.flightInfo.departure?.airportCode || 'DEP'}
+                                              </div>
+                                              <div className="text-xs text-gray-600 text-center">
+                                                Dep: {item.flightInfo.departure?.time || item.time}
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center justify-center mx-2">
+                                              <div className="h-px bg-gray-300 w-8"></div>
+                                              <PaperAirplaneIcon className="h-4 w-4 text-gray-400 mx-2" />
+                                              <div className="h-px bg-gray-300 w-8"></div>
+                                            </div>
+                                            <div className="text-center">
+                                              <div className="font-medium text-gray-900 text-center">
+                                                {item.flightInfo.arrival?.airportCode || 'ARR'}
+                                              </div>
+                                              <div className="text-xs text-gray-600 text-center">
+                                                Arr: {item.flightInfo.arrival?.time || item.time}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center justify-center mt-2">
+                                            {item.flightInfo.duration && (
+                                              <div className="text-xs text-gray-600 text-center">
+                                                {item.flightInfo.duration}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Hotel Details - Only for accommodation items */}
+                                      {(item.type as any) === 'accommodation' && (item as any).hotelInfo && (
+                                        <div className="mt-2 p-2 bg-green-50 rounded border text-left">
+                                          <div className="space-y-2">
+                                            {/* Check-in/Check-out info */}
+                                            <div className="flex items-center justify-between text-sm">
+                                              <div className="text-left">
+                                                <div className="font-medium text-gray-900">Check-in</div>
+                                                <div className="text-xs text-gray-600">
+                                                  {(item as any).hotelInfo.checkInDate}
+                                                </div>
+                                              </div>
+                                              <div className="flex items-center mx-2">
+                                                <div className="h-px bg-gray-300 w-8"></div>
+                                                <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mx-2" />
+                                                <div className="h-px bg-gray-300 w-8"></div>
+                                              </div>
+                                              <div className="text-left">
+                                                <div className="font-medium text-gray-900">Check-out</div>
+                                                <div className="text-xs text-gray-600">
+                                                  {(item as any).hotelInfo.checkOutDate}
+                                                </div>
+                                              </div>
+                                            </div>
+                                            
+                                            {/* Room Type */}
+                                            {(item as any).hotelInfo.roomType && (
+                                              <div className="text-xs text-gray-600 text-left">
+                                                <span className="font-medium">Room:</span> {(item as any).hotelInfo.roomType}
+                                              </div>
+                                            )}
+                                            
+                                            {/* Confirmation Number */}
+                                            {(item as any).hotelInfo.confirmationNumber && (
+                                              <div className="text-xs text-gray-600 text-left">
+                                                <span className="font-medium">Confirmation:</span> {(item as any).hotelInfo.confirmationNumber}
+                                              </div>
+                                            )}
+                                            
+                                            {/* Hotel Notes */}
+                                            {(item as any).hotelInfo.notes && (
+                                              <div className="text-xs text-gray-600 text-left italic">
+                                                <span className="font-medium not-italic">Note:</span> {(item as any).hotelInfo.notes}
+                                              </div>
+                                            )}
+                                          </div>
+                                        </div>
                                       )}
                                       
-                                      {/* Google Rating and Place Types */}
-                                      {item.place && (
+                                      {/* Google Rating and Place Types - Only for non-flight items */}
+                                      {item.place && item.type !== 'flight' && (
                                         <div className="mt-2 space-y-1">
                                           {/* Google Rating */}
                                           {item.place.rating && (
@@ -1018,9 +1111,9 @@ const TripDetailPage: React.FC = () => {
                                               <span className="text-xs text-gray-600">
                                                 {item.place.rating.toFixed(1)} Google
                                               </span>
-                                              {item.place.user_ratings_total && (
+                                              {item.place.user_ratings_total && item.place.user_ratings_total > 0 && (
                                                 <span className="text-xs text-gray-400">
-                                                  ({item.place.user_ratings_total} reviews)
+                                                  ({item.place.user_ratings_total.toLocaleString()} reviews)
                                                 </span>
                                               )}
                                             </div>
@@ -1047,11 +1140,13 @@ const TripDetailPage: React.FC = () => {
                                         </div>
                                       )}
                                       
-                                      {item.duration && (
+                                      {/* Duration - Only for activity items */}
+                                      {item.duration && item.type === 'activity' && (
                                         <p className="text-xs text-gray-400 mt-1 text-left">
                                           Duration: {item.duration} minutes
                                         </p>
                                       )}
+                                      
                                       {item.notes && (
                                         <p className="text-xs text-gray-600 mt-1 italic text-left">
                                           Note: {item.notes}
@@ -1185,90 +1280,24 @@ const TripDetailPage: React.FC = () => {
         </div>
       )}
 
-      {/* Share Modal */}
-      {showShareModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Share Trip</h3>
-                <button
-                  onClick={() => setShowShareModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm text-gray-600 mb-3">
-                    Generate a shareable link that allows others to view your trip details.
-                  </p>
-                  
-                  {!shareLink ? (
-                    <button
-                      onClick={handleGenerateShareLink}
-                      disabled={isGeneratingLink}
-                      className="w-full flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-                    >
-                      <LinkIcon className="h-4 w-4 mr-2" />
-                      {isGeneratingLink ? 'Generating...' : 'Generate Share Link'}
-                    </button>
-                  ) : (
-                    <div className="space-y-3">
-                      <div className="flex items-center space-x-2">
-                        <input
-                          type="text"
-                          value={shareLink}
-                          readOnly
-                          className="flex-1 px-3 py-2 border border-gray-300 rounded-md bg-gray-50 text-sm"
-                        />
-                        <button
-                          onClick={handleCopyShareLink}
-                          className="px-3 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                          Copy
-                        </button>
-                      </div>
-                      
-                      <div className="flex space-x-2">
-                        <button
-                          onClick={() => {
-                            const text = `Check out my trip: ${tripData?.name} ${shareLink}`;
-                            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}`, '_blank');
-                          }}
-                          className="flex-1 px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                          Share on Twitter
-                        </button>
-                        <button
-                          onClick={() => {
-                            const text = `Check out my trip: ${tripData?.name} ${shareLink}`;
-                            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareLink)}&quote=${encodeURIComponent(text)}`, '_blank');
-                          }}
-                          className="flex-1 px-3 py-2 border border-blue-300 rounded-md text-sm font-medium text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                        >
-                          Share on Facebook
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex justify-end mt-6">
-                <button
-                  onClick={() => setShowShareModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Close
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Collaboration Modals */}
+      <ShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        tripId={id!}
+        tripTitle={tripData?.name || 'Untitled Trip'}
+      />
+      
+      <InviteCollaboratorModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        tripId={id!}
+        tripTitle={tripData?.name || 'Untitled Trip'}
+        onInviteSuccess={() => {
+          // Refresh trip data to show new collaborators
+          queryClient.invalidateQueries(['trip', id]);
+        }}
+      />
 
       {/* Flight Edit Modal - REMOVED (flight editing disabled in planned itinerary) */}
       {/* Flight editing is now only available in the trip planning page */}

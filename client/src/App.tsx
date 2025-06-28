@@ -17,6 +17,9 @@ import EditTripPage from './pages/EditTripPage';
 import TripPlanningPage from './pages/TripPlanningPage';
 import ProfilePage from './pages/ProfilePage';
 import SharedTripPage from './pages/SharedTripPage';
+import SharedTripEditPage from './pages/SharedTripEditPage';
+import InviteResponsePage from './pages/InviteResponsePage';
+import EmailVerificationPage from './pages/EmailVerificationPage';
 
 // Components
 import Layout from './components/Layout';
@@ -134,8 +137,15 @@ function AppRoutes() {
           </PublicRoute>
         } />
         
-        {/* Shared Trip Route (no auth required) */}
-        <Route path="/trips/shared/:token" element={<SharedTripPage />} />
+        {/* Shared Trip Routes (no auth required) */}
+        <Route path="/shared/:token" element={<SharedTripPage />} />
+        <Route path="/shared/:token/edit" element={<SharedTripEditPage />} />
+        
+        {/* Email Verification Route (no auth required) */}
+        <Route path="/verify-email/:token" element={<EmailVerificationPage />} />
+        
+        {/* Invite Response Routes (no auth required) */}
+        <Route path="/invite/:action" element={<InviteResponsePage />} />
 
         {/* Test Route for debugging */}
         <Route path="/test" element={<TestPage />} />

@@ -37,6 +37,11 @@
 - **DashboardPage.tsx** - User dashboard
 - **AuthContext.tsx** - Authentication state
 
+### 🆕 **NEW COMPONENTS** - Sharing Feature (✅ Just Added)
+- **ShareModal.tsx** - Advanced share link generation and management
+- **SharedTripEditPage.tsx** - Editable shared trip interface
+- **sharing.ts** - Comprehensive sharing service with permissions
+
 ### ⚠️ **TEMPORARILY DISABLED** - Needs Attention
 - ~~**FlightFormComponent.tsx**~~ - **REMOVED** (No longer needed)
   - **Status**: Successfully removed and replaced with unified FlightForm
@@ -44,9 +49,11 @@
 
 ### 🔄 **RECENTLY UPDATED** - Monitor for Issues
 - **FlightForm.tsx** - Enhanced with date input fields for departure/arrival dates (✅ Just updated)
-- **TripDetailPage.tsx** - Added flight editing modal with FlightForm integration
-- **TripPlanningPage.tsx** - Updated to use FlightForm for adding flights
-- **types/index.ts** - FlightInfo interface with date fields (stable)
+- **TripDetailPage.tsx** - Added flight editing modal with FlightForm integration, enhanced ShareModal integration
+- **TripPlanningPage.tsx** - Updated to use FlightForm for adding flights, enhanced hotel form with notes field, added Share Trip button (✅ Just updated)
+- **DraggableItineraryItem.tsx** - Added editable notes functionality and hotel information display (✅ Just updated)
+- **SharedTripPage.tsx** - Enhanced with Edit Trip button and permission checking (✅ Just updated)
+- **types/index.ts** - FlightInfo interface with date fields, HotelInfo interface with notes field, new ShareSettings and ShareLink interfaces (✅ Just updated)
 
 ### 🧪 **DEVELOPMENT/DEBUG** - Not Production Critical
 - **AuthDebug.tsx** - Auth debugging

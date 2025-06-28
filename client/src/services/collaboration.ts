@@ -43,6 +43,13 @@ export interface ShareLink {
   access_count?: number;
 }
 
+export interface ShareLinkResponse {
+  message: string;
+  share_link: ShareLink;
+  email_sent?: boolean;
+  email_enabled?: boolean;
+}
+
 export interface InviteResponse {
   action: 'accept' | 'decline';
   invite_token: string;
@@ -83,14 +90,14 @@ class CollaborationService {
   /**
    * Create a shareable link for a trip
    */
-  async createShareLink(tripId: string, settings: ShareSettings): Promise<ShareLink> {
+  async createShareLink(tripId: string, settings: ShareSettings): Promise<ShareLinkResponse> {
     try {
       console.log('🔗 Creating share link:', { tripId, settings });
       
       const response = await apiClient.post(API_ENDPOINTS.TRIPS.SHARE(tripId), settings);
       
       console.log('✅ Share link created successfully:', response.data);
-      return response.data.share_link;
+      return response.data;
     } catch (error: any) {
       console.error('❌ Failed to create share link:', error);
       throw new Error(error.response?.data?.message || 'Failed to create share link');

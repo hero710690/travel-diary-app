@@ -104,6 +104,27 @@ interface FlightInfo {
 }
 ```
 
+#### **ShareSettings Interface** ✅ **NEW - SHARING FEATURE**
+```typescript
+interface ShareSettings {
+  is_public: boolean;
+  password?: string;
+  allow_editing: boolean;
+  expires_at?: string;
+}
+```
+
+#### **ShareLink Interface** ✅ **NEW - SHARING FEATURE**
+```typescript
+interface ShareLink {
+  token: string;
+  url: string;
+  settings: ShareSettings;
+  created_at: string;
+  expires_at?: string;
+}
+```
+
 #### **Location Interface**
 ```typescript
 interface Location {
@@ -537,6 +558,134 @@ interface User {
 ---
 
 ## 📝 Recent Changes Log
+
+### 2025-06-27 15:30 - Enhanced Notes Functionality & Hotel Form Improvements 📝 **NEW FEATURES**
+
+#### **🎯 User Request Implementation**
+Implemented multiple features from the todo list to enhance user experience with notes and hotel information management.
+
+#### **✅ Features Implemented**
+
+**1. Fixed Rating & Type Disappearing Issue**
+- **Problem**: Rating and type were being removed from places after clicking hearts or updating duration
+- **Root Cause**: Place data not being fully preserved during database updates in `handleUpdateItineraryItem`
+- **Solution**: Enhanced place data preservation with explicit field mapping
+```typescript
+// Enhanced place data preservation
+...(item.place && { 
+  place: {
+    ...item.place,
+    // Ensure critical fields are preserved
+    rating: item.place.rating,
+    types: item.place.types,
+    user_ratings_total: item.place.user_ratings_total,
+    place_id: item.place.place_id || item.place.placeId
+  }
+})
+```
+
+**2. Enhanced Hotel Stay Form with Notes Field**
+- **Added**: Notes field to the "Add Hotel Stay" form
+- **Interface Update**: Extended `HotelInfo` interface with `notes?: string`
+- **UI Enhancement**: Textarea input with placeholder for special requests and preferences
+- **Data Flow**: Notes properly saved and retrieved with hotel information
+
+**3. Editable Notes Field for Activity Cards**
+- **Added**: Editable notes field to `DraggableItineraryItem` component
+- **Edit Mode**: Notes can be edited alongside time and duration
+- **View Mode**: Notes displayed in a styled gray box when present
+- **State Management**: Proper initialization and reset of notes during editing
+- **Database Integration**: Notes saved to backend via `handleUpdateItineraryItem`
+
+**4. Enhanced Activity Card Display**
+- **Notes Display**: Activity notes shown in dedicated section with proper styling
+- **Hotel Information**: Room type and hotel notes displayed for accommodation items
+- **Visual Hierarchy**: Different styling for hotel notes (blue theme) vs activity notes (gray theme)
+
+#### **🛠️ Technical Implementation**
+
+**Enhanced DraggableItineraryItem Component**:
+```typescript
+// Added notes editing state
+const [editNotes, setEditNotes] = useState(item.notes || '');
+
+// Enhanced update function
+const updateData: any = {
+  time: editTime,
+  notes: editNotes // Include notes in updates
+};
+
+// Notes display in view mode
+{item.notes && (
+  <div className="mt-2 p-2 bg-gray-50 rounded text-left">
+    <div className="text-xs text-gray-500 mb-1">Notes:</div>
+    <div className="text-xs text-gray-700 whitespace-pre-wrap">
+      {item.notes}
+    </div>
+  </div>
+)}
+
+// Hotel information display for accommodations
+{item.type === 'accommodation' && item.hotelInfo && (
+  <div className="mt-2 space-y-1">
+    {item.hotelInfo.roomType && (
+      <div className="flex items-center space-x-1">
+        <span className="text-xs text-gray-500">Room:</span>
+        <span className="text-xs text-gray-700">{item.hotelInfo.roomType}</span>
+      </div>
+    )}
+    {item.hotelInfo.notes && (
+      <div className="p-2 bg-blue-50 rounded text-left">
+        <div className="text-xs text-blue-600 mb-1">Hotel Notes:</div>
+        <div className="text-xs text-blue-700 whitespace-pre-wrap">
+          {item.hotelInfo.notes}
+        </div>
+      </div>
+    )}
+  </div>
+)}
+```
+
+**Enhanced Hotel Form Component**:
+```typescript
+// Added notes field to form state
+const [formData, setFormData] = useState({
+  // ... existing fields
+  notes: '', // Add notes field
+});
+
+// Notes input in form
+<div>
+  <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+    Notes
+  </label>
+  <textarea
+    value={formData.notes}
+    onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+    placeholder="Add any special requests, preferences, or notes about this hotel stay..."
+    rows={3}
+  />
+</div>
+```
+
+#### **🚀 Deployment Status**
+- **Bundle**: `main.8b756a0c.js` (160.12 kB gzipped)
+- **CSS**: `main.438c914c.css` (6.72 kB)
+- **CloudFront**: Cache invalidated (`I9WYYI0701HNURSY8614VUH4MM`)
+- **Status**: **LIVE** - Notes functionality deployed and active
+
+#### **✅ User Impact**
+- **Enhanced Data Persistence**: Place ratings and types no longer disappear during updates
+- **Better Hotel Planning**: Users can add detailed notes when booking hotels
+- **Improved Activity Management**: Notes can be added and edited for any activity
+- **Visual Organization**: Clear distinction between activity notes and hotel-specific information
+- **Seamless Editing**: Notes editing integrated into existing edit workflow
+- **Data Consistency**: All notes properly saved and retrieved from database
+
+#### **🔄 Remaining Todo Items**
+- **Edit Hotel Information**: Enable users to edit hotel information on trip planning page
+- **Future Ideas**: Persistent map pins for itinerary items, map center reset on card click
 
 ### 2025-06-26 21:45 - Simplified & Fixed Place Selection Logic 🔧 **BUG FIX**
 
@@ -1010,6 +1159,16 @@ COLLABORATION: {
 - `respondToInvite()` - Accept/decline invites
 - `getSharedTrip()` - Access shared trips
 - TypeScript interfaces for all collaboration data types
+
+**Sharing Service** ✅ **NEW - SHARING FEATURE** (`client/src/services/sharing.ts`):
+- `createShareLink()` - Generate advanced share links with permissions
+- `getShareLink()` - Retrieve existing share links
+- `updateShareSettings()` - Modify share link settings
+- `revokeShareLink()` - Delete/revoke share links
+- `getSharedTripWithPermissions()` - Access shared trips with permission checking
+- `generateShareUrl()` - Create shareable URLs
+- `generateEditableShareUrl()` - Create editable share URLs
+- `copyToClipboard()` - Copy share links to clipboard
 
 #### **🚀 Deployment Status**
 - **Lambda Function**: `travel-diary-prod-backend` updated successfully

@@ -8,16 +8,19 @@ interface DraggableItineraryItemProps {
   item: ItineraryItem;
   onRemove: (itemId: string) => void;
   onUpdate?: (itemId: string, updates: Partial<ItineraryItem>) => void;
+  onEditHotel?: (hotelStayId: string) => void;
 }
 
 const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
   item,
   onRemove,
-  onUpdate
+  onUpdate,
+  onEditHotel
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTime, setEditTime] = useState(item.time);
   const [editDuration, setEditDuration] = useState(item.duration || 60);
+  const [editNotes, setEditNotes] = useState(item.notes || ''); // Add notes editing state
   const [hoveredHeart, setHoveredHeart] = useState<number | null>(null);
 
 
@@ -60,12 +63,14 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
     setIsEditing(true);
     setEditTime(item.time);
     setEditDuration(item.duration || 60);
+    setEditNotes(item.notes || ''); // Initialize notes for editing
   };
 
   const handleEditSave = () => {
     if (onUpdate) {
       const updateData: any = {
-        time: editTime
+        time: editTime,
+        notes: editNotes // Include notes in the update
       };
       
       // Only update duration for non-accommodation items
@@ -82,18 +87,15 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
     setIsEditing(false);
     setEditTime(item.time);
     setEditDuration(item.duration || 60);
+    setEditNotes(item.notes || ''); // Reset notes on cancel
   };
 
   const handleRatingClick = (rating: number) => {
-    console.log('❤️ Heart clicked:', rating, 'for item:', item.title);
-    console.log('📊 Current item.userRating:', item.userRating);
-    
     // Clear hover state
     setHoveredHeart(null);
     
     // Call parent update function to save to database
     if (onUpdate) {
-      console.log('💾 Saving to database via onUpdate');
       onUpdate(item.id, { userRating: rating });
     }
   };
@@ -103,22 +105,13 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
     // Use item.userRating directly since it's the source of truth from the database
     const displayRating = item.userRating || 0;
     
-    console.log('🎨 Rendering hearts:', {
-      itemUserRating: item.userRating,
-      displayRating,
-      hoveredHeart,
-      itemTitle: item.title
-    });
-    
     for (let i = 1; i <= 5; i++) {
       const isFilled = i <= (hoveredHeart || displayRating);
-      console.log(`💖 Heart ${i}: isFilled=${isFilled}, condition: ${i} <= ${hoveredHeart || displayRating}`);
       
       hearts.push(
         <button
           key={i}
           onClick={(e) => {
-            console.log('🖱️ Heart button clicked:', i);
             e.preventDefault();
             e.stopPropagation();
             handleRatingClick(i);
@@ -127,11 +120,9 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
             e.stopPropagation();
           }}
           onMouseEnter={() => {
-            console.log('🖱️ Mouse enter heart:', i);
             setHoveredHeart(i);
           }}
           onMouseLeave={() => {
-            console.log('🖱️ Mouse leave heart');
             setHoveredHeart(null);
           }}
           className="p-0.5 hover:scale-110 transition-transform cursor-pointer relative z-10"
@@ -189,6 +180,16 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                   </select>
                 </div>
               )}
+              <div className="space-y-1">
+                <span className="text-xs text-gray-500">Notes:</span>
+                <textarea
+                  value={editNotes}
+                  onChange={(e) => setEditNotes(e.target.value)}
+                  className="text-xs border border-gray-300 rounded px-2 py-1 w-full resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Add notes or comments..."
+                  rows={2}
+                />
+              </div>
               <div className="flex items-center space-x-2">
                 <button
                   onClick={handleEditSave}
@@ -222,17 +223,33 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                   <PencilIcon className="h-3 w-3" />
                 </button>
               </div>
-              <h4 className="text-sm font-medium text-gray-900 mb-1 break-words text-left">
-                {item.title}
-              </h4>
+              <div className="flex items-center justify-between mb-1">
+                <h4 className="text-sm font-medium text-gray-900 break-words text-left flex-1">
+                  {item.title}
+                </h4>
+                {/* Hotel Edit Button - Only for accommodation items */}
+                {item.type === 'accommodation' && item.hotelInfo && onEditHotel && (
+                  <button
+                    onClick={() => {
+                      // Extract hotel stay ID from item ID (format: hotelStayId_day_X)
+                      const hotelStayId = item.id.split('_day_')[0];
+                      onEditHotel(hotelStayId);
+                    }}
+                    className="p-1 text-gray-400 hover:text-blue-500 transition-colors flex-shrink-0 ml-2"
+                    title="Edit hotel details"
+                  >
+                    <PencilIcon className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
               {item.description && (
                 <p className="text-xs text-gray-500 break-words line-clamp-2 text-left">
                   {item.description}
                 </p>
               )}
               
-              {/* Google Rating and Place Types */}
-              {item.place && (
+              {/* Google Rating and Place Types - Only for non-flight items */}
+              {item.place && item.type !== 'flight' && (
                 <div className="mt-2 space-y-1">
                   {/* Google Rating */}
                   {item.place.rating && (
@@ -241,9 +258,9 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                       <span className="text-xs text-gray-600">
                         {item.place.rating.toFixed(1)} Google
                       </span>
-                      {item.place.user_ratings_total && (
+                      {item.place.user_ratings_total && item.place.user_ratings_total > 0 && (
                         <span className="text-xs text-gray-400">
-                          ({item.place.user_ratings_total} reviews)
+                          ({item.place.user_ratings_total.toLocaleString()} reviews)
                         </span>
                       )}
                     </div>
@@ -270,21 +287,33 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                 </div>
               )}
               
+              {/* Notes Display */}
+              {item.notes && (
+                <div className="mt-2 p-2 bg-gray-50 rounded text-left">
+                  <div className="text-xs text-gray-500 mb-1">Notes:</div>
+                  <div className="text-xs text-gray-700 whitespace-pre-wrap">
+                    {item.notes}
+                  </div>
+                </div>
+              )}
+              
               {item.duration && item.type !== 'accommodation' && (
                 <p className="text-xs text-gray-400 mt-1 text-left">
                   Duration: {formatDuration(item.duration)}
                 </p>
               )}
               
-              {/* User Wish Level */}
-              <div className="mt-2" onMouseDown={(e) => e.stopPropagation()}>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-500">Wish Level:</span>
-                  <div className="flex items-center space-x-0.5" style={{ pointerEvents: 'auto' }}>
-                    {renderRatingStars()}
+              {/* User Wish Level - Only for non-flight items */}
+              {item.type !== 'flight' && (
+                <div className="mt-2" onMouseDown={(e) => e.stopPropagation()}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-500">Wish Level:</span>
+                    <div className="flex items-center space-x-0.5" style={{ pointerEvents: 'auto' }}>
+                      {renderRatingStars()}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
         </div>

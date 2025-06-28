@@ -1,285 +1,146 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { 
-  BuildingOfficeIcon,
+  BuildingOfficeIcon, 
+  ClockIcon, 
   MapPinIcon,
-  PhoneIcon,
   StarIcon,
-  CalendarIcon,
-  ClockIcon,
   PencilIcon,
-  TrashIcon,
-  CheckIcon,
-  XMarkIcon
+  TrashIcon
 } from '@heroicons/react/24/outline';
-import { HotelInfo } from '../types';
+
+interface HotelInfo {
+  name: string;
+  address: string;
+  checkInDate: string;
+  checkOutDate: string;
+  roomType?: string;
+  confirmationNumber?: string;
+  rating?: number;
+  user_ratings_total?: number;
+  notes?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+}
 
 interface HotelCardProps {
   hotelInfo: HotelInfo;
-  dayNumber: number;
-  isFirstDay?: boolean;
-  isLastDay?: boolean;
-  onEdit?: (hotelInfo: HotelInfo) => void;
-  onRemove?: () => void;
+  time: string;
+  isCheckIn?: boolean;
+  isCheckOut?: boolean;
+  onEdit?: () => void;
+  onDelete?: () => void;
   className?: string;
 }
 
-const HotelCard: React.FC<HotelCardProps> = ({
-  hotelInfo,
-  dayNumber,
-  isFirstDay = false,
-  isLastDay = false,
-  onEdit,
-  onRemove,
-  className = ''
+const HotelCard: React.FC<HotelCardProps> = ({ 
+  hotelInfo, 
+  time, 
+  isCheckIn = false,
+  isCheckOut = false,
+  onEdit, 
+  onDelete, 
+  className = '' 
 }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editForm, setEditForm] = useState<HotelInfo>(hotelInfo);
-
-  const handleSave = () => {
-    if (onEdit) {
-      onEdit(editForm);
-    }
-    setIsEditing(false);
+  const getActionType = () => {
+    if (isCheckIn) return 'Check-in';
+    if (isCheckOut) return 'Check-out';
+    return 'Hotel Stay';
   };
 
-  const handleCancel = () => {
-    setEditForm(hotelInfo);
-    setIsEditing(false);
+  const getActionColor = () => {
+    if (isCheckIn) return 'bg-green-100 text-green-800';
+    if (isCheckOut) return 'bg-orange-100 text-orange-800';
+    return 'bg-blue-100 text-blue-800';
   };
-
-  const formatDate = (dateString: string) => {
-    try {
-      return new Date(dateString).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric'
-      });
-    } catch {
-      return dateString;
-    }
-  };
-
-  const renderStars = (rating: number) => {
-    return Array.from({ length: 5 }, (_, i) => (
-      <StarIcon
-        key={i}
-        className={`h-4 w-4 ${
-          i < rating ? 'text-yellow-400 fill-current' : 'text-gray-300'
-        }`}
-      />
-    ));
-  };
-
-  const getStayStatus = () => {
-    if (isFirstDay && isLastDay) {
-      return 'Check-in & Check-out';
-    } else if (isFirstDay) {
-      return 'Check-in';
-    } else if (isLastDay) {
-      return 'Check-out';
-    } else {
-      return `Night ${dayNumber - 1} of ${hotelInfo.nights}`;
-    }
-  };
-
-  if (isEditing) {
-    return (
-      <div className={`bg-white border border-blue-200 rounded-lg p-4 shadow-sm ${className}`}>
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center">
-            <BuildingOfficeIcon className="h-5 w-5 text-blue-600 mr-2" />
-            <h3 className="text-lg font-medium text-gray-900">Edit Hotel Stay</h3>
-          </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={handleSave}
-              className="p-1 text-green-600 hover:text-green-800"
-            >
-              <CheckIcon className="h-4 w-4" />
-            </button>
-            <button
-              onClick={handleCancel}
-              className="p-1 text-gray-600 hover:text-gray-800"
-            >
-              <XMarkIcon className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 text-left mb-1">
-              Hotel Name
-            </label>
-            <input
-              type="text"
-              value={editForm.name}
-              onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 text-left mb-1">
-              Address
-            </label>
-            <input
-              type="text"
-              value={editForm.address}
-              onChange={(e) => setEditForm({ ...editForm, address: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 text-left mb-1">
-                Check-in Date
-              </label>
-              <input
-                type="date"
-                value={editForm.checkInDate}
-                onChange={(e) => setEditForm({ ...editForm, checkInDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 text-left mb-1">
-                Check-out Date
-              </label>
-              <input
-                type="date"
-                value={editForm.checkOutDate}
-                onChange={(e) => setEditForm({ ...editForm, checkOutDate: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 text-left mb-1">
-                Room Type
-              </label>
-              <input
-                type="text"
-                value={editForm.roomType || ''}
-                onChange={(e) => setEditForm({ ...editForm, roomType: e.target.value })}
-                placeholder="e.g., Deluxe Room"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 text-left mb-1">
-                Confirmation #
-              </label>
-              <input
-                type="text"
-                value={editForm.confirmationNumber || ''}
-                onChange={(e) => setEditForm({ ...editForm, confirmationNumber: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className={`bg-blue-50 border border-blue-200 rounded-lg p-4 shadow-sm ${className}`}>
-      <div className="flex items-start justify-between">
-        <div className="flex-1">
-          <div className="flex items-center mb-2">
-            <BuildingOfficeIcon className="h-5 w-5 text-blue-600 mr-2" />
-            <div className="flex-1">
-              <h3 className="text-lg font-medium text-gray-900 text-left">{hotelInfo.name}</h3>
-            </div>
-            {hotelInfo.rating && (
-              <div className="flex items-center ml-2">
-                {renderStars(hotelInfo.rating)}
-              </div>
-            )}
-          </div>
-
-          <div className="space-y-2 text-sm text-gray-600">
-            <div className="flex items-start">
-              <MapPinIcon className="h-4 w-4 mr-2 mt-0.5 flex-shrink-0" />
-              <div className="flex-1 text-left">{hotelInfo.address}</div>
-            </div>
-
-            <div className="flex items-center">
-              <CalendarIcon className="h-4 w-4 mr-2" />
-              <span>
-                {formatDate(hotelInfo.checkInDate)} - {formatDate(hotelInfo.checkOutDate)}
-                {' '}({hotelInfo.nights} night{hotelInfo.nights !== 1 ? 's' : ''})
-              </span>
-            </div>
-
-            {hotelInfo.roomType && (
-              <div className="flex items-center">
-                <BuildingOfficeIcon className="h-4 w-4 mr-2" />
-                <span>{hotelInfo.roomType}</span>
-              </div>
-            )}
-
-            {hotelInfo.phone && (
-              <div className="flex items-center">
-                <PhoneIcon className="h-4 w-4 mr-2" />
-                <span>{hotelInfo.phone}</span>
-              </div>
-            )}
-
-            {hotelInfo.confirmationNumber && (
-              <div className="text-xs text-gray-500 text-left">
-                Confirmation: {hotelInfo.confirmationNumber}
-              </div>
-            )}
-          </div>
-
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex items-center">
-              <span className={`px-2 py-1 text-xs rounded-full ${
-                isFirstDay 
-                  ? 'bg-green-100 text-green-800' 
-                  : isLastDay 
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-blue-100 text-blue-800'
-              }`}>
-                {getStayStatus()}
-              </span>
-            </div>
-
-            {hotelInfo.totalPrice && (
-              <div className="text-sm font-medium text-gray-900">
-                ${hotelInfo.totalPrice}
-                {hotelInfo.pricePerNight && (
-                  <span className="text-xs text-gray-500 ml-1">
-                    (${hotelInfo.pricePerNight}/night)
-                  </span>
-                )}
-              </div>
-            )}
+    <div className={`bg-white rounded-lg border border-gray-200 p-4 shadow-sm hover:shadow-md transition-shadow ${className}`}>
+      {/* Header */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="flex items-center space-x-2">
+          <BuildingOfficeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
+          <div className="flex items-center space-x-2">
+            <h3 className="font-semibold text-gray-900 text-sm text-left">{hotelInfo.name}</h3>
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getActionColor()}`}>
+              {getActionType()}
+            </span>
           </div>
         </div>
-
-        <div className="flex space-x-1 ml-4">
+        
+        {/* Action Buttons */}
+        <div className="flex items-center space-x-1">
           {onEdit && (
             <button
-              onClick={() => setIsEditing(true)}
-              className="p-1 text-gray-400 hover:text-blue-600"
+              onClick={onEdit}
+              className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+              title="Edit hotel details"
             >
               <PencilIcon className="h-4 w-4" />
             </button>
           )}
-          {onRemove && (
+          {onDelete && (
             <button
-              onClick={onRemove}
-              className="p-1 text-gray-400 hover:text-red-600"
+              onClick={onDelete}
+              className="p-1 text-gray-400 hover:text-red-500 transition-colors"
+              title="Remove hotel"
             >
               <TrashIcon className="h-4 w-4" />
             </button>
           )}
         </div>
+      </div>
+
+      {/* Hotel Details */}
+      <div className="space-y-2">
+        {/* Address */}
+        <div className="flex items-start space-x-2">
+          <MapPinIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+          <span className="text-sm text-gray-600 text-left">{hotelInfo.address}</span>
+        </div>
+
+        {/* Time */}
+        <div className="flex items-center space-x-2">
+          <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          <span className="text-sm text-gray-600">{time}</span>
+        </div>
+
+        {/* Rating */}
+        {hotelInfo.rating && (
+          <div className="flex items-center space-x-2">
+            <StarIcon className="h-4 w-4 text-yellow-400 fill-current flex-shrink-0" />
+            <span className="text-sm text-gray-600">
+              {hotelInfo.rating.toFixed(1)} Google
+              {hotelInfo.user_ratings_total && hotelInfo.user_ratings_total > 0 && (
+                <span className="text-gray-400 ml-1">
+                  ({hotelInfo.user_ratings_total.toLocaleString()} reviews)
+                </span>
+              )}
+            </span>
+          </div>
+        )}
+
+        {/* Room Type */}
+        {hotelInfo.roomType && (
+          <div className="text-sm text-gray-600 text-left">
+            <span className="font-medium">Room:</span> {hotelInfo.roomType}
+          </div>
+        )}
+
+        {/* Confirmation Number */}
+        {hotelInfo.confirmationNumber && (
+          <div className="text-sm text-gray-600 text-left">
+            <span className="font-medium">Confirmation:</span> {hotelInfo.confirmationNumber}
+          </div>
+        )}
+
+        {/* Notes */}
+        {hotelInfo.notes && (
+          <div className="text-sm text-gray-500 italic text-left">
+            <span className="font-medium not-italic">Note:</span> {hotelInfo.notes}
+          </div>
+        )}
       </div>
     </div>
   );

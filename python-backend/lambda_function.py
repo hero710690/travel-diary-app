@@ -1,5 +1,6 @@
 """
-Working Complete Travel Diary Backend with proper CORS and Email Integration
+Enhanced Complete Travel Diary Backend with Email Verification
+Combines the full backend functionality with email verification workflow
 """
 import json
 import os
@@ -7,6 +8,7 @@ import boto3
 import hashlib
 import uuid
 import re
+import secrets
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -21,6 +23,11 @@ try:
 except Exception as e:
     print(f"⚠️  SES client initialization failed: {str(e)}")
     EMAIL_ENABLED = False
+
+# Environment variables
+APP_URL = os.environ.get('APP_URL', 'https://d16hcqzmptnoh8.cloudfront.net')
+FROM_EMAIL = os.environ.get('FROM_EMAIL', 'hero710690@gmail.com')
+VERIFICATIONS_TABLE = 'travel-diary-prod-email-verifications'
 
 def get_cors_headers():
     """Return proper CORS headers"""
@@ -47,6 +54,243 @@ def create_response(status_code, body, additional_headers=None):
 def is_valid_email(email):
     """Simple email validation"""
     pattern = r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$'
+    return re.match(pattern, email) is not None
+
+# Email Verification Functions
+def generate_verification_token():
+    """Generate a secure verification token"""
+    return secrets.token_urlsafe(32)
+
+def send_verification_email(email, verification_token):
+    """Send email verification email"""
+    try:
+        verification_link = f"{APP_URL}/verify-email/{verification_token}"
+        
+        subject = "Verify your email for Travel Diary"
+        
+        html_body = f"""
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="utf-8">
+            <title>Verify Your Email - Travel Diary</title>
+        </head>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; text-align: center; border-radius: 10px 10px 0 0;">
+                <h1 style="color: white; margin: 0; font-size: 28px;">✈️ Travel Diary</h1>
+                <p style="color: #f0f0f0; margin: 10px 0 0 0; font-size: 16px;">Plan your perfect journey</p>
+            </div>
+            
+            <div style="background: white; padding: 40px; border: 1px solid #e0e0e0; border-top: none; border-radius: 0 0 10px 10px;">
+                <h2 style="color: #333; margin-top: 0;">Welcome to Travel Diary! 🎉</h2>
+                
+                <p style="font-size: 16px; margin-bottom: 25px;">
+                    Thank you for joining Travel Diary! To start receiving trip invitations and notifications, 
+                    please verify your email address by clicking the button below.
+                </p>
+                
+                <div style="text-align: center; margin: 35px 0;">
+                    <a href="{verification_link}" 
+                       style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                              color: white; 
+                              padding: 15px 30px; 
+                              text-decoration: none; 
+                              border-radius: 25px; 
+                              font-weight: bold; 
+                              font-size: 16px; 
+                              display: inline-block;
+                              box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);">
+                        ✅ Verify Email Address
+                    </a>
+                </div>
+                
+                <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 25px 0;">
+                    <p style="margin: 0; font-size: 14px; color: #666;">
+                        <strong>🔒 Security Note:</strong> This verification link expires in 24 hours for your security.
+                        If you didn't request this verification, you can safely ignore this email.
+                    </p>
+                </div>
+                
+                <p style="font-size: 14px; color: #666; margin-top: 30px;">
+                    If the button doesn't work, copy and paste this link into your browser:<br>
+                    <a href="{verification_link}" style="color: #667eea; word-break: break-all;">{verification_link}</a>
+                </p>
+                
+                <hr style="border: none; border-top: 1px solid #e0e0e0; margin: 30px 0;">
+                
+                <p style="font-size: 12px; color: #999; text-align: center; margin: 0;">
+                    This email was sent by Travel Diary. If you have any questions, please contact our support team.
+                </p>
+            </div>
+        </body>
+        </html>
+        """
+        
+        text_body = f"""
+        Welcome to Travel Diary!
+        
+        Thank you for joining Travel Diary! To start receiving trip invitations and notifications, 
+        please verify your email address by visiting this link:
+        
+        {verification_link}
+        
+        This verification link expires in 24 hours for your security.
+        If you didn't request this verification, you can safely ignore this email.
+        
+        ---
+        Travel Diary Team
+        """
+        
+        response = ses_client.send_email(
+            Source=FROM_EMAIL,
+            Destination={'ToAddresses': [email]},
+            Message={
+                'Subject': {'Data': subject, 'Charset': 'UTF-8'},
+                'Body': {
+                    'Html': {'Data': html_body, 'Charset': 'UTF-8'},
+                    'Text': {'Data': text_body, 'Charset': 'UTF-8'}
+                }
+            }
+        )
+        
+        print(f"✅ Verification email sent to {email}, MessageId: {response['MessageId']}")
+        return True
+        
+    except Exception as e:
+        print(f"❌ Failed to send verification email to {email}: {str(e)}")
+        return False
+
+def is_email_verified(email):
+    """Check if an email address is verified"""
+    try:
+        table = dynamodb.Table(VERIFICATIONS_TABLE)
+        response = table.get_item(Key={'email': email})
+        
+        if 'Item' in response:
+            return response['Item'].get('verified', False)
+        
+        return False
+        
+    except Exception as e:
+        print(f"❌ Error checking email verification status: {str(e)}")
+        return False
+
+def request_email_verification(email):
+    """Request email verification for a new email address"""
+    try:
+        table = dynamodb.Table(VERIFICATIONS_TABLE)
+        
+        # Check if email is already verified
+        try:
+            response = table.get_item(Key={'email': email})
+            if 'Item' in response and response['Item'].get('verified', False):
+                return {
+                    'success': True,
+                    'message': 'Email already verified',
+                    'email_sent': False,
+                    'already_verified': True
+                }
+        except Exception as e:
+            print(f"Error checking existing verification: {str(e)}")
+        
+        # Generate new verification token
+        verification_token = generate_verification_token()
+        expires_at = datetime.utcnow() + timedelta(hours=24)
+        
+        # Store verification record
+        table.put_item(
+            Item={
+                'email': email,
+                'verification_token': verification_token,
+                'verified': False,
+                'created_at': datetime.utcnow().isoformat(),
+                'expires_at': expires_at.isoformat(),
+                'attempts': 1
+            }
+        )
+        
+        # Send verification email
+        email_sent = send_verification_email(email, verification_token)
+        
+        return {
+            'success': True,
+            'message': 'Verification email sent successfully',
+            'email_sent': email_sent,
+            'expires_in_hours': 24
+        }
+        
+    except Exception as e:
+        print(f"❌ Error requesting email verification: {str(e)}")
+        return {
+            'success': False,
+            'message': f'Error processing verification request: {str(e)}',
+            'email_sent': False
+        }
+
+def verify_email_token(verification_token):
+    """Verify an email using the verification token"""
+    try:
+        table = dynamodb.Table(VERIFICATIONS_TABLE)
+        
+        # Query by token using GSI
+        response = table.query(
+            IndexName='TokenIndex',
+            KeyConditionExpression='verification_token = :token',
+            ExpressionAttributeValues={':token': verification_token}
+        )
+        
+        if not response['Items']:
+            return {
+                'success': False,
+                'message': 'Invalid verification token',
+                'verified': False
+            }
+        
+        verification = response['Items'][0]
+        
+        # Check if token has expired
+        expires_at = datetime.fromisoformat(verification['expires_at'])
+        if datetime.utcnow() > expires_at:
+            return {
+                'success': False,
+                'message': 'Verification token has expired',
+                'verified': False,
+                'expired': True
+            }
+        
+        # Check if already verified
+        if verification.get('verified', False):
+            return {
+                'success': True,
+                'message': 'Email already verified',
+                'verified': True,
+                'email': verification['email']
+            }
+        
+        # Mark as verified
+        table.update_item(
+            Key={'email': verification['email']},
+            UpdateExpression='SET verified = :verified, verified_at = :verified_at',
+            ExpressionAttributeValues={
+                ':verified': True,
+                ':verified_at': datetime.utcnow().isoformat()
+            }
+        )
+        
+        return {
+            'success': True,
+            'message': 'Email verified successfully',
+            'verified': True,
+            'email': verification['email']
+        }
+        
+    except Exception as e:
+        print(f"❌ Error verifying email token: {str(e)}")
+        return {
+            'success': False,
+            'message': f'Error verifying email: {str(e)}',
+            'verified': False
+        }
     return re.match(pattern, email) is not None
 
 def hash_password(password):
@@ -1280,6 +1524,22 @@ def handle_invite_collaborator(event, context):
                 }
             )
             
+            # Check if email is verified before sending invitation
+            email_verified = is_email_verified(email)
+            
+            if not email_verified:
+                # Email not verified - send verification email first
+                verification_result = request_email_verification(email)
+                
+                return create_response(202, {
+                    "message": "Email verification required",
+                    "verification_required": True,
+                    "verification_email_sent": verification_result['email_sent'],
+                    "email": email,
+                    "next_step": "User must verify their email before receiving invitations",
+                    "verification_expires_in_hours": 24
+                })
+            
             # Send invitation email
             email_sent = False
             if EMAIL_ENABLED:
@@ -1722,6 +1982,131 @@ def handle_get_shared_trip(event, context):
             "message": "An internal error occurred"
         })
 
+# Email Verification Handlers
+def handle_request_email_verification(event, context):
+    """Handle email verification request"""
+    try:
+        # Parse request body
+        if 'body' not in event or not event['body']:
+            return create_response(400, {
+                "error": "Missing request body",
+                "message": "Email is required"
+            })
+        
+        body = json.loads(event['body'])
+        email = body.get('email', '').strip().lower()
+        
+        # Validate email
+        if not email or not is_valid_email(email):
+            return create_response(400, {
+                "error": "Invalid email",
+                "message": "Please provide a valid email address"
+            })
+        
+        # Request verification
+        result = request_email_verification(email)
+        
+        if result['success']:
+            return create_response(200, {
+                "message": result['message'],
+                "email": email,
+                "email_sent": result['email_sent'],
+                "expires_in_hours": result.get('expires_in_hours', 24),
+                "already_verified": result.get('already_verified', False)
+            })
+        else:
+            return create_response(400, {
+                "error": "Verification request failed",
+                "message": result['message'],
+                "email_sent": result['email_sent']
+            })
+            
+    except Exception as e:
+        print(f"❌ Error handling verification request: {str(e)}")
+        return create_response(500, {
+            "error": "Internal server error",
+            "message": "Failed to process verification request"
+        })
+
+def handle_verify_email(event, context):
+    """Handle email verification via token"""
+    try:
+        # Extract token from path
+        path = event.get('path', '')
+        path_parts = path.strip('/').split('/')
+        
+        verification_token = None
+        for i, part in enumerate(path_parts):
+            if part == 'verify-email' and i + 1 < len(path_parts):
+                verification_token = path_parts[i + 1]
+                break
+        
+        if not verification_token:
+            return create_response(400, {
+                "error": "Missing token",
+                "message": "Verification token is required"
+            })
+        
+        # Verify the token
+        result = verify_email_token(verification_token)
+        
+        if result['success']:
+            return create_response(200, {
+                "message": result['message'],
+                "verified": result['verified'],
+                "email": result.get('email'),
+                "expired": result.get('expired', False)
+            })
+        else:
+            status_code = 400 if not result.get('expired') else 410
+            return create_response(status_code, {
+                "error": "Verification failed",
+                "message": result['message'],
+                "verified": result['verified'],
+                "expired": result.get('expired', False)
+            })
+            
+    except Exception as e:
+        print(f"❌ Error handling email verification: {str(e)}")
+        return create_response(500, {
+            "error": "Internal server error",
+            "message": "Failed to verify email"
+        })
+
+def handle_get_verification_status(event, context):
+    """Get verification status for an email"""
+    try:
+        # Extract email from query parameters
+        query_params = event.get('queryStringParameters') or {}
+        email = query_params.get('email', '').strip().lower()
+        
+        if not email:
+            return create_response(400, {
+                "error": "Missing email",
+                "message": "Email parameter is required"
+            })
+        
+        if not is_valid_email(email):
+            return create_response(400, {
+                "error": "Invalid email",
+                "message": "Please provide a valid email address"
+            })
+        
+        # Check verification status
+        verified = is_email_verified(email)
+        
+        return create_response(200, {
+            "email": email,
+            "verified": verified
+        })
+        
+    except Exception as e:
+        print(f"❌ Error getting verification status: {str(e)}")
+        return create_response(500, {
+            "error": "Internal server error",
+            "message": "Failed to get verification status"
+        })
+
 def lambda_handler(event, context):
     """Main Lambda handler with complete backend functionality"""
     try:
@@ -1831,11 +2216,36 @@ def lambda_handler(event, context):
                     "error": "Method not allowed",
                     "message": "Only POST method is allowed for invite responses"
                 })
+        # Email Verification Routes
+        elif path == '/email/request-verification' or path.endswith('/email/request-verification'):
+            if http_method == 'POST':
+                return handle_request_email_verification(event, context)
+            else:
+                return create_response(405, {
+                    "error": "Method not allowed",
+                    "message": "Only POST method is allowed for email verification requests"
+                })
+        elif path.startswith('/verify-email/'):
+            if http_method == 'GET':
+                return handle_verify_email(event, context)
+            else:
+                return create_response(405, {
+                    "error": "Method not allowed",
+                    "message": "Only GET method is allowed for email verification"
+                })
+        elif path == '/email/status' or path.endswith('/email/status'):
+            if http_method == 'GET':
+                return handle_get_verification_status(event, context)
+            else:
+                return create_response(405, {
+                    "error": "Method not allowed",
+                    "message": "Only GET method is allowed for verification status"
+                })
         else:
             # Default response with available endpoints
             return create_response(200, {
-                "message": "Travel Diary API - Complete Backend with Collaboration & Sharing + Email",
-                "version": "2.3.0",
+                "message": "Travel Diary API - Complete Backend with Collaboration & Sharing + Email Verification",
+                "version": "2.5.0",
                 "available_endpoints": {
                     "GET /health": "Health check",
                     "POST /auth/register": "User registration",
@@ -1847,10 +2257,13 @@ def lambda_handler(event, context):
                     "PUT /trips/{id}": "Update existing trip",
                     "DELETE /trips/{id}": "Delete existing trip",
                     "PUT /trips/{id}/itinerary": "Update trip itinerary",
-                    "POST /trips/{id}/invite": "Invite collaborator to trip",
+                    "POST /trips/{id}/invite": "Invite collaborator to trip (with email verification)",
                     "POST /trips/{id}/share": "Create shareable link for trip",
                     "GET /shared/{token}": "Access shared trip",
-                    "POST /invite/respond": "Accept or decline collaboration invite"
+                    "POST /invite/respond": "Accept or decline collaboration invite",
+                    "POST /email/request-verification": "Request email verification",
+                    "GET /verify-email/{token}": "Verify email with token",
+                    "GET /email/status?email={email}": "Get email verification status"
                 },
                 "cors_enabled": True,
                 "email_enabled": EMAIL_ENABLED,
@@ -1862,6 +2275,8 @@ def lambda_handler(event, context):
                     "Real-time Invites",
                     "Shareable Links",
                     "Email Notifications" if EMAIL_ENABLED else "Email Notifications (Disabled)",
+                    "Email Verification Workflow",
+                    "Verified Email Tracking",
                     "CORS Support",
                     "Complete Backend"
                 ]
