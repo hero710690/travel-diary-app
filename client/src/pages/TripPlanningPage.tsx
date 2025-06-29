@@ -1231,7 +1231,8 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         date: dayDateStr, // Add the actual date
         time: isFirstDay ? (hotelInfo.checkInTime || '15:00') : isLastDay ? (hotelInfo.checkOutTime || '11:00') : '00:00', // Use custom times or defaults
         title: hotelInfo.name,
-        description: `${hotelInfo.address} - ${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Hotel Stay'}`,
+        description: hotelInfo.address, // Store clean address only
+        hotelStatus: isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Stay', // Store status separately
         type: 'accommodation',
         // Remove duration for hotel stays since check-in/check-out times are more relevant
         hotelInfo,
@@ -1368,7 +1369,8 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         date: dayDateStr,
         time: isFirstDay ? (updatedHotelInfo.checkInTime || '15:00') : isLastDay ? (updatedHotelInfo.checkOutTime || '11:00') : '00:00', // Use custom times or defaults
         title: updatedHotelInfo.name,
-        description: `${updatedHotelInfo.address} - ${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Hotel Stay'}`,
+        description: updatedHotelInfo.address, // Store clean address only
+        hotelStatus: isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Hotel Stay', // Store status separately
         type: 'accommodation',
         hotelInfo: updatedHotelInfo,
         location: {

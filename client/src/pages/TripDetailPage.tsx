@@ -1041,9 +1041,10 @@ const TripDetailPage: React.FC = () => {
                                               
                                               if (!isHotelItem) return null;
                                               
-                                              // Determine check-in/check-out status based on description
-                                              const isCheckIn = item.description?.includes('Check-in') || false;
-                                              const isCheckOut = item.description?.includes('Check-out') || false;
+                                              // Determine check-in/check-out status based on hotelStatus field or description fallback
+                                              const hotelStatus = (item as any).hotelStatus;
+                                              const isCheckIn = hotelStatus === 'Check-in' || item.description?.includes('Check-in') || false;
+                                              const isCheckOut = hotelStatus === 'Check-out' || item.description?.includes('Check-out') || false;
                                               
                                               if (isCheckIn) {
                                                 return (
