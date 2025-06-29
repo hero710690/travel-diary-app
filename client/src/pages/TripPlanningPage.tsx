@@ -1370,7 +1370,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         time: isFirstDay ? (updatedHotelInfo.checkInTime || '15:00') : isLastDay ? (updatedHotelInfo.checkOutTime || '11:00') : '00:00', // Use custom times or defaults
         title: updatedHotelInfo.name,
         description: updatedHotelInfo.address, // Store clean address only
-        hotelStatus: isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Hotel Stay', // Store status separately
+        hotelStatus: isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Stay', // Store status separately
         type: 'accommodation',
         hotelInfo: updatedHotelInfo,
         location: {
