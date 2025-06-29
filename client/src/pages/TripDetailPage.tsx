@@ -646,13 +646,44 @@ const TripDetailPage: React.FC = () => {
     }
   };
 
+  // Consistent time formatting function (same as SharedTripPage and TripPlanningPage)
   const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    
     try {
-      const time = new Date(`2000-01-01T${timeString}`);
-      return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      // Handle different time formats
+      if (timeString.includes(':')) {
+        // Already in HH:MM format
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours, 10);
+        const min = minutes.padStart(2, '0');
+        
+        // Convert to 12-hour format with AM/PM
+        if (hour === 0) {
+          return `12:${min} AM`;
+        } else if (hour < 12) {
+          return `${hour}:${min} AM`;
+        } else if (hour === 12) {
+          return `12:${min} PM`;
+        } else {
+          return `${hour - 12}:${min} PM`;
+        }
+      } else {
+        // If it's just a number, treat as hour
+        const hour = parseInt(timeString, 10);
+        if (hour === 0) return '12:00 AM';
+        if (hour < 12) return `${hour}:00 AM`;
+        if (hour === 12) return '12:00 PM';
+        return `${hour - 12}:00 PM`;
+      }
     } catch {
-      return timeString;
+      return timeString; // Return original if parsing fails
     }
+  };
+
+  // Get time from item with fallback
+  const getItemTime = (item: any) => {
+    return item.time || item.start_time || '';
   };
 
   const getPlaceIcon = (type: string) => {
@@ -998,22 +1029,24 @@ const TripDetailPage: React.FC = () => {
                                   ) : (
                                     // View mode
                                     <div>
-                                      <div className="flex items-center justify-between mb-1">
-                                        <div className="flex items-center space-x-2">
-                                          <ClockIcon className="h-4 w-4 text-gray-400" />
-                                          <span className="text-sm font-medium text-gray-900">
-                                            {formatTime(item.time)}
-                                          </span>
+                                      <div className="flex items-start justify-between mb-3">
+                                        <div className="flex-1">
+                                          <h5 className="text-sm font-medium text-gray-900 break-words text-left">
+                                            {item.title}
+                                          </h5>
                                           {item.type === 'flight' && item.flightInfo && (
-                                            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded mt-1 inline-block">
                                               Flight
                                             </span>
                                           )}
                                         </div>
+                                        <div className="flex items-center text-sm text-gray-500 flex-shrink-0 ml-4">
+                                          <ClockIcon className="h-4 w-4 mr-1" />
+                                          <span className="whitespace-nowrap">
+                                            {formatTime(getItemTime(item))}
+                                          </span>
+                                        </div>
                                       </div>
-                                      <h5 className="text-sm font-medium text-gray-900 break-words text-left">
-                                        {item.title}
-                                      </h5>
                                       
                                       
                                       {/* Flight Details - Only for flight items */}
