@@ -1030,9 +1030,42 @@ const TripDetailPage: React.FC = () => {
                                     <div>
                                       <div className="flex items-start justify-between mb-3">
                                         <div className="flex-1">
-                                          <h5 className="text-sm font-medium text-gray-900 break-words text-left">
-                                            {item.title}
-                                          </h5>
+                                          <div className="flex items-center">
+                                            <h5 className="text-sm font-medium text-gray-900 break-words text-left">
+                                              {item.title}
+                                            </h5>
+                                            {/* Status badge for accommodation items */}
+                                            {(() => {
+                                              const isHotelItem = (item.type as any) === 'accommodation' || 
+                                                                 (item.place?.types && item.place.types.includes('lodging'));
+                                              
+                                              if (!isHotelItem) return null;
+                                              
+                                              // Determine check-in/check-out status based on description
+                                              const isCheckIn = item.description?.includes('Check-in') || false;
+                                              const isCheckOut = item.description?.includes('Check-out') || false;
+                                              
+                                              if (isCheckIn) {
+                                                return (
+                                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
+                                                    Check-in
+                                                  </span>
+                                                );
+                                              } else if (isCheckOut) {
+                                                return (
+                                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 ml-2">
+                                                    Check-out
+                                                  </span>
+                                                );
+                                              } else {
+                                                return (
+                                                  <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">
+                                                    Stay
+                                                  </span>
+                                                );
+                                              }
+                                            })()}
+                                          </div>
                                         </div>
                                         <div className="flex items-center text-sm text-gray-500 flex-shrink-0 ml-4">
                                           <ClockIcon className="h-4 w-4 mr-1" />
@@ -1088,45 +1121,11 @@ const TripDetailPage: React.FC = () => {
                                         if (!isHotelItem) return null;
                                         
                                         // Create hotel info from available data
-                                        const hotelName = item.title || item.place?.name || 'Hotel';
                                         const hotelAddress = item.description || item.place?.formatted_address || '';
                                         
-                                        // Determine check-in/check-out status based on description
-                                        const isCheckIn = item.description?.includes('Check-in') || false;
-                                        const isCheckOut = item.description?.includes('Check-out') || false;
-                                        
-                                        // Get status badge
-                                        const getStatusBadge = () => {
-                                          if (isCheckIn) {
-                                            return (
-                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
-                                                Check-in
-                                              </span>
-                                            );
-                                          } else if (isCheckOut) {
-                                            return (
-                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 ml-2">
-                                                Check-out
-                                              </span>
-                                            );
-                                          } else {
-                                            return (
-                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 ml-2">
-                                                Stay
-                                              </span>
-                                            );
-                                          }
-                                        };
-                                        
                                         return (
-                                          <div className="mt-2 space-y-1">
-                                            {/* Hotel name with status badge */}
-                                            <div className="flex items-center">
-                                              <span className="text-sm font-medium text-gray-900">{hotelName}</span>
-                                              {getStatusBadge()}
-                                            </div>
-                                            
-                                            {/* Address */}
+                                          <div className="mt-2">
+                                            {/* Address only */}
                                             {hotelAddress && (
                                               <div className="text-sm text-gray-600 text-left">{hotelAddress}</div>
                                             )}
