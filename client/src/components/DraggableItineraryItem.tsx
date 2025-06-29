@@ -9,13 +9,15 @@ interface DraggableItineraryItemProps {
   onRemove: (itemId: string) => void;
   onUpdate?: (itemId: string, updates: Partial<ItineraryItem>) => void;
   onEditHotel?: (hotelStayId: string) => void;
+  formatTime?: (timeString: string) => string;
 }
 
 const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
   item,
   onRemove,
   onUpdate,
-  onEditHotel
+  onEditHotel,
+  formatTime
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editTime, setEditTime] = useState(item.time);
@@ -210,40 +212,47 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
           ) : (
             // View mode
             <div className="min-w-0 flex-1">
-              <div className="flex items-center space-x-2 mb-1">
-                <ClockIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                <span className="text-sm font-medium text-gray-900">
-                  {item.time}
-                </span>
-                <button
-                  onClick={handleEditStart}
-                  className="p-1 text-gray-400 hover:text-blue-500 transition-colors flex-shrink-0"
-                  title="Edit time"
-                >
-                  <PencilIcon className="h-3 w-3" />
-                </button>
+              {/* Header with title on left and time/edit on right */}
+              <div className="flex items-start justify-between mb-2">
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-medium text-gray-900 break-words text-left">
+                    {item.title}
+                  </h4>
+                </div>
+                <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
+                  <span className="text-sm text-gray-500 flex items-center whitespace-nowrap">
+                    <ClockIcon className="h-4 w-4 mr-1" />
+                    {formatTime ? formatTime(item.time || '') : (item.time || '')}
+                  </span>
+                  <button
+                    onClick={handleEditStart}
+                    className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
+                    title="Edit time"
+                  >
+                    <PencilIcon className="h-3 w-3" />
+                  </button>
+                </div>
               </div>
-              <div className="flex items-center justify-between mb-1">
-                <h4 className="text-sm font-medium text-gray-900 break-words text-left flex-1">
-                  {item.title}
-                </h4>
-                {/* Hotel Edit Button - Only for accommodation items */}
-                {item.type === 'accommodation' && item.hotelInfo && onEditHotel && (
+              
+              {/* Hotel Edit Button - Only for accommodation items */}
+              {item.type === 'accommodation' && item.hotelInfo && onEditHotel && (
+                <div className="flex justify-end mb-2">
                   <button
                     onClick={() => {
                       // Extract hotel stay ID from item ID (format: hotelStayId_day_X)
                       const hotelStayId = item.id.split('_day_')[0];
                       onEditHotel(hotelStayId);
                     }}
-                    className="p-1 text-gray-400 hover:text-blue-500 transition-colors flex-shrink-0 ml-2"
+                    className="p-1 text-gray-400 hover:text-blue-500 transition-colors"
                     title="Edit hotel details"
                   >
                     <PencilIcon className="h-3 w-3" />
                   </button>
-                )}
-              </div>
+                </div>
+              )}
+              
               {item.description && (
-                <p className="text-xs text-gray-500 break-words line-clamp-2 text-left">
+                <p className="text-xs text-gray-500 break-words line-clamp-2 text-left mb-2">
                   {item.description}
                 </p>
               )}

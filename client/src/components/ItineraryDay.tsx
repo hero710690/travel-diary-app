@@ -174,6 +174,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
                 onRemove={onRemoveItem}
                 onUpdate={onUpdateItem}
                 onEditHotel={onEditHotel}
+                formatTime={formatTime}
               />
             )
           ))
