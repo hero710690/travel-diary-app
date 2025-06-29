@@ -1128,6 +1128,7 @@ const TripDetailPage: React.FC = () => {
                                           hotelAddress = hotelAddress
                                             .replace(/\s*-\s*Check-in\s*$/i, '')
                                             .replace(/\s*-\s*Check-out\s*$/i, '')
+                                            .replace(/\s*-\s*Hotel Stay\s*$/i, '')
                                             .replace(/\s*-\s*Stay\s*$/i, '')
                                             .trim();
                                         }
