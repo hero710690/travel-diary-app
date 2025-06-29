@@ -1121,7 +1121,16 @@ const TripDetailPage: React.FC = () => {
                                         if (!isHotelItem) return null;
                                         
                                         // Create hotel info from available data
-                                        const hotelAddress = item.place?.formatted_address || '';
+                                        let hotelAddress = item.description || item.place?.formatted_address || '';
+                                        
+                                        // Clean the address by removing status text
+                                        if (hotelAddress) {
+                                          hotelAddress = hotelAddress
+                                            .replace(/\s*-\s*Check-in\s*$/i, '')
+                                            .replace(/\s*-\s*Check-out\s*$/i, '')
+                                            .replace(/\s*-\s*Stay\s*$/i, '')
+                                            .trim();
+                                        }
                                         
                                         return (
                                           <div className="mt-2">
