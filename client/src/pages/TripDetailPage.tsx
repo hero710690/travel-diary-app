@@ -28,7 +28,6 @@ import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ShareModal from '../components/ShareModal';
 import InviteCollaboratorModal from '../components/InviteCollaboratorModal';
-import HotelCard from '../components/HotelCard';
 import toast from 'react-hot-toast';
 import { format, addDays } from 'date-fns';
 
@@ -1086,7 +1085,7 @@ const TripDetailPage: React.FC = () => {
                                         </div>
                                       )}
 
-                                      {/* Hotel Card - Only for accommodation items */}
+                                      {/* Hotel Info - Only for accommodation items */}
                                       {(() => {
                                         // Check if this is a hotel/accommodation item
                                         const isHotelItem = (item.type as any) === 'accommodation' || 
@@ -1094,32 +1093,53 @@ const TripDetailPage: React.FC = () => {
                                         
                                         if (!isHotelItem) return null;
                                         
-                                        // Create hotel info from available data (same as trip planning page)
-                                        const hotelInfo = (item as any).hotelInfo || {
-                                          name: item.title || item.place?.name || 'Hotel',
-                                          address: item.description || item.place?.formatted_address || '',
-                                          checkInDate: '',
-                                          checkOutDate: '',
-                                          roomType: '',
-                                          confirmationNumber: '',
-                                          rating: item.place?.rating,
-                                          user_ratings_total: item.place?.user_ratings_total,
-                                          notes: item.notes || ''
-                                        };
+                                        // Create hotel info from available data
+                                        const hotelName = item.title || item.place?.name || 'Hotel';
+                                        const hotelAddress = item.description || item.place?.formatted_address || '';
                                         
                                         // Determine check-in/check-out status based on description
                                         const isCheckIn = item.description?.includes('Check-in') || false;
                                         const isCheckOut = item.description?.includes('Check-out') || false;
                                         
+                                        // Get status badge
+                                        const getStatusBadge = () => {
+                                          if (isCheckIn) {
+                                            return (
+                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                                Check-in
+                                              </span>
+                                            );
+                                          } else if (isCheckOut) {
+                                            return (
+                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                                                Check-out
+                                              </span>
+                                            );
+                                          } else {
+                                            return (
+                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                                Stay
+                                              </span>
+                                            );
+                                          }
+                                        };
+                                        
                                         return (
-                                          <div className="mt-2">
-                                            <HotelCard
-                                              hotelInfo={hotelInfo}
-                                              time={formatTime(getItemTime(item))}
-                                              isCheckIn={isCheckIn}
-                                              isCheckOut={isCheckOut}
-                                              className="mb-2"
-                                            />
+                                          <div className="mt-2 space-y-1">
+                                            {/* Hotel name with status badge */}
+                                            <div className="flex items-center space-x-2">
+                                              <BuildingOfficeIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
+                                              <span className="text-sm font-medium text-gray-900">{hotelName}</span>
+                                              {getStatusBadge()}
+                                            </div>
+                                            
+                                            {/* Address */}
+                                            {hotelAddress && (
+                                              <div className="flex items-start space-x-2 ml-6">
+                                                <MapPinIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                                                <span className="text-sm text-gray-600 text-left">{hotelAddress}</span>
+                                              </div>
+                                            )}
                                           </div>
                                         );
                                       })()}
