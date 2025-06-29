@@ -1034,6 +1034,17 @@ const TripDetailPage: React.FC = () => {
                                             <h5 className="text-sm font-medium text-gray-900 break-words text-left">
                                               {item.title}
                                             </h5>
+                                            
+                                            {/* Address Display */}
+                                            {(item.place?.formatted_address || item.location?.address) && (
+                                              <div className="flex items-start mt-1 mb-2">
+                                                <MapPinIcon className="h-3 w-3 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
+                                                <p className="text-xs text-gray-600 text-left">
+                                                  {item.place?.formatted_address || item.location?.address}
+                                                </p>
+                                              </div>
+                                            )}
+                                            
                                             {/* Status badge for accommodation items */}
                                             {(() => {
                                               const isHotelItem = (item.type as any) === 'accommodation' || 

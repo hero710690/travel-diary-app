@@ -641,6 +641,16 @@ const SharedTripPage: React.FC = () => {
                                     )}
                                   </div>
                                   
+                                  {/* Address Display */}
+                                  {(item.place?.formatted_address || item.location?.address) && (
+                                    <div className="flex items-start mb-3">
+                                      <MapPinIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                                      <p className="text-sm text-gray-600 text-left">
+                                        {item.place?.formatted_address || item.location?.address}
+                                      </p>
+                                    </div>
+                                  )}
+                                  
                                   {item.description && (
                                     <p className="text-gray-600 mb-3 text-left">{item.description}</p>
                                   )}
