@@ -61,17 +61,17 @@ A comprehensive full-stack travel planning and diary application built with mode
 ## 🚀 Deployment Workflow
 
 ### **Latest Deployment** ✅ **2025-06-29**
-- **Version**: Hotel Display Removal v1.3
-- **Frontend Bundle**: main.9309a93d.js (166.15 kB gzipped)
-- **New Features**: Removed hotel display from trip detail page
-- **Status**: ✅ **LIVE** - Clean trip detail page without hotel information
+- **Version**: Badge Layout Enhancement v1.4
+- **Frontend Bundle**: main.e68419e9.js (166.2 kB gzipped)
+- **New Features**: Hotel status badge after address, removed flight badge
+- **Status**: ✅ **LIVE** - Enhanced badge positioning implemented
 - **CloudFront**: Cache invalidated and updated
 
 ### **Recent Updates**
-- ✅ **Hotel Display Removed** - No hotel information shown in trip detail page
-- ✅ **Hotel Card Edit Functionality** - Working edit modal in trip planning page
-- ✅ **Clean Interface** - Minimal trip detail page layout
-- ✅ **Bundle Optimization** - Further reduced bundle size (36 bytes)
+- ✅ **Hotel Status Badge After Address** - Status badge positioned after hotel address
+- ✅ **Flight Badge Removed** - Cleaner flight cards without status badges
+- ✅ **Hotel Information Restored** - Hotel name and address display in trip detail
+- ✅ **Code Optimization** - Removed unused flight status functions
 
 ### **Production Environment**
 - **Frontend URL**: https://d16hcqzmptnoh8.cloudfront.net
