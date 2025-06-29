@@ -24,25 +24,6 @@ const FlightCard: React.FC<FlightCardProps> = ({
   onDelete, 
   className = '' 
 }) => {
-  const getStatusColor = (status?: string) => {
-    switch (status) {
-      case 'scheduled':
-        return 'bg-blue-100 text-blue-800';
-      case 'delayed':
-        return 'bg-yellow-100 text-yellow-800';
-      case 'cancelled':
-        return 'bg-red-100 text-red-800';
-      case 'boarding':
-        return 'bg-green-100 text-green-800';
-      case 'departed':
-        return 'bg-purple-100 text-purple-800';
-      case 'arrived':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-blue-100 text-blue-800';
-    }
-  };
-
   const formatTime = (timeString: string) => {
     if (!timeString) return '';
     
@@ -94,11 +75,6 @@ const FlightCard: React.FC<FlightCardProps> = ({
           </span>
         </div>
         <div className="flex items-center space-x-2 flex-shrink-0">
-          {flightInfo.status && (
-            <span className={`px-2 py-1 rounded-full text-xs font-medium whitespace-nowrap ${getStatusColor(flightInfo.status)}`}>
-              {flightInfo.status.charAt(0).toUpperCase() + flightInfo.status.slice(1)}
-            </span>
-          )}
           <span className="text-sm text-gray-500 flex items-center whitespace-nowrap">
             <ClockIcon className="h-4 w-4 mr-1" />
             {formatTime(time)}
