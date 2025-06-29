@@ -1033,11 +1033,6 @@ const TripDetailPage: React.FC = () => {
                                           <h5 className="text-sm font-medium text-gray-900 break-words text-left">
                                             {item.title}
                                           </h5>
-                                          {item.type === 'flight' && item.flightInfo && (
-                                            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded mt-1 inline-block">
-                                              Flight
-                                            </span>
-                                          )}
                                         </div>
                                         <div className="flex items-center text-sm text-gray-500 flex-shrink-0 ml-4">
                                           <ClockIcon className="h-4 w-4 mr-1" />
@@ -1093,7 +1088,6 @@ const TripDetailPage: React.FC = () => {
                                         if (!isHotelItem) return null;
                                         
                                         // Create hotel info from available data
-                                        const hotelName = item.title || item.place?.name || 'Hotel';
                                         const hotelAddress = item.description || item.place?.formatted_address || '';
                                         
                                         // Determine check-in/check-out status based on description
@@ -1125,8 +1119,6 @@ const TripDetailPage: React.FC = () => {
                                         
                                         return (
                                           <div className="mt-2 space-y-1">
-                                            {/* Hotel name */}
-                                            <div className="text-sm font-medium text-gray-900">{hotelName}</div>
                                             
                                             {/* Address with status badge */}
                                             {hotelAddress && (
