@@ -142,42 +142,56 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
             {/* Flight button removed - using top-level Add Flight button instead */}
           </div>
         ) : (
-          sortedItems.map((item) => (
-            item.type === 'flight' && item.flightInfo ? (
-              <FlightCard
-                key={item.id}
-                flightInfo={item.flightInfo}
-                time={formatTime ? formatTime(item.time || '') : (item.time || '')}
-                onEdit={() => handleEditFlight(item)}
-                onDelete={() => onRemoveItem(item.id)}
-              />
-            ) : item.type === 'accommodation' && item.hotelInfo ? (
-              <HotelCard
-                key={item.id}
-                hotelInfo={item.hotelInfo}
-                time={formatTime ? formatTime(item.time || '') : (item.time || '')}
-                isCheckIn={item.description?.includes('Check-in')}
-                isCheckOut={item.description?.includes('Check-out')}
-                onEdit={() => {
-                  // Extract hotel stay ID from item ID (format: hotelStayId_day_X)
-                  const hotelStayId = item.id.split('_day_')[0];
-                  if (onEditHotel) {
-                    onEditHotel(hotelStayId);
-                  }
-                }}
-                onDelete={() => onRemoveItem(item.id)}
-              />
-            ) : (
-              <DraggableItineraryItem
-                key={item.id}
-                item={item}
-                onRemove={onRemoveItem}
-                onUpdate={onUpdateItem}
-                onEditHotel={onEditHotel}
-                formatTime={formatTime}
-              />
-            )
-          ))
+          sortedItems.map((item) => {
+            // Check if this is a hotel/accommodation item
+            const isHotelItem = item.type === 'accommodation' || 
+                               (item.place?.types && item.place.types.includes('lodging'));
+            
+            return (
+              item.type === 'flight' && item.flightInfo ? (
+                <FlightCard
+                  key={item.id}
+                  flightInfo={item.flightInfo}
+                  time={formatTime ? formatTime(item.time || '') : (item.time || '')}
+                  onEdit={() => handleEditFlight(item)}
+                  onDelete={() => onRemoveItem(item.id)}
+                />
+              ) : isHotelItem ? (
+                <HotelCard
+                  key={item.id}
+                  hotelInfo={{
+                    name: item.title || item.place?.name || 'Hotel',
+                    address: item.description || item.place?.formatted_address || item.place?.address || '',
+                    checkInDate: '', // Will be filled from hotel stay data
+                    checkOutDate: '', // Will be filled from hotel stay data
+                    rating: item.place?.rating,
+                    user_ratings_total: item.place?.user_ratings_total,
+                    notes: item.notes || ''
+                  }}
+                  time={formatTime ? formatTime(item.time || '') : (item.time || '')}
+                  isCheckIn={item.description?.includes('Check-in')}
+                  isCheckOut={item.description?.includes('Check-out')}
+                  onEdit={() => {
+                    // Extract hotel stay ID from item ID (format: hotelStayId_day_X)
+                    const hotelStayId = item.id.split('_day_')[0];
+                    if (onEditHotel) {
+                      onEditHotel(hotelStayId);
+                    }
+                  }}
+                  onDelete={() => onRemoveItem(item.id)}
+                />
+              ) : (
+                <DraggableItineraryItem
+                  key={item.id}
+                  item={item}
+                  onRemove={onRemoveItem}
+                  onUpdate={onUpdateItem}
+                  onEditHotel={onEditHotel}
+                  formatTime={formatTime}
+                />
+              )
+            );
+          })
         )}
       </div>
 
