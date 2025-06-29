@@ -164,11 +164,30 @@ const SharedTripPage: React.FC = () => {
         title: item.title || item.custom_title || item.place?.name,
         day: item.day,
         date: item.date,
-        type: item.type
+        type: item.type,
+        hasFlightInfo: !!item.flightInfo,
+        fullItem: item // Log the complete item for debugging
       }))
     });
 
     const processedItems = tripData.itinerary.map((item: any, index: number) => {
+      // Check if this looks like a flight item based on title
+      const title = item.title || item.custom_title || item.place?.name || '';
+      const isLikelyFlight = title.includes('Airline') || title.includes('Flight') || /[A-Z]{2,3}\d+/.test(title);
+      
+      if (isLikelyFlight) {
+        console.log('✈️ POTENTIAL FLIGHT ITEM FOUND:', {
+          index,
+          title,
+          type: item.type,
+          hasFlightInfo: !!item.flightInfo,
+          flightInfo: item.flightInfo,
+          notes: item.notes,
+          description: item.description,
+          fullItem: JSON.stringify(item, null, 2)
+        });
+      }
+
       let dayNumber = 1; // Default to day 1
 
       // Prioritize explicit day field
@@ -221,7 +240,7 @@ const SharedTripPage: React.FC = () => {
 
   // Transform flight data to match FlightInfo interface
   const transformFlightData = (item: any) => {
-    console.log('🛩️ Raw flight item data:', item);
+    console.log('🛩️ Raw flight item data (DETAILED):', JSON.stringify(item, null, 2));
     
     // If flightInfo already exists and has proper structure, use it
     if (item.flightInfo && item.flightInfo.departure && item.flightInfo.arrival) {
@@ -229,26 +248,80 @@ const SharedTripPage: React.FC = () => {
       return item.flightInfo;
     }
     
-    // If we have basic flight info but need to construct departure/arrival
-    const flightInfo = item.flightInfo || {};
-    
-    // Try to extract airport codes and times from various possible fields
-    const extractAirportInfo = (prefix: string) => {
+    // Check if we have any flight info at all
+    if (!item.flightInfo) {
+      console.log('❌ No flightInfo found, creating minimal structure');
+      // Create a minimal flight info from available data
       return {
-        airport: flightInfo[`${prefix}Airport`] || flightInfo[`${prefix}_airport`] || `${prefix.toUpperCase()} Airport`,
-        airportCode: flightInfo[`${prefix}AirportCode`] || flightInfo[`${prefix}_airport_code`] || flightInfo[`${prefix}Code`] || 'XXX',
-        date: flightInfo[`${prefix}Date`] || flightInfo[`${prefix}_date`] || item.date || '',
-        time: flightInfo[`${prefix}Time`] || flightInfo[`${prefix}_time`] || item.time || item.start_time || '00:00',
-        terminal: flightInfo[`${prefix}Terminal`] || flightInfo[`${prefix}_terminal`],
-        gate: flightInfo[`${prefix}Gate`] || flightInfo[`${prefix}_gate`]
+        airline: item.title || item.custom_title || 'Unknown Airline',
+        flightNumber: '',
+        departure: {
+          airport: 'Unknown Airport',
+          airportCode: 'XXX',
+          date: item.date || '',
+          time: item.time || item.start_time || '00:00'
+        },
+        arrival: {
+          airport: 'Unknown Airport', 
+          airportCode: 'XXX',
+          date: item.date || '',
+          time: item.time || item.start_time || '00:00'
+        }
       };
-    };
+    }
+    
+    const flightInfo = item.flightInfo;
+    console.log('🔍 FlightInfo object:', JSON.stringify(flightInfo, null, 2));
+    
+    // Try to parse flight number and airline from title if not in flightInfo
+    let airline = flightInfo.airline || 'Unknown Airline';
+    let flightNumber = flightInfo.flightNumber || flightInfo.flight_number || '';
+    
+    // If we have a title like "China Airlines CI62", try to parse it
+    const title = item.title || item.custom_title || '';
+    if (title && !flightNumber) {
+      const flightMatch = title.match(/([A-Z]{2,3}\d+)/); // Match flight codes like CI62, AA123
+      const airlineMatch = title.replace(/[A-Z]{2,3}\d+/, '').trim(); // Remove flight code to get airline
+      
+      if (flightMatch) {
+        flightNumber = flightMatch[1];
+      }
+      if (airlineMatch) {
+        airline = airlineMatch;
+      }
+    }
+    
+    // Try to extract airport info from notes or description
+    const notes = item.notes || item.description || '';
+    let departureCode = 'XXX';
+    let arrivalCode = 'XXX';
+    
+    // Look for airport codes in notes like "Flight from TPE to YVR"
+    const airportMatch = notes.match(/from\s+([A-Z]{3})\s+to\s+([A-Z]{3})/i);
+    if (airportMatch) {
+      departureCode = airportMatch[1];
+      arrivalCode = airportMatch[2];
+    }
     
     const transformedFlightInfo = {
-      airline: flightInfo.airline || 'Unknown Airline',
-      flightNumber: flightInfo.flightNumber || flightInfo.flight_number || 'Unknown',
-      departure: extractAirportInfo('departure'),
-      arrival: extractAirportInfo('arrival'),
+      airline: airline,
+      flightNumber: flightNumber,
+      departure: {
+        airport: flightInfo.departureAirport || flightInfo.departure_airport || `${departureCode} Airport`,
+        airportCode: flightInfo.departureAirportCode || flightInfo.departure_airport_code || departureCode,
+        date: flightInfo.departureDate || flightInfo.departure_date || item.date || '',
+        time: flightInfo.departureTime || flightInfo.departure_time || item.time || item.start_time || '00:00',
+        terminal: flightInfo.departureTerminal || flightInfo.departure_terminal,
+        gate: flightInfo.departureGate || flightInfo.departure_gate
+      },
+      arrival: {
+        airport: flightInfo.arrivalAirport || flightInfo.arrival_airport || `${arrivalCode} Airport`,
+        airportCode: flightInfo.arrivalAirportCode || flightInfo.arrival_airport_code || arrivalCode,
+        date: flightInfo.arrivalDate || flightInfo.arrival_date || item.date || '',
+        time: flightInfo.arrivalTime || flightInfo.arrival_time || item.end_time || '00:00',
+        terminal: flightInfo.arrivalTerminal || flightInfo.arrival_terminal,
+        gate: flightInfo.arrivalGate || flightInfo.arrival_gate
+      },
       duration: flightInfo.duration || flightInfo.flight_duration,
       aircraft: flightInfo.aircraft || flightInfo.aircraft_type,
       seatNumber: flightInfo.seatNumber || flightInfo.seat_number || flightInfo.seat,
@@ -256,8 +329,58 @@ const SharedTripPage: React.FC = () => {
       status: flightInfo.status || 'scheduled'
     };
     
-    console.log('🔄 Transformed flight data:', transformedFlightInfo);
+    console.log('🔄 Transformed flight data (DETAILED):', JSON.stringify(transformedFlightInfo, null, 2));
     return transformedFlightInfo;
+  };
+
+  // Helper function to determine hotel check-in/check-out status
+  const getHotelStatus = (hotelItem: any, dayItems: any[], currentIndex: number) => {
+    const hotelName = hotelItem.hotelInfo?.name || hotelItem.title || hotelItem.custom_title;
+    
+    // Find all occurrences of this hotel in the itinerary
+    const allHotelOccurrences = dayItems.filter(item => {
+      const itemHotelName = item.hotelInfo?.name || item.title || item.custom_title;
+      return itemHotelName === hotelName && (item.type === 'accommodation' || item.hotelInfo);
+    });
+    
+    // Sort by day and time to determine sequence
+    const sortedOccurrences = allHotelOccurrences.sort((a, b) => {
+      if (a.calculatedDay !== b.calculatedDay) {
+        return a.calculatedDay - b.calculatedDay;
+      }
+      const timeA = a.time || a.start_time || '00:00';
+      const timeB = b.time || b.start_time || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+    
+    const currentItemIndex = sortedOccurrences.findIndex(item => 
+      item === hotelItem || (
+        item.calculatedDay === hotelItem.calculatedDay && 
+        (item.time || item.start_time) === (hotelItem.time || hotelItem.start_time)
+      )
+    );
+    
+    const isFirstOccurrence = currentItemIndex === 0;
+    const isLastOccurrence = currentItemIndex === sortedOccurrences.length - 1;
+    
+    console.log('🏨 Hotel status analysis:', {
+      hotelName,
+      currentDay: hotelItem.calculatedDay,
+      totalOccurrences: sortedOccurrences.length,
+      currentIndex: currentItemIndex,
+      isFirstOccurrence,
+      isLastOccurrence,
+      allOccurrences: sortedOccurrences.map(item => ({
+        day: item.calculatedDay,
+        time: item.time || item.start_time
+      }))
+    });
+    
+    return {
+      isCheckIn: isFirstOccurrence,
+      isCheckOut: isLastOccurrence && sortedOccurrences.length > 1,
+      isStay: !isFirstOccurrence && !isLastOccurrence
+    };
   };
 
   // Group itinerary by day for better display
@@ -382,9 +505,24 @@ const SharedTripPage: React.FC = () => {
                       {/* Day Items */}
                       <div className="space-y-4 ml-11">
                         {dayItems.map((item: any, index: number) => {
+                          // Enhanced flight detection - check by title pattern as well as type
+                          const title = item.title || item.custom_title || item.place?.name || '';
+                          const isLikelyFlight = title.includes('Airline') || title.includes('Flight') || /[A-Z]{2,3}\d+/.test(title);
+                          const hasFlightType = item.type === 'flight';
+                          const hasFlightInfo = !!item.flightInfo;
+                          
+                          console.log('🔍 Item analysis:', {
+                            title,
+                            type: item.type,
+                            isLikelyFlight,
+                            hasFlightType,
+                            hasFlightInfo,
+                            shouldTreatAsFlight: (hasFlightType && hasFlightInfo) || isLikelyFlight
+                          });
+
                           // Check if this is a flight item - use original FlightCard component with data transformation
-                          if (item.type === 'flight' && item.flightInfo) {
-                            console.log('🛩️ Flight item data:', {
+                          if ((hasFlightType && hasFlightInfo) || isLikelyFlight) {
+                            console.log('🛩️ Processing as flight item:', {
                               type: item.type,
                               flightInfo: item.flightInfo,
                               time: item.time,
@@ -407,12 +545,16 @@ const SharedTripPage: React.FC = () => {
 
                           // Check if this is a hotel item
                           if (item.type === 'accommodation' && item.hotelInfo) {
+                            const allDayItems = Object.values(getGroupedItinerary()).flat();
+                            const hotelStatus = getHotelStatus(item, allDayItems, index);
+                            
                             return (
                               <HotelCard
                                 key={`${day}-${index}`}
                                 hotelInfo={item.hotelInfo}
                                 time={item.time || item.start_time || ''}
-                                isCheckIn={true}
+                                isCheckIn={hotelStatus.isCheckIn}
+                                isCheckOut={hotelStatus.isCheckOut}
                                 className="mb-4"
                               />
                             );
