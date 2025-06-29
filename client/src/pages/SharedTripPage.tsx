@@ -138,6 +138,46 @@ const SharedTripPage: React.FC = () => {
     }
   };
 
+  // Consistent time formatting function
+  const formatTime = (timeString: string) => {
+    if (!timeString) return '';
+    
+    try {
+      // Handle different time formats
+      if (timeString.includes(':')) {
+        // Already in HH:MM format
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours, 10);
+        const min = minutes.padStart(2, '0');
+        
+        // Convert to 12-hour format with AM/PM
+        if (hour === 0) {
+          return `12:${min} AM`;
+        } else if (hour < 12) {
+          return `${hour}:${min} AM`;
+        } else if (hour === 12) {
+          return `12:${min} PM`;
+        } else {
+          return `${hour - 12}:${min} PM`;
+        }
+      } else {
+        // If it's just a number, treat as hour
+        const hour = parseInt(timeString, 10);
+        if (hour === 0) return '12:00 AM';
+        if (hour < 12) return `${hour}:00 AM`;
+        if (hour === 12) return '12:00 PM';
+        return `${hour - 12}:00 PM`;
+      }
+    } catch {
+      return timeString; // Return original if parsing fails
+    }
+  };
+
+  // Get time from item with fallback
+  const getItemTime = (item: any) => {
+    return item.time || item.start_time || '';
+  };
+
   const getDuration = () => {
     try {
       const start = new Date(tripData.start_date);
@@ -536,7 +576,7 @@ const SharedTripPage: React.FC = () => {
                               <FlightCard
                                 key={`${day}-${index}`}
                                 flightInfo={transformedFlightInfo}
-                                time={item.time || item.start_time || ''}
+                                time={formatTime(getItemTime(item))}
                                 // Don't pass onEdit or onDelete for read-only view
                                 className="mb-4"
                               />
@@ -552,7 +592,7 @@ const SharedTripPage: React.FC = () => {
                               <HotelCard
                                 key={`${day}-${index}`}
                                 hotelInfo={item.hotelInfo}
-                                time={item.time || item.start_time || ''}
+                                time={formatTime(getItemTime(item))}
                                 isCheckIn={hotelStatus.isCheckIn}
                                 isCheckOut={hotelStatus.isCheckOut}
                                 className="mb-4"
@@ -570,10 +610,10 @@ const SharedTripPage: React.FC = () => {
                                     <h4 className="text-lg font-semibold text-gray-900 text-left">
                                       {item.title || item.custom_title || item.place?.name}
                                     </h4>
-                                    {item.time && (
+                                    {getItemTime(item) && (
                                       <div className="flex items-center text-sm text-gray-500 flex-shrink-0 ml-4">
                                         <ClockIcon className="h-4 w-4 mr-1" />
-                                        <span className="whitespace-nowrap">{item.time || item.start_time}</span>
+                                        <span className="whitespace-nowrap">{formatTime(getItemTime(item))}</span>
                                       </div>
                                     )}
                                   </div>
