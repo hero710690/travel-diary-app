@@ -16,7 +16,13 @@ import {
   PencilIcon,
   HeartIcon,
   StarIcon,
-  PaperAirplaneIcon
+  PaperAirplaneIcon,
+  BuildingOfficeIcon,
+  CameraIcon,
+  ShoppingBagIcon,
+  AcademicCapIcon,
+  HomeIcon,
+  BeakerIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { format } from 'date-fns';
@@ -176,6 +182,46 @@ const SharedTripPage: React.FC = () => {
   // Get time from item with fallback
   const getItemTime = (item: any) => {
     return item.time || item.start_time || '';
+  };
+
+  // Get landmark icon based on place types
+  const getLandmarkIcon = (item: any) => {
+    const placeTypes = item.place?.types || [];
+    const title = item.title || item.custom_title || item.place?.name || '';
+    
+    // Flight items
+    if (item.type === 'flight' || title.includes('Airline') || title.includes('Flight') || /[A-Z]{2,3}\d+/.test(title)) {
+      return <PaperAirplaneIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
+    }
+    
+    // Hotel/Accommodation items
+    if (item.type === 'accommodation' || placeTypes.includes('lodging')) {
+      return <HomeIcon className="h-5 w-5 text-green-600 flex-shrink-0" />;
+    }
+    
+    // Specific place type icons
+    if (placeTypes.includes('tourist_attraction') || placeTypes.includes('museum')) {
+      return <CameraIcon className="h-5 w-5 text-purple-600 flex-shrink-0" />;
+    }
+    
+    if (placeTypes.includes('shopping_mall') || placeTypes.includes('store')) {
+      return <ShoppingBagIcon className="h-5 w-5 text-orange-600 flex-shrink-0" />;
+    }
+    
+    if (placeTypes.includes('restaurant') || placeTypes.includes('food')) {
+      return <BeakerIcon className="h-5 w-5 text-red-600 flex-shrink-0" />;
+    }
+    
+    if (placeTypes.includes('university') || placeTypes.includes('school')) {
+      return <AcademicCapIcon className="h-5 w-5 text-indigo-600 flex-shrink-0" />;
+    }
+    
+    if (placeTypes.includes('hospital') || placeTypes.includes('pharmacy')) {
+      return <BuildingOfficeIcon className="h-5 w-5 text-teal-600 flex-shrink-0" />;
+    }
+    
+    // Default landmark icon for other places
+    return <MapPinIcon className="h-5 w-5 text-gray-600 flex-shrink-0" />;
   };
 
   const getDuration = () => {
@@ -607,9 +653,12 @@ const SharedTripPage: React.FC = () => {
                                 <div className="flex-1">
                                   {/* Activity Header with consistent time positioning */}
                                   <div className="flex items-start justify-between mb-3">
-                                    <h4 className="text-lg font-semibold text-gray-900 text-left">
-                                      {item.title || item.custom_title || item.place?.name}
-                                    </h4>
+                                    <div className="flex items-center space-x-2">
+                                      {getLandmarkIcon(item)}
+                                      <h4 className="text-lg font-semibold text-gray-900 text-left">
+                                        {item.title || item.custom_title || item.place?.name}
+                                      </h4>
+                                    </div>
                                     {getItemTime(item) && (
                                       <div className="flex items-center text-sm text-gray-500 flex-shrink-0 ml-4">
                                         <ClockIcon className="h-4 w-4 mr-1" />
