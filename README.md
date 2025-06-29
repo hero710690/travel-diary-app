@@ -61,17 +61,17 @@ A comprehensive full-stack travel planning and diary application built with mode
 ## 🚀 Deployment Workflow
 
 ### **Latest Deployment** ✅ **2025-06-29**
-- **Version**: Badge Layout Enhancement v1.4
-- **Frontend Bundle**: main.e68419e9.js (166.2 kB gzipped)
-- **New Features**: Hotel status badge after address, removed flight badge
-- **Status**: ✅ **LIVE** - Enhanced badge positioning implemented
+- **Version**: Hotel Address Cleanup v1.5
+- **Frontend Bundle**: main.7814f360.js (166.21 kB gzipped)
+- **New Features**: Cleaned hotel addresses by removing status text suffixes
+- **Status**: ✅ **LIVE** - Clean hotel address display implemented
 - **CloudFront**: Cache invalidated and updated
 
 ### **Recent Updates**
-- ✅ **Hotel Status Badge After Address** - Status badge positioned after hotel address
-- ✅ **Flight Badge Removed** - Cleaner flight cards without status badges
-- ✅ **Hotel Information Restored** - Hotel name and address display in trip detail
-- ✅ **Code Optimization** - Removed unused flight status functions
+- ✅ **Hotel Address Cleanup** - Removed status text from hotel addresses
+- ✅ **Status Badge Positioning** - Status badges appear only after hotel names
+- ✅ **Flight Badge Removal** - Cleaner flight cards without status badges
+- ✅ **No Duplication** - Hotel names appear only once with proper status badges
 
 ### **Production Environment**
 - **Frontend URL**: https://d16hcqzmptnoh8.cloudfront.net
