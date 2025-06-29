@@ -28,6 +28,7 @@ import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ShareModal from '../components/ShareModal';
 import InviteCollaboratorModal from '../components/InviteCollaboratorModal';
+import HotelCard from '../components/HotelCard';
 import toast from 'react-hot-toast';
 import { format, addDays } from 'date-fns';
 
@@ -1085,7 +1086,7 @@ const TripDetailPage: React.FC = () => {
                                         </div>
                                       )}
 
-                                      {/* Hotel Details - Only for accommodation items */}
+                                      {/* Hotel Card - Only for accommodation items */}
                                       {(() => {
                                         // Check if this is a hotel/accommodation item
                                         const isHotelItem = (item.type as any) === 'accommodation' || 
@@ -1093,7 +1094,7 @@ const TripDetailPage: React.FC = () => {
                                         
                                         if (!isHotelItem) return null;
                                         
-                                        // Create hotel info from available data
+                                        // Create hotel info from available data (same as trip planning page)
                                         const hotelInfo = (item as any).hotelInfo || {
                                           name: item.title || item.place?.name || 'Hotel',
                                           address: item.description || item.place?.formatted_address || '',
@@ -1101,80 +1102,24 @@ const TripDetailPage: React.FC = () => {
                                           checkOutDate: '',
                                           roomType: '',
                                           confirmationNumber: '',
+                                          rating: item.place?.rating,
+                                          user_ratings_total: item.place?.user_ratings_total,
                                           notes: item.notes || ''
                                         };
                                         
+                                        // Determine check-in/check-out status based on description
+                                        const isCheckIn = item.description?.includes('Check-in') || false;
+                                        const isCheckOut = item.description?.includes('Check-out') || false;
+                                        
                                         return (
-                                          <div className="mt-2 p-2 bg-green-50 rounded border text-left">
-                                            <div className="space-y-2">
-                                              {/* Hotel Name */}
-                                              <div className="font-medium text-gray-900 text-sm">
-                                                🏨 {hotelInfo.name}
-                                              </div>
-                                              
-                                              {/* Address */}
-                                              {hotelInfo.address && (
-                                                <div className="text-xs text-gray-600 text-left">
-                                                  📍 {hotelInfo.address}
-                                                </div>
-                                              )}
-                                              
-                                              {/* Check-in/Check-out info */}
-                                              {(hotelInfo.checkInDate || hotelInfo.checkOutDate) ? (
-                                                <div className="flex items-center justify-between text-sm">
-                                                  <div className="text-left">
-                                                    <div className="font-medium text-gray-900">Check-in</div>
-                                                    <div className="text-xs text-gray-600">
-                                                      {hotelInfo.checkInDate || 'Not specified'}
-                                                    </div>
-                                                  </div>
-                                                  <div className="flex items-center mx-2">
-                                                    <div className="h-px bg-gray-300 w-8"></div>
-                                                    <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mx-2" />
-                                                    <div className="h-px bg-gray-300 w-8"></div>
-                                                  </div>
-                                                  <div className="text-left">
-                                                    <div className="font-medium text-gray-900">Check-out</div>
-                                                    <div className="text-xs text-gray-600">
-                                                      {hotelInfo.checkOutDate || 'Not specified'}
-                                                    </div>
-                                                  </div>
-                                                </div>
-                                              ) : (
-                                                <div className="text-xs text-gray-500 text-left italic">
-                                                  Check-in/Check-out dates not specified
-                                                </div>
-                                              )}
-                                            
-                                              {/* Room Type */}
-                                              {hotelInfo.roomType && (
-                                                <div className="text-xs text-gray-600 text-left">
-                                                  <span className="font-medium">Room:</span> {hotelInfo.roomType}
-                                                </div>
-                                              )}
-                                            
-                                              {/* Confirmation Number */}
-                                              {hotelInfo.confirmationNumber && (
-                                                <div className="text-xs text-gray-600 text-left">
-                                                  <span className="font-medium">Confirmation:</span> {hotelInfo.confirmationNumber}
-                                                </div>
-                                              )}
-                                            
-                                              {/* Hotel Notes */}
-                                              {hotelInfo.notes && (
-                                                <div className="text-xs text-gray-600 text-left italic">
-                                                  <span className="font-medium not-italic">Note:</span> {hotelInfo.notes}
-                                                </div>
-                                              )}
-                                              
-                                              {/* Rating if available */}
-                                              {item.place?.rating && (
-                                                <div className="text-xs text-gray-600 text-left">
-                                                  <span className="font-medium">Rating:</span> ⭐ {item.place.rating}
-                                                  {item.place.user_ratings_total && ` (${item.place.user_ratings_total} reviews)`}
-                                                </div>
-                                              )}
-                                            </div>
+                                          <div className="mt-2">
+                                            <HotelCard
+                                              hotelInfo={hotelInfo}
+                                              time={formatTime(getItemTime(item))}
+                                              isCheckIn={isCheckIn}
+                                              isCheckOut={isCheckOut}
+                                              className="mb-2"
+                                            />
                                           </div>
                                         );
                                       })()}
