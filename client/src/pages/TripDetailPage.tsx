@@ -1127,7 +1127,6 @@ const TripDetailPage: React.FC = () => {
                                             {/* Address with status badge */}
                                             {hotelAddress && (
                                               <div className="flex items-start space-x-2">
-                                                <MapPinIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
                                                 <span className="text-sm text-gray-600 text-left flex-1">{hotelAddress}</span>
                                                 {getStatusBadge()}
                                               </div>
