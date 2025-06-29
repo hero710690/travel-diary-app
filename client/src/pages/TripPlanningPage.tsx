@@ -61,6 +61,8 @@ const HotelFormComponent: React.FC<{
     address: initialData?.address || '',
     checkInDate: initialData?.checkInDate || tripStartDate || '',
     checkOutDate: initialData?.checkOutDate || tripEndDate || '',
+    checkInTime: initialData?.checkInTime || '15:00', // Default 3:00 PM
+    checkOutTime: initialData?.checkOutTime || '11:00', // Default 11:00 AM
     nights: initialData?.nights || 1,
     roomType: initialData?.roomType || '',
     confirmationNumber: initialData?.confirmationNumber || '',
@@ -180,6 +182,35 @@ const HotelFormComponent: React.FC<{
             onChange={(e) => setFormData({ ...formData, checkOutDate: e.target.value })}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+            Check-in Time
+          </label>
+          <input
+            type="time"
+            value={formData.checkInTime}
+            onChange={(e) => setFormData({ ...formData, checkInTime: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="15:00"
+          />
+          <p className="text-xs text-gray-500 mt-1">Default: 3:00 PM if not specified</p>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 text-left mb-1">
+            Check-out Time
+          </label>
+          <input
+            type="time"
+            value={formData.checkOutTime}
+            onChange={(e) => setFormData({ ...formData, checkOutTime: e.target.value })}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="11:00"
+          />
+          <p className="text-xs text-gray-500 mt-1">Default: 11:00 AM if not specified</p>
         </div>
       </div>
 
@@ -1158,7 +1189,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         id: `${newHotelStay.id}_day_${day}`,
         day,
         date: dayDateStr, // Add the actual date
-        time: isFirstDay ? '15:00' : isLastDay ? '11:00' : '00:00', // Check-in at 3PM, check-out at 11AM, midnight for continuing stays
+        time: isFirstDay ? (hotelInfo.checkInTime || '15:00') : isLastDay ? (hotelInfo.checkOutTime || '11:00') : '00:00', // Use custom times or defaults
         title: hotelInfo.name,
         description: `${hotelInfo.address} - ${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Hotel Stay'}`,
         type: 'accommodation',
@@ -1263,7 +1294,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         id: `${updatedHotelStay.id}_day_${day}`,
         day,
         date: dayDateStr,
-        time: isFirstDay ? '15:00' : isLastDay ? '11:00' : '00:00',
+        time: isFirstDay ? (updatedHotelInfo.checkInTime || '15:00') : isLastDay ? (updatedHotelInfo.checkOutTime || '11:00') : '00:00', // Use custom times or defaults
         title: updatedHotelInfo.name,
         description: `${updatedHotelInfo.address} - ${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Hotel Stay'}`,
         type: 'accommodation',
