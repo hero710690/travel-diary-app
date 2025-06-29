@@ -1088,6 +1088,7 @@ const TripDetailPage: React.FC = () => {
                                         if (!isHotelItem) return null;
                                         
                                         // Create hotel info from available data
+                                        const hotelName = item.title || item.place?.name || 'Hotel';
                                         const hotelAddress = item.description || item.place?.formatted_address || '';
                                         
                                         // Determine check-in/check-out status based on description
@@ -1119,13 +1120,15 @@ const TripDetailPage: React.FC = () => {
                                         
                                         return (
                                           <div className="mt-2 space-y-1">
+                                            {/* Hotel name with status badge */}
+                                            <div className="flex items-center">
+                                              <span className="text-sm font-medium text-gray-900">{hotelName}</span>
+                                              {getStatusBadge()}
+                                            </div>
                                             
-                                            {/* Address with status badge */}
+                                            {/* Address */}
                                             {hotelAddress && (
-                                              <div className="flex items-center">
-                                                <span className="text-sm text-gray-600 text-left">{hotelAddress}</span>
-                                                {getStatusBadge()}
-                                              </div>
+                                              <div className="text-sm text-gray-600 text-left">{hotelAddress}</div>
                                             )}
                                           </div>
                                         );
