@@ -1086,53 +1086,98 @@ const TripDetailPage: React.FC = () => {
                                       )}
 
                                       {/* Hotel Details - Only for accommodation items */}
-                                      {(item.type as any) === 'accommodation' && (item as any).hotelInfo && (
-                                        <div className="mt-2 p-2 bg-green-50 rounded border text-left">
-                                          <div className="space-y-2">
-                                            {/* Check-in/Check-out info */}
-                                            <div className="flex items-center justify-between text-sm">
-                                              <div className="text-left">
-                                                <div className="font-medium text-gray-900">Check-in</div>
-                                                <div className="text-xs text-gray-600">
-                                                  {(item as any).hotelInfo.checkInDate}
+                                      {(() => {
+                                        // Check if this is a hotel/accommodation item
+                                        const isHotelItem = (item.type as any) === 'accommodation' || 
+                                                           (item.place?.types && item.place.types.includes('lodging'));
+                                        
+                                        if (!isHotelItem) return null;
+                                        
+                                        // Create hotel info from available data
+                                        const hotelInfo = (item as any).hotelInfo || {
+                                          name: item.title || item.place?.name || 'Hotel',
+                                          address: item.description || item.place?.formatted_address || '',
+                                          checkInDate: '',
+                                          checkOutDate: '',
+                                          roomType: '',
+                                          confirmationNumber: '',
+                                          notes: item.notes || ''
+                                        };
+                                        
+                                        return (
+                                          <div className="mt-2 p-2 bg-green-50 rounded border text-left">
+                                            <div className="space-y-2">
+                                              {/* Hotel Name */}
+                                              <div className="font-medium text-gray-900 text-sm">
+                                                🏨 {hotelInfo.name}
+                                              </div>
+                                              
+                                              {/* Address */}
+                                              {hotelInfo.address && (
+                                                <div className="text-xs text-gray-600 text-left">
+                                                  📍 {hotelInfo.address}
                                                 </div>
-                                              </div>
-                                              <div className="flex items-center mx-2">
-                                                <div className="h-px bg-gray-300 w-8"></div>
-                                                <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mx-2" />
-                                                <div className="h-px bg-gray-300 w-8"></div>
-                                              </div>
-                                              <div className="text-left">
-                                                <div className="font-medium text-gray-900">Check-out</div>
-                                                <div className="text-xs text-gray-600">
-                                                  {(item as any).hotelInfo.checkOutDate}
+                                              )}
+                                              
+                                              {/* Check-in/Check-out info */}
+                                              {(hotelInfo.checkInDate || hotelInfo.checkOutDate) ? (
+                                                <div className="flex items-center justify-between text-sm">
+                                                  <div className="text-left">
+                                                    <div className="font-medium text-gray-900">Check-in</div>
+                                                    <div className="text-xs text-gray-600">
+                                                      {hotelInfo.checkInDate || 'Not specified'}
+                                                    </div>
+                                                  </div>
+                                                  <div className="flex items-center mx-2">
+                                                    <div className="h-px bg-gray-300 w-8"></div>
+                                                    <BuildingOfficeIcon className="h-4 w-4 text-gray-400 mx-2" />
+                                                    <div className="h-px bg-gray-300 w-8"></div>
+                                                  </div>
+                                                  <div className="text-left">
+                                                    <div className="font-medium text-gray-900">Check-out</div>
+                                                    <div className="text-xs text-gray-600">
+                                                      {hotelInfo.checkOutDate || 'Not specified'}
+                                                    </div>
+                                                  </div>
                                                 </div>
-                                              </div>
+                                              ) : (
+                                                <div className="text-xs text-gray-500 text-left italic">
+                                                  Check-in/Check-out dates not specified
+                                                </div>
+                                              )}
+                                            
+                                              {/* Room Type */}
+                                              {hotelInfo.roomType && (
+                                                <div className="text-xs text-gray-600 text-left">
+                                                  <span className="font-medium">Room:</span> {hotelInfo.roomType}
+                                                </div>
+                                              )}
+                                            
+                                              {/* Confirmation Number */}
+                                              {hotelInfo.confirmationNumber && (
+                                                <div className="text-xs text-gray-600 text-left">
+                                                  <span className="font-medium">Confirmation:</span> {hotelInfo.confirmationNumber}
+                                                </div>
+                                              )}
+                                            
+                                              {/* Hotel Notes */}
+                                              {hotelInfo.notes && (
+                                                <div className="text-xs text-gray-600 text-left italic">
+                                                  <span className="font-medium not-italic">Note:</span> {hotelInfo.notes}
+                                                </div>
+                                              )}
+                                              
+                                              {/* Rating if available */}
+                                              {item.place?.rating && (
+                                                <div className="text-xs text-gray-600 text-left">
+                                                  <span className="font-medium">Rating:</span> ⭐ {item.place.rating}
+                                                  {item.place.user_ratings_total && ` (${item.place.user_ratings_total} reviews)`}
+                                                </div>
+                                              )}
                                             </div>
-                                            
-                                            {/* Room Type */}
-                                            {(item as any).hotelInfo.roomType && (
-                                              <div className="text-xs text-gray-600 text-left">
-                                                <span className="font-medium">Room:</span> {(item as any).hotelInfo.roomType}
-                                              </div>
-                                            )}
-                                            
-                                            {/* Confirmation Number */}
-                                            {(item as any).hotelInfo.confirmationNumber && (
-                                              <div className="text-xs text-gray-600 text-left">
-                                                <span className="font-medium">Confirmation:</span> {(item as any).hotelInfo.confirmationNumber}
-                                              </div>
-                                            )}
-                                            
-                                            {/* Hotel Notes */}
-                                            {(item as any).hotelInfo.notes && (
-                                              <div className="text-xs text-gray-600 text-left italic">
-                                                <span className="font-medium not-italic">Note:</span> {(item as any).hotelInfo.notes}
-                                              </div>
-                                            )}
                                           </div>
-                                        </div>
-                                      )}
+                                        );
+                                      })()}
                                       
                                       {/* Google Rating and Place Types - Only for non-flight items */}
                                       {item.place && item.type !== 'flight' && (
