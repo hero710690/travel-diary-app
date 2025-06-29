@@ -15,7 +15,8 @@ import {
   ShareIcon,
   PencilIcon,
   HeartIcon,
-  StarIcon
+  StarIcon,
+  PaperAirplaneIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { format } from 'date-fns';
@@ -340,15 +341,101 @@ const SharedTripPage: React.FC = () => {
                       {/* Day Items */}
                       <div className="space-y-4 ml-11">
                         {dayItems.map((item: any, index: number) => {
-                          // Check if this is a flight item
+                          // Check if this is a flight item - use custom simplified display
                           if (item.type === 'flight' && item.flightInfo) {
+                            const flight = item.flightInfo;
                             return (
-                              <FlightCard
-                                key={`${day}-${index}`}
-                                flightInfo={item.flightInfo}
-                                time={item.time || item.start_time || ''}
-                                className="mb-4"
-                              />
+                              <div key={`${day}-${index}`} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow bg-blue-50">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    {/* Flight Header */}
+                                    <div className="flex items-center mb-3">
+                                      <div className="flex items-center text-blue-600 mr-4">
+                                        <PaperAirplaneIcon className="h-5 w-5 mr-2" />
+                                        <span className="font-semibold text-lg">
+                                          {flight.airline} {flight.flightNumber}
+                                        </span>
+                                      </div>
+                                      {item.time && (
+                                        <div className="flex items-center text-sm text-gray-500">
+                                          <ClockIcon className="h-4 w-4 mr-1" />
+                                          <span>{item.time || item.start_time}</span>
+                                        </div>
+                                      )}
+                                    </div>
+
+                                    {/* Flight Route - Simplified */}
+                                    <div className="flex items-center justify-between mb-4 bg-white rounded-lg p-4">
+                                      {/* Departure */}
+                                      <div className="text-center flex-1">
+                                        <div className="text-xl font-bold text-gray-900 mb-1">
+                                          {flight.departure.airportCode}
+                                        </div>
+                                        <div className="text-sm text-gray-600 mb-2">
+                                          {flight.departure.airport}
+                                        </div>
+                                        <div className="text-sm font-medium text-gray-700">
+                                          Depart: {flight.departure.time}
+                                        </div>
+                                        {flight.departure.date && (
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {format(new Date(flight.departure.date), 'MMM dd')}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Arrow */}
+                                      <div className="flex-shrink-0 mx-6">
+                                        <div className="flex items-center">
+                                          <div className="h-px bg-blue-300 w-8"></div>
+                                          <PaperAirplaneIcon className="h-5 w-5 text-blue-500 mx-2 transform rotate-90" />
+                                          <div className="h-px bg-blue-300 w-8"></div>
+                                        </div>
+                                        {flight.duration && (
+                                          <div className="text-xs text-gray-500 text-center mt-2">
+                                            {flight.duration}
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Arrival */}
+                                      <div className="text-center flex-1">
+                                        <div className="text-xl font-bold text-gray-900 mb-1">
+                                          {flight.arrival.airportCode}
+                                        </div>
+                                        <div className="text-sm text-gray-600 mb-2">
+                                          {flight.arrival.airport}
+                                        </div>
+                                        <div className="text-sm font-medium text-gray-700">
+                                          Arrive: {flight.arrival.time}
+                                        </div>
+                                        {flight.arrival.date && (
+                                          <div className="text-xs text-gray-500 mt-1">
+                                            {format(new Date(flight.arrival.date), 'MMM dd')}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+
+                                    {/* Additional Flight Info */}
+                                    {(flight.seatNumber || flight.aircraft || flight.status) && (
+                                      <div className="flex flex-wrap gap-4 text-sm text-gray-600">
+                                        {flight.status && (
+                                          <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                            {flight.status.charAt(0).toUpperCase() + flight.status.slice(1)}
+                                          </span>
+                                        )}
+                                        {flight.seatNumber && (
+                                          <span>Seat: {flight.seatNumber}</span>
+                                        )}
+                                        {flight.aircraft && (
+                                          <span>Aircraft: {flight.aircraft}</span>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
                             );
                           }
 
