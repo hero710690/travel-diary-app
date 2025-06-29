@@ -1094,47 +1094,11 @@ const TripDetailPage: React.FC = () => {
                                         
                                         // Create hotel info from available data
                                         const hotelName = item.title || item.place?.name || 'Hotel';
-                                        const hotelAddress = item.description || item.place?.formatted_address || '';
-                                        
-                                        // Determine check-in/check-out status based on description
-                                        const isCheckIn = item.description?.includes('Check-in') || false;
-                                        const isCheckOut = item.description?.includes('Check-out') || false;
-                                        
-                                        // Get status badge
-                                        const getStatusBadge = () => {
-                                          if (isCheckIn) {
-                                            return (
-                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                                                Check-in
-                                              </span>
-                                            );
-                                          } else if (isCheckOut) {
-                                            return (
-                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
-                                                Check-out
-                                              </span>
-                                            );
-                                          } else {
-                                            return (
-                                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                                                Stay
-                                              </span>
-                                            );
-                                          }
-                                        };
                                         
                                         return (
-                                          <div className="mt-2 space-y-1">
-                                            {/* Hotel name with status badge */}
-                                            <div className="flex items-center space-x-2">
-                                              <span className="text-sm font-medium text-gray-900">{hotelName}</span>
-                                              {getStatusBadge()}
-                                            </div>
-                                            
-                                            {/* Address */}
-                                            {hotelAddress && (
-                                              <div className="text-sm text-gray-600 text-left">{hotelAddress}</div>
-                                            )}
+                                          <div className="mt-2">
+                                            {/* Hotel name only */}
+                                            <div className="text-sm font-medium text-gray-900">{hotelName}</div>
                                           </div>
                                         );
                                       })()}
