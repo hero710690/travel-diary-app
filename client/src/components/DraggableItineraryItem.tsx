@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDrag } from 'react-dnd';
-import { ClockIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, HeartIcon, StarIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, HeartIcon, StarIcon, MapPinIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import { ItineraryItem } from '../types';
 
@@ -214,7 +214,10 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
             <div className="min-w-0 flex-1">
               {/* Header with title on left and time/edit on right */}
               <div className="flex items-start justify-between mb-2">
-                <div className="flex-1 min-w-0">
+                <div className="flex items-center space-x-2 flex-1 min-w-0">
+                  {item.type !== 'accommodation' && item.type !== 'flight' && (
+                    <MapPinIcon className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                  )}
                   <h4 className="text-sm font-medium text-gray-900 break-words text-left">
                     {item.title}
                   </h4>

@@ -17,12 +17,7 @@ import {
   HeartIcon,
   StarIcon,
   PaperAirplaneIcon,
-  BuildingOfficeIcon,
-  CameraIcon,
-  ShoppingBagIcon,
-  AcademicCapIcon,
-  HomeIcon,
-  BeakerIcon
+  HomeIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { format } from 'date-fns';
@@ -196,32 +191,11 @@ const SharedTripPage: React.FC = () => {
     
     // Hotel/Accommodation items
     if (item.type === 'accommodation' || placeTypes.includes('lodging')) {
-      return <HomeIcon className="h-5 w-5 text-green-600 flex-shrink-0" />;
+      return <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
     }
     
-    // Specific place type icons
-    if (placeTypes.includes('tourist_attraction') || placeTypes.includes('museum')) {
-      return <CameraIcon className="h-5 w-5 text-purple-600 flex-shrink-0" />;
-    }
-    
-    if (placeTypes.includes('shopping_mall') || placeTypes.includes('store')) {
-      return <ShoppingBagIcon className="h-5 w-5 text-orange-600 flex-shrink-0" />;
-    }
-    
-    if (placeTypes.includes('restaurant') || placeTypes.includes('food')) {
-      return <BeakerIcon className="h-5 w-5 text-red-600 flex-shrink-0" />;
-    }
-    
-    if (placeTypes.includes('university') || placeTypes.includes('school')) {
-      return <AcademicCapIcon className="h-5 w-5 text-indigo-600 flex-shrink-0" />;
-    }
-    
-    if (placeTypes.includes('hospital') || placeTypes.includes('pharmacy')) {
-      return <BuildingOfficeIcon className="h-5 w-5 text-teal-600 flex-shrink-0" />;
-    }
-    
-    // Default landmark icon for other places
-    return <MapPinIcon className="h-5 w-5 text-gray-600 flex-shrink-0" />;
+    // All other activities use MapPinIcon
+    return <MapPinIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
   };
 
   const getDuration = () => {
