@@ -50,13 +50,19 @@ const ShareModal: React.FC<ShareModalProps> = ({ isOpen, onClose, tripId, tripTi
 
   // Create share link mutation
   const createShareLinkMutation = useMutation(
-    (settings: ShareSettings) => sharingService.createShareLink(tripId, settings),
+    (settings: ShareSettings) => {
+      console.log('🔗 Creating share link with settings:', settings);
+      return sharingService.createShareLink(tripId, settings);
+    },
     {
       onSuccess: (data) => {
+        console.log('✅ Share link created successfully:', data);
         queryClient.setQueryData(['shareLink', tripId], data);
         toast.success('Share link created successfully!');
       },
       onError: (error: any) => {
+        console.error('❌ Share link creation failed:', error);
+        console.error('Error response:', error.response);
         toast.error(error.message || 'Failed to create share link');
       }
     }

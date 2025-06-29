@@ -4,6 +4,8 @@ import { useQuery } from 'react-query';
 import { collaborationService } from '../services/collaboration';
 import { sharingService } from '../services/sharing';
 import LoadingSpinner from '../components/LoadingSpinner';
+import FlightCard from '../components/FlightCard';
+import HotelCard from '../components/HotelCard';
 import { 
   MapPinIcon, 
   CalendarIcon, 
@@ -11,8 +13,11 @@ import {
   LockClosedIcon,
   EyeIcon,
   ShareIcon,
-  PencilIcon
+  PencilIcon,
+  HeartIcon,
+  StarIcon
 } from '@heroicons/react/24/outline';
+import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { format } from 'date-fns';
 
 const SharedTripPage: React.FC = () => {
@@ -219,33 +224,158 @@ const SharedTripPage: React.FC = () => {
           {tripData.itinerary && tripData.itinerary.length > 0 && (
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 text-left">Itinerary</h2>
-              <div className="space-y-4">
-                {tripData.itinerary.map((item: any, index: number) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-2">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mr-3">
-                            Day {item.day}
-                          </span>
-                          {item.time && (
-                            <span className="text-sm text-gray-500">{item.time}</span>
+              <div className="space-y-6">
+                {tripData.itinerary.map((item: any, index: number) => {
+                  // Check if this is a flight item
+                  if (item.type === 'flight' && item.flightInfo) {
+                    return (
+                      <FlightCard
+                        key={index}
+                        flightInfo={item.flightInfo}
+                        time={item.time || item.start_time || ''}
+                        className="mb-4"
+                      />
+                    );
+                  }
+
+                  // Check if this is a hotel item
+                  if (item.type === 'accommodation' && item.hotelInfo) {
+                    return (
+                      <HotelCard
+                        key={index}
+                        hotelInfo={item.hotelInfo}
+                        time={item.time || item.start_time || ''}
+                        isCheckIn={true}
+                        className="mb-4"
+                      />
+                    );
+                  }
+
+                  // Regular activity item with enhanced display
+                  return (
+                    <div key={index} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center mb-3">
+                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mr-3">
+                              Day {item.day || 1}
+                            </span>
+                            {item.time && (
+                              <div className="flex items-center text-sm text-gray-500">
+                                <ClockIcon className="h-4 w-4 mr-1" />
+                                <span>{item.time}</span>
+                              </div>
+                            )}
+                          </div>
+                          
+                          <h3 className="text-lg font-semibold text-gray-900 text-left mb-2">
+                            {item.title || item.custom_title || item.place?.name}
+                          </h3>
+                          
+                          {item.description && (
+                            <p className="text-gray-600 mb-3 text-left">{item.description}</p>
+                          )}
+                          
+                          {/* Location with enhanced display */}
+                          {item.location?.name && (
+                            <div className="flex items-center mb-3 text-sm text-gray-600">
+                              <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
+                              <span className="text-left">{item.location.name}</span>
+                              {item.location.address && (
+                                <span className="text-gray-400 ml-2">• {item.location.address}</span>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Google Rating Display */}
+                          {item.place?.rating && (
+                            <div className="flex items-center mb-3">
+                              <div className="flex items-center mr-4">
+                                <span className="text-sm font-medium text-gray-700 mr-1">Google:</span>
+                                <div className="flex items-center">
+                                  {[1, 2, 3, 4, 5].map((star) => (
+                                    <StarIconSolid
+                                      key={star}
+                                      className={`h-4 w-4 ${
+                                        star <= Math.floor(item.place.rating)
+                                          ? 'text-yellow-400'
+                                          : 'text-gray-300'
+                                      }`}
+                                    />
+                                  ))}
+                                  <span className="ml-1 text-sm text-gray-600">
+                                    {item.place.rating} ({item.place.user_ratings_total || 0} reviews)
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Place Types */}
+                          {item.place?.types && item.place.types.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              {item.place.types.slice(0, 3).map((type: string, typeIndex: number) => (
+                                <span
+                                  key={typeIndex}
+                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+                                >
+                                  {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* User Rating Display (Read-only) */}
+                          {item.userRating && (
+                            <div className="flex items-center">
+                              <span className="text-sm font-medium text-gray-700 mr-2">Wish Level:</span>
+                              <div className="flex items-center">
+                                {[1, 2, 3, 4, 5].map((heart) => (
+                                  <HeartIconSolid
+                                    key={heart}
+                                    className={`h-4 w-4 ${
+                                      heart <= (item.userRating || 0)
+                                        ? 'text-red-500'
+                                        : 'text-gray-300'
+                                    }`}
+                                  />
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {/* Notes */}
+                          {item.notes && (
+                            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                              <p className="text-sm text-yellow-800 text-left">
+                                <strong>Notes:</strong> {item.notes}
+                              </p>
+                            </div>
                           )}
                         </div>
-                        <h3 className="font-medium text-gray-900 text-left">{item.title}</h3>
-                        {item.description && (
-                          <p className="text-gray-600 mt-1 text-left">{item.description}</p>
-                        )}
-                        {item.location?.name && (
-                          <div className="flex items-center mt-2 text-sm text-gray-500">
-                            <MapPinIcon className="h-4 w-4 mr-1" />
-                            <span className="text-left">{item.location.name}</span>
+
+                        {/* Photo Display */}
+                        {item.place?.photos && item.place.photos.length > 0 && (
+                          <div className="ml-4 flex-shrink-0">
+                            <img
+                              src={typeof item.place.photos[0] === 'string' 
+                                ? item.place.photos[0] 
+                                : item.place.photos[0]?.photo_reference 
+                                  ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photoreference=${item.place.photos[0].photo_reference}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`
+                                  : '/placeholder-image.jpg'
+                              }
+                              alt={item.title || item.place?.name}
+                              className="w-24 h-24 object-cover rounded-lg shadow-sm"
+                              onError={(e) => {
+                                e.currentTarget.style.display = 'none';
+                              }}
+                            />
                           </div>
                         )}
                       </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -254,13 +384,88 @@ const SharedTripPage: React.FC = () => {
           {tripData.wishlist && tripData.wishlist.length > 0 && (
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 text-left">Wishlist</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {tripData.wishlist.map((item: any, index: number) => (
-                  <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="font-medium text-gray-900 text-left">{item.name}</h3>
-                    {item.description && (
-                      <p className="text-gray-600 text-sm mt-1 text-left">{item.description}</p>
-                    )}
+                  <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-gray-900 text-left mb-2">
+                          {item.name || item.title}
+                        </h3>
+                        
+                        {item.description && (
+                          <p className="text-gray-600 text-sm mb-3 text-left">{item.description}</p>
+                        )}
+
+                        {/* Location */}
+                        {item.location?.name && (
+                          <div className="flex items-center mb-2 text-sm text-gray-600">
+                            <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
+                            <span className="text-left">{item.location.name}</span>
+                          </div>
+                        )}
+
+                        {/* Google Rating */}
+                        {item.rating && (
+                          <div className="flex items-center mb-2">
+                            <span className="text-sm font-medium text-gray-700 mr-1">Google:</span>
+                            <div className="flex items-center">
+                              {[1, 2, 3, 4, 5].map((star) => (
+                                <StarIconSolid
+                                  key={star}
+                                  className={`h-4 w-4 ${
+                                    star <= Math.floor(item.rating)
+                                      ? 'text-yellow-400'
+                                      : 'text-gray-300'
+                                  }`}
+                                />
+                              ))}
+                              <span className="ml-1 text-sm text-gray-600">
+                                {item.rating}
+                              </span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* User Rating */}
+                        {item.userInterestRating && (
+                          <div className="flex items-center">
+                            <span className="text-sm font-medium text-gray-700 mr-2">Interest:</span>
+                            <div className="flex items-center">
+                              {[1, 2, 3, 4, 5].map((heart) => (
+                                <HeartIconSolid
+                                  key={heart}
+                                  className={`h-4 w-4 ${
+                                    heart <= (item.userInterestRating || 0)
+                                      ? 'text-red-500'
+                                      : 'text-gray-300'
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Photo */}
+                      {item.photos && item.photos.length > 0 && (
+                        <div className="ml-4 flex-shrink-0">
+                          <img
+                            src={typeof item.photos[0] === 'string' 
+                              ? item.photos[0] 
+                              : item.photos[0]?.photo_reference 
+                                ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=150&photoreference=${item.photos[0].photo_reference}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`
+                                : '/placeholder-image.jpg'
+                            }
+                            alt={item.name || item.title}
+                            className="w-20 h-20 object-cover rounded-lg shadow-sm"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none';
+                            }}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>

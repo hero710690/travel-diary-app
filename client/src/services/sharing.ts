@@ -1,5 +1,5 @@
-import { api } from './api';
-import { API_CONFIG } from '../config/api';
+import apiClient from './api';
+import { API_ENDPOINTS } from '../config/api';
 
 export interface ShareSettings {
   is_public: boolean;
@@ -31,9 +31,40 @@ class SharingService {
    */
   async createShareLink(tripId: string, settings: ShareSettings): Promise<ShareLink> {
     try {
-      const response = await api.post(`/trips/${tripId}/share`, { settings });
-      return response.data as ShareLink;
+      console.log('🔗 Creating share link for trip:', tripId, 'with settings:', settings);
+      
+      // Backend expects settings at root level, not nested under 'settings'
+      const requestBody = {
+        is_public: settings.is_public,
+        password_protected: !!settings.password,
+        password: settings.password || '',
+        allow_editing: settings.allow_editing,
+        expires_in_days: 30, // Default expiration
+        send_email: false // Don't send email by default
+      };
+      
+      console.log('🔗 Request body:', requestBody);
+      const response = await apiClient.post(API_ENDPOINTS.TRIPS.SHARE(tripId), requestBody);
+      console.log('✅ Share link response:', response.data);
+      
+      // Transform backend response to match our ShareLink interface
+      const shareData = response.data.share_link;
+      return {
+        token: shareData.token,
+        url: shareData.url,
+        settings: {
+          is_public: shareData.settings.is_public,
+          password: shareData.settings.password,
+          allow_editing: shareData.settings.allow_editing,
+          expires_at: shareData.expires_at
+        },
+        created_at: shareData.created_at,
+        expires_at: shareData.expires_at
+      } as ShareLink;
     } catch (error: any) {
+      console.error('❌ Share link creation error:', error);
+      console.error('Error response data:', error.response?.data);
+      console.error('Error status:', error.response?.status);
       throw new Error(error.response?.data?.message || 'Failed to create share link');
     }
   }
@@ -43,7 +74,7 @@ class SharingService {
    */
   async getShareLink(tripId: string): Promise<ShareLink | null> {
     try {
-      const response = await api.get(`/trips/${tripId}/share`);
+      const response = await apiClient.get(API_ENDPOINTS.TRIPS.SHARE(tripId));
       return response.data as ShareLink;
     } catch (error: any) {
       if (error.response?.status === 404) {
@@ -58,7 +89,7 @@ class SharingService {
    */
   async updateShareSettings(tripId: string, settings: ShareSettings): Promise<ShareLink> {
     try {
-      const response = await api.put(`/trips/${tripId}/share`, { settings });
+      const response = await apiClient.put(API_ENDPOINTS.TRIPS.SHARE(tripId), { settings });
       return response.data as ShareLink;
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to update share settings');
@@ -70,7 +101,7 @@ class SharingService {
    */
   async revokeShareLink(tripId: string): Promise<void> {
     try {
-      await api.delete(`/trips/${tripId}/share`);
+      await apiClient.delete(API_ENDPOINTS.TRIPS.SHARE(tripId));
     } catch (error: any) {
       throw new Error(error.response?.data?.message || 'Failed to revoke share link');
     }
@@ -88,7 +119,7 @@ class SharingService {
   }> {
     try {
       const url = `/shared/${token}/permissions${password ? `?password=${encodeURIComponent(password)}` : ''}`;
-      const response = await api.get(url);
+      const response = await apiClient.get(url);
       
       return response.data as {
         trip: any;
