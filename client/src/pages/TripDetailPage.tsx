@@ -1092,15 +1092,8 @@ const TripDetailPage: React.FC = () => {
                                         
                                         if (!isHotelItem) return null;
                                         
-                                        // Create hotel info from available data
-                                        const hotelName = item.title || item.place?.name || 'Hotel';
-                                        
-                                        return (
-                                          <div className="mt-2">
-                                            {/* Hotel name only */}
-                                            <div className="text-sm font-medium text-gray-900">{hotelName}</div>
-                                          </div>
-                                        );
+                                        // Don't show any hotel information
+                                        return null;
                                       })()}
                                       
                                       {/* Google Rating and Place Types - Only for non-flight items */}
