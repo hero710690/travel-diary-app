@@ -1258,7 +1258,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             }
           } : undefined
         },
-        notes: `${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Staying at'} ${hotelInfo.name}${hotelInfo.confirmationNumber ? ` (Confirmation: ${hotelInfo.confirmationNumber})` : ''}`
+        notes: hotelInfo.notes || '', // Use actual user notes from hotel form
       });
     }
     
@@ -1395,7 +1395,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             }
           } : undefined
         },
-        notes: `${isFirstDay ? 'Check-in' : isLastDay ? 'Check-out' : 'Staying at'} ${updatedHotelInfo.name}${updatedHotelInfo.confirmationNumber ? ` (Confirmation: ${updatedHotelInfo.confirmationNumber})` : ''}`
+        notes: updatedHotelInfo.notes || '', // Use actual user notes from hotel form
       });
     }
     
