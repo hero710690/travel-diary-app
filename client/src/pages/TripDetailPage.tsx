@@ -1121,7 +1121,7 @@ const TripDetailPage: React.FC = () => {
                                         if (!isHotelItem) return null;
                                         
                                         // Create hotel info from available data
-                                        const hotelAddress = item.description || item.place?.formatted_address || '';
+                                        const hotelAddress = item.place?.formatted_address || '';
                                         
                                         return (
                                           <div className="mt-2">
