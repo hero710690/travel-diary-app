@@ -703,8 +703,8 @@ const SharedTripPage: React.FC = () => {
 
                                   {/* Notes */}
                                   {item.notes && (
-                                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                                      <p className="text-sm text-yellow-800 text-left">
+                                    <div className="mt-3">
+                                      <p className="text-sm text-gray-600 text-left">
                                         <strong>Notes:</strong> {item.notes}
                                       </p>
                                     </div>
@@ -749,7 +749,7 @@ const SharedTripPage: React.FC = () => {
                   <div key={index} className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 text-left mb-2">
+                        <h3 className="text-lg font-semibold text-gray-900 text-left mb-2">
                           {item.name || item.title}
                         </h3>
                         
