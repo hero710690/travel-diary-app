@@ -70,7 +70,7 @@ const FlightCard: React.FC<FlightCardProps> = ({
       <div className="flex items-center justify-between mb-3 gap-2">
         <div className="flex items-center space-x-2 min-w-0 flex-1">
           <PaperAirplaneIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
-          <span className="font-semibold text-gray-900 truncate text-left">
+          <span className="text-lg font-semibold text-gray-900 truncate text-left">
             {flightInfo.airline} {flightInfo.flightNumber}
           </span>
         </div>

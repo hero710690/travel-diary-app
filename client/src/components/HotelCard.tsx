@@ -62,7 +62,7 @@ const HotelCard: React.FC<HotelCardProps> = ({
         <div className="flex items-center space-x-2">
           <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
           <div className="flex items-center space-x-2">
-            <h3 className="font-semibold text-gray-900 text-sm text-left">{hotelInfo.name}</h3>
+            <h3 className="text-lg font-semibold text-gray-900 text-left">{hotelInfo.name}</h3>
             <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getActionColor()}`}>
               {getActionType()}
             </span>
