@@ -46,7 +46,7 @@ const HotelCard: React.FC<HotelCardProps> = ({
   const getActionType = () => {
     if (isCheckIn) return 'Check-in';
     if (isCheckOut) return 'Check-out';
-    return 'Hotel Stay';
+    return 'Stay';
   };
 
   const getActionColor = () => {
