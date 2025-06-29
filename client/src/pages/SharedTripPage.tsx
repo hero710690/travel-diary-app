@@ -565,18 +565,18 @@ const SharedTripPage: React.FC = () => {
                             <div key={`${day}-${index}`} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
                               <div className="flex items-start justify-between">
                                 <div className="flex-1">
-                                  <div className="flex items-center mb-3">
+                                  {/* Activity Header with consistent time positioning */}
+                                  <div className="flex items-start justify-between mb-3">
+                                    <h4 className="text-lg font-semibold text-gray-900 text-left">
+                                      {item.title || item.custom_title || item.place?.name}
+                                    </h4>
                                     {item.time && (
-                                      <div className="flex items-center text-sm text-gray-500 mr-4">
+                                      <div className="flex items-center text-sm text-gray-500 flex-shrink-0 ml-4">
                                         <ClockIcon className="h-4 w-4 mr-1" />
-                                        <span>{item.time || item.start_time}</span>
+                                        <span className="whitespace-nowrap">{item.time || item.start_time}</span>
                                       </div>
                                     )}
                                   </div>
-                                  
-                                  <h4 className="text-lg font-semibold text-gray-900 text-left mb-2">
-                                    {item.title || item.custom_title || item.place?.name}
-                                  </h4>
                                   
                                   {item.description && (
                                     <p className="text-gray-600 mb-3 text-left">{item.description}</p>
