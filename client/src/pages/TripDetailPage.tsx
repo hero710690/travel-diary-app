@@ -13,7 +13,6 @@ import {
   ClockIcon,
   PaperAirplaneIcon,
   MapPinIcon,
-  BuildingOfficeIcon,
   ArrowPathIcon,
   CheckIcon,
   XMarkIcon,
@@ -1094,7 +1093,6 @@ const TripDetailPage: React.FC = () => {
                                         if (!isHotelItem) return null;
                                         
                                         // Create hotel info from available data
-                                        const hotelName = item.title || item.place?.name || 'Hotel';
                                         const hotelAddress = item.description || item.place?.formatted_address || '';
                                         
                                         // Determine check-in/check-out status based on description
@@ -1126,18 +1124,12 @@ const TripDetailPage: React.FC = () => {
                                         
                                         return (
                                           <div className="mt-2 space-y-1">
-                                            {/* Hotel name with status badge */}
-                                            <div className="flex items-center space-x-2">
-                                              <BuildingOfficeIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                              <span className="text-sm font-medium text-gray-900">{hotelName}</span>
-                                              {getStatusBadge()}
-                                            </div>
-                                            
-                                            {/* Address */}
+                                            {/* Address with status badge */}
                                             {hotelAddress && (
-                                              <div className="flex items-start space-x-2 ml-6">
+                                              <div className="flex items-start space-x-2">
                                                 <MapPinIcon className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
-                                                <span className="text-sm text-gray-600 text-left">{hotelAddress}</span>
+                                                <span className="text-sm text-gray-600 text-left flex-1">{hotelAddress}</span>
+                                                {getStatusBadge()}
                                               </div>
                                             )}
                                           </div>
