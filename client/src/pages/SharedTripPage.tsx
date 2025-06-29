@@ -148,6 +148,92 @@ const SharedTripPage: React.FC = () => {
     }
   };
 
+  // Process and sort itinerary items properly
+  const getProcessedItinerary = () => {
+    if (!tripData?.itinerary || tripData.itinerary.length === 0) {
+      return [];
+    }
+
+    console.log('🔍 Processing shared trip itinerary:', {
+      tripStartDate: tripData.start_date,
+      tripEndDate: tripData.end_date,
+      totalItems: tripData.itinerary.length,
+      rawItems: tripData.itinerary.map((item: any, index: number) => ({
+        index,
+        title: item.title || item.custom_title || item.place?.name,
+        day: item.day,
+        date: item.date,
+        type: item.type
+      }))
+    });
+
+    const processedItems = tripData.itinerary.map((item: any, index: number) => {
+      let dayNumber = 1; // Default to day 1
+
+      // Prioritize explicit day field
+      if (item.day && typeof item.day === 'number' && item.day > 0) {
+        dayNumber = item.day;
+        console.log('📅 Using explicit day field:', dayNumber, 'for item:', item.title || item.custom_title || item.place?.name);
+      } else if (tripData.start_date && item.date) {
+        // Calculate day number based on item date and trip start date
+        try {
+          const tripStartDate = new Date(tripData.start_date);
+          const itemDate = new Date(item.date);
+          
+          if (!isNaN(tripStartDate.getTime()) && !isNaN(itemDate.getTime())) {
+            const diffTime = itemDate.getTime() - tripStartDate.getTime();
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+            dayNumber = Math.max(1, diffDays + 1); // Ensure minimum day 1
+            
+            console.log('📅 Calculated day number:', dayNumber, 'for item:', item.title || item.custom_title || item.place?.name, {
+              tripStart: tripStartDate.toISOString(),
+              itemDate: itemDate.toISOString(),
+              diffDays
+            });
+          }
+        } catch (error) {
+          console.warn('⚠️ Error calculating day number for item:', item.title || item.custom_title || item.place?.name, error);
+        }
+      }
+
+      return {
+        ...item,
+        calculatedDay: dayNumber,
+        sortKey: `${dayNumber.toString().padStart(3, '0')}-${(item.start_time || item.time || '00:00').replace(':', '')}-${index.toString().padStart(3, '0')}`
+      };
+    });
+
+    // Sort by day, then by time, then by original index
+    const sortedItems = processedItems.sort((a, b) => {
+      return a.sortKey.localeCompare(b.sortKey);
+    });
+
+    console.log('✅ Processed and sorted itinerary:', sortedItems.map(item => ({
+      title: item.title || item.custom_title || item.place?.name,
+      day: item.calculatedDay,
+      time: item.start_time || item.time,
+      sortKey: item.sortKey
+    })));
+
+    return sortedItems;
+  };
+
+  // Group itinerary by day for better display
+  const getGroupedItinerary = () => {
+    const processedItems = getProcessedItinerary();
+    const grouped: { [key: number]: any[] } = {};
+
+    processedItems.forEach(item => {
+      const day = item.calculatedDay;
+      if (!grouped[day]) {
+        grouped[day] = [];
+      }
+      grouped[day].push(item);
+    });
+
+    return grouped;
+  };
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -224,158 +310,186 @@ const SharedTripPage: React.FC = () => {
           {tripData.itinerary && tripData.itinerary.length > 0 && (
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 text-left">Itinerary</h2>
-              <div className="space-y-6">
-                {tripData.itinerary.map((item: any, index: number) => {
-                  // Check if this is a flight item
-                  if (item.type === 'flight' && item.flightInfo) {
-                    return (
-                      <FlightCard
-                        key={index}
-                        flightInfo={item.flightInfo}
-                        time={item.time || item.start_time || ''}
-                        className="mb-4"
-                      />
-                    );
-                  }
-
-                  // Check if this is a hotel item
-                  if (item.type === 'accommodation' && item.hotelInfo) {
-                    return (
-                      <HotelCard
-                        key={index}
-                        hotelInfo={item.hotelInfo}
-                        time={item.time || item.start_time || ''}
-                        isCheckIn={true}
-                        className="mb-4"
-                      />
-                    );
-                  }
-
-                  // Regular activity item with enhanced display
-                  return (
-                    <div key={index} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center mb-3">
-                            <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800 mr-3">
-                              Day {item.day || 1}
-                            </span>
-                            {item.time && (
-                              <div className="flex items-center text-sm text-gray-500">
-                                <ClockIcon className="h-4 w-4 mr-1" />
-                                <span>{item.time}</span>
-                              </div>
-                            )}
-                          </div>
-                          
-                          <h3 className="text-lg font-semibold text-gray-900 text-left mb-2">
-                            {item.title || item.custom_title || item.place?.name}
-                          </h3>
-                          
-                          {item.description && (
-                            <p className="text-gray-600 mb-3 text-left">{item.description}</p>
-                          )}
-                          
-                          {/* Location with enhanced display */}
-                          {item.location?.name && (
-                            <div className="flex items-center mb-3 text-sm text-gray-600">
-                              <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
-                              <span className="text-left">{item.location.name}</span>
-                              {item.location.address && (
-                                <span className="text-gray-400 ml-2">• {item.location.address}</span>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Google Rating Display */}
-                          {item.place?.rating && (
-                            <div className="flex items-center mb-3">
-                              <div className="flex items-center mr-4">
-                                <span className="text-sm font-medium text-gray-700 mr-1">Google:</span>
-                                <div className="flex items-center">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <StarIconSolid
-                                      key={star}
-                                      className={`h-4 w-4 ${
-                                        star <= Math.floor(item.place.rating)
-                                          ? 'text-yellow-400'
-                                          : 'text-gray-300'
-                                      }`}
-                                    />
-                                  ))}
-                                  <span className="ml-1 text-sm text-gray-600">
-                                    {item.place.rating} ({item.place.user_ratings_total || 0} reviews)
-                                  </span>
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Place Types */}
-                          {item.place?.types && item.place.types.length > 0 && (
-                            <div className="flex flex-wrap gap-1 mb-3">
-                              {item.place.types.slice(0, 3).map((type: string, typeIndex: number) => (
-                                <span
-                                  key={typeIndex}
-                                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
-                                >
-                                  {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* User Rating Display (Read-only) */}
-                          {item.userRating && (
-                            <div className="flex items-center">
-                              <span className="text-sm font-medium text-gray-700 mr-2">Wish Level:</span>
-                              <div className="flex items-center">
-                                {[1, 2, 3, 4, 5].map((heart) => (
-                                  <HeartIconSolid
-                                    key={heart}
-                                    className={`h-4 w-4 ${
-                                      heart <= (item.userRating || 0)
-                                        ? 'text-red-500'
-                                        : 'text-gray-300'
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                            </div>
-                          )}
-
-                          {/* Notes */}
-                          {item.notes && (
-                            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
-                              <p className="text-sm text-yellow-800 text-left">
-                                <strong>Notes:</strong> {item.notes}
-                              </p>
-                            </div>
-                          )}
+              <div className="space-y-8">
+                {Object.entries(getGroupedItinerary())
+                  .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
+                  .map(([day, dayItems]) => (
+                    <div key={day} className="space-y-4">
+                      {/* Day Header */}
+                      <div className="flex items-center mb-4">
+                        <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full text-sm font-semibold mr-3">
+                          {day}
                         </div>
-
-                        {/* Photo Display */}
-                        {item.place?.photos && item.place.photos.length > 0 && (
-                          <div className="ml-4 flex-shrink-0">
-                            <img
-                              src={typeof item.place.photos[0] === 'string' 
-                                ? item.place.photos[0] 
-                                : item.place.photos[0]?.photo_reference 
-                                  ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photoreference=${item.place.photos[0].photo_reference}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`
-                                  : '/placeholder-image.jpg'
+                        <h3 className="text-lg font-semibold text-gray-900">Day {day}</h3>
+                        {tripData.start_date && (
+                          <span className="ml-3 text-sm text-gray-500">
+                            {(() => {
+                              try {
+                                const startDate = new Date(tripData.start_date);
+                                const dayDate = new Date(startDate);
+                                dayDate.setDate(startDate.getDate() + parseInt(day) - 1);
+                                return format(dayDate, 'MMM dd, yyyy');
+                              } catch {
+                                return '';
                               }
-                              alt={item.title || item.place?.name}
-                              className="w-24 h-24 object-cover rounded-lg shadow-sm"
-                              onError={(e) => {
-                                e.currentTarget.style.display = 'none';
-                              }}
-                            />
-                          </div>
+                            })()}
+                          </span>
                         )}
                       </div>
+
+                      {/* Day Items */}
+                      <div className="space-y-4 ml-11">
+                        {dayItems.map((item: any, index: number) => {
+                          // Check if this is a flight item
+                          if (item.type === 'flight' && item.flightInfo) {
+                            return (
+                              <FlightCard
+                                key={`${day}-${index}`}
+                                flightInfo={item.flightInfo}
+                                time={item.time || item.start_time || ''}
+                                className="mb-4"
+                              />
+                            );
+                          }
+
+                          // Check if this is a hotel item
+                          if (item.type === 'accommodation' && item.hotelInfo) {
+                            return (
+                              <HotelCard
+                                key={`${day}-${index}`}
+                                hotelInfo={item.hotelInfo}
+                                time={item.time || item.start_time || ''}
+                                isCheckIn={true}
+                                className="mb-4"
+                              />
+                            );
+                          }
+
+                          // Regular activity item with enhanced display
+                          return (
+                            <div key={`${day}-${index}`} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex items-center mb-3">
+                                    {item.time && (
+                                      <div className="flex items-center text-sm text-gray-500 mr-4">
+                                        <ClockIcon className="h-4 w-4 mr-1" />
+                                        <span>{item.time || item.start_time}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                  
+                                  <h4 className="text-lg font-semibold text-gray-900 text-left mb-2">
+                                    {item.title || item.custom_title || item.place?.name}
+                                  </h4>
+                                  
+                                  {item.description && (
+                                    <p className="text-gray-600 mb-3 text-left">{item.description}</p>
+                                  )}
+                                  
+                                  {/* Location with enhanced display */}
+                                  {item.location?.name && (
+                                    <div className="flex items-center mb-3 text-sm text-gray-600">
+                                      <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
+                                      <span className="text-left">{item.location.name}</span>
+                                      {item.location.address && (
+                                        <span className="text-gray-400 ml-2">• {item.location.address}</span>
+                                      )}
+                                    </div>
+                                  )}
+
+                                  {/* Google Rating Display */}
+                                  {item.place?.rating && (
+                                    <div className="flex items-center mb-3">
+                                      <div className="flex items-center mr-4">
+                                        <span className="text-sm font-medium text-gray-700 mr-1">Google:</span>
+                                        <div className="flex items-center">
+                                          {[1, 2, 3, 4, 5].map((star) => (
+                                            <StarIconSolid
+                                              key={star}
+                                              className={`h-4 w-4 ${
+                                                star <= Math.floor(item.place.rating)
+                                                  ? 'text-yellow-400'
+                                                  : 'text-gray-300'
+                                              }`}
+                                            />
+                                          ))}
+                                          <span className="ml-1 text-sm text-gray-600">
+                                            {item.place.rating} ({item.place.user_ratings_total || 0} reviews)
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Place Types */}
+                                  {item.place?.types && item.place.types.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mb-3">
+                                      {item.place.types.slice(0, 3).map((type: string, typeIndex: number) => (
+                                        <span
+                                          key={typeIndex}
+                                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+                                        >
+                                          {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  )}
+
+                                  {/* User Rating Display (Read-only) */}
+                                  {item.userRating && (
+                                    <div className="flex items-center">
+                                      <span className="text-sm font-medium text-gray-700 mr-2">Wish Level:</span>
+                                      <div className="flex items-center">
+                                        {[1, 2, 3, 4, 5].map((heart) => (
+                                          <HeartIconSolid
+                                            key={heart}
+                                            className={`h-4 w-4 ${
+                                              heart <= (item.userRating || 0)
+                                                ? 'text-red-500'
+                                                : 'text-gray-300'
+                                            }`}
+                                          />
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {/* Notes */}
+                                  {item.notes && (
+                                    <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-md">
+                                      <p className="text-sm text-yellow-800 text-left">
+                                        <strong>Notes:</strong> {item.notes}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Photo Display */}
+                                {item.place?.photos && item.place.photos.length > 0 && (
+                                  <div className="ml-4 flex-shrink-0">
+                                    <img
+                                      src={typeof item.place.photos[0] === 'string' 
+                                        ? item.place.photos[0] 
+                                        : item.place.photos[0]?.photo_reference 
+                                          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photoreference=${item.place.photos[0].photo_reference}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`
+                                          : '/placeholder-image.jpg'
+                                      }
+                                      alt={item.title || item.place?.name}
+                                      className="w-24 h-24 object-cover rounded-lg shadow-sm"
+                                      onError={(e) => {
+                                        e.currentTarget.style.display = 'none';
+                                      }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  );
-                })}
+                  ))}
               </div>
             </div>
           )}
