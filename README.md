@@ -61,17 +61,17 @@ A comprehensive full-stack travel planning and diary application built with mode
 ## 🚀 Deployment Workflow
 
 ### **Latest Deployment** ✅ **2025-06-29**
-- **Version**: Hotel Display Enhancement v1.1
-- **Frontend Bundle**: main.589fd6d1.js (166.32 kB gzipped)
-- **New Features**: Fixed hotel card display in trip detail page
-- **Status**: ✅ **LIVE** - Hotel information properly displayed
+- **Version**: Hotel Display Simplification v1.2
+- **Frontend Bundle**: main.1148301a.js (166.19 kB gzipped)
+- **New Features**: Simplified hotel display to show only hotel name
+- **Status**: ✅ **LIVE** - Clean hotel name display implemented
 - **CloudFront**: Cache invalidated and updated
 
 ### **Recent Updates**
+- ✅ **Hotel Name Only Display** - Simplified to show just hotel name
 - ✅ **Hotel Card Edit Functionality** - Restored working edit modal in trip planning
-- ✅ **Hotel Information Display** - Fixed hotel details in trip detail page
-- ✅ **Status Badge Placement** - Corrected positioning after hotel name
-- ✅ **Clean Hotel Layout** - Minimal display with name, status, and address
+- ✅ **Clean Hotel Layout** - Minimal single-line display
+- ✅ **Reduced Bundle Size** - Optimized code with 132 bytes reduction
 
 ### **Production Environment**
 - **Frontend URL**: https://d16hcqzmptnoh8.cloudfront.net
