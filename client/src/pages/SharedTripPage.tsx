@@ -659,23 +659,11 @@ const SharedTripPage: React.FC = () => {
                                   {/* Google Rating Display */}
                                   {item.place?.rating && (
                                     <div className="flex items-center mb-3">
-                                      <div className="flex items-center mr-4">
-                                        <span className="text-sm font-medium text-gray-700 mr-1">Google:</span>
-                                        <div className="flex items-center">
-                                          {[1, 2, 3, 4, 5].map((star) => (
-                                            <StarIconSolid
-                                              key={star}
-                                              className={`h-4 w-4 ${
-                                                star <= Math.floor(item.place.rating)
-                                                  ? 'text-yellow-400'
-                                                  : 'text-gray-300'
-                                              }`}
-                                            />
-                                          ))}
-                                          <span className="ml-1 text-sm text-gray-600">
-                                            {item.place.rating} ({item.place.user_ratings_total || 0} reviews)
-                                          </span>
-                                        </div>
+                                      <div className="flex items-center">
+                                        <StarIconSolid className="h-4 w-4 text-yellow-400 mr-1" />
+                                        <span className="text-sm text-gray-600">
+                                          {item.place.rating} ({item.place.user_ratings_total || 0} reviews)
+                                        </span>
                                       </div>
                                     </div>
                                   )}
@@ -780,20 +768,10 @@ const SharedTripPage: React.FC = () => {
                         {/* Google Rating */}
                         {item.rating && (
                           <div className="flex items-center mb-2">
-                            <span className="text-sm font-medium text-gray-700 mr-1">Google:</span>
                             <div className="flex items-center">
-                              {[1, 2, 3, 4, 5].map((star) => (
-                                <StarIconSolid
-                                  key={star}
-                                  className={`h-4 w-4 ${
-                                    star <= Math.floor(item.rating)
-                                      ? 'text-yellow-400'
-                                      : 'text-gray-300'
-                                  }`}
-                                />
-                              ))}
-                              <span className="ml-1 text-sm text-gray-600">
-                                {item.rating}
+                              <StarIconSolid className="h-4 w-4 text-yellow-400 mr-1" />
+                              <span className="text-sm text-gray-600">
+                                {item.rating} ({item.user_ratings_total || 0} reviews)
                               </span>
                             </div>
                           </div>
