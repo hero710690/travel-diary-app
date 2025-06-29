@@ -44,11 +44,42 @@ const FlightCard: React.FC<FlightCardProps> = ({
   };
 
   const formatTime = (timeString: string) => {
-    try {
-      const time = new Date(`2000-01-01T${timeString}`);
-      return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    } catch {
+    if (!timeString) return '';
+    
+    // If the time is already formatted (contains AM/PM), return as-is
+    if (timeString.includes('AM') || timeString.includes('PM')) {
       return timeString;
+    }
+    
+    // Handle raw time formats
+    try {
+      // Handle different time formats
+      if (timeString.includes(':')) {
+        // Already in HH:MM format
+        const [hours, minutes] = timeString.split(':');
+        const hour = parseInt(hours, 10);
+        const min = minutes.padStart(2, '0');
+        
+        // Convert to 12-hour format with AM/PM
+        if (hour === 0) {
+          return `12:${min} AM`;
+        } else if (hour < 12) {
+          return `${hour}:${min} AM`;
+        } else if (hour === 12) {
+          return `12:${min} PM`;
+        } else {
+          return `${hour - 12}:${min} PM`;
+        }
+      } else {
+        // If it's just a number, treat as hour
+        const hour = parseInt(timeString, 10);
+        if (hour === 0) return '12:00 AM';
+        if (hour < 12) return `${hour}:00 AM`;
+        if (hour === 12) return '12:00 PM';
+        return `${hour - 12}:00 PM`;
+      }
+    } catch {
+      return timeString; // Return original if parsing fails
     }
   };
 
