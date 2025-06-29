@@ -69,30 +69,12 @@ const HotelCard: React.FC<HotelCardProps> = ({
           </div>
         </div>
         
-        {/* Time and Action Buttons */}
+        {/* Time Display */}
         <div className="flex items-center space-x-2 flex-shrink-0">
           <span className="text-sm text-gray-500 flex items-center whitespace-nowrap">
             <ClockIcon className="h-4 w-4 mr-1" />
             {time}
           </span>
-          {onEdit && (
-            <button
-              onClick={onEdit}
-              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
-              title="Edit Hotel"
-            >
-              <PencilIcon className="h-4 w-4" />
-            </button>
-          )}
-          {onDelete && (
-            <button
-              onClick={onDelete}
-              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
-              title="Delete Hotel"
-            >
-              <TrashIcon className="h-4 w-4" />
-            </button>
-          )}
         </div>
       </div>
 
@@ -140,6 +122,30 @@ const HotelCard: React.FC<HotelCardProps> = ({
           </div>
         )}
       </div>
+
+      {/* Actions */}
+      {(onEdit || onDelete) && (
+        <div className="flex justify-end space-x-2 mt-3 pt-3 border-t border-gray-100">
+          {onEdit && (
+            <button
+              onClick={onEdit}
+              className="p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+              title="Edit Hotel"
+            >
+              <PencilIcon className="h-4 w-4" />
+            </button>
+          )}
+          {onDelete && (
+            <button
+              onClick={onDelete}
+              className="p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded transition-colors"
+              title="Delete Hotel"
+            >
+              <TrashIcon className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 };
