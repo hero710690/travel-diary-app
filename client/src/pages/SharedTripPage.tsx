@@ -219,6 +219,47 @@ const SharedTripPage: React.FC = () => {
     return sortedItems;
   };
 
+  // Transform flight data to match FlightInfo interface
+  const transformFlightData = (item: any) => {
+    console.log('🛩️ Raw flight item data:', item);
+    
+    // If flightInfo already exists and has proper structure, use it
+    if (item.flightInfo && item.flightInfo.departure && item.flightInfo.arrival) {
+      console.log('✅ Flight data already properly structured');
+      return item.flightInfo;
+    }
+    
+    // If we have basic flight info but need to construct departure/arrival
+    const flightInfo = item.flightInfo || {};
+    
+    // Try to extract airport codes and times from various possible fields
+    const extractAirportInfo = (prefix: string) => {
+      return {
+        airport: flightInfo[`${prefix}Airport`] || flightInfo[`${prefix}_airport`] || `${prefix.toUpperCase()} Airport`,
+        airportCode: flightInfo[`${prefix}AirportCode`] || flightInfo[`${prefix}_airport_code`] || flightInfo[`${prefix}Code`] || 'XXX',
+        date: flightInfo[`${prefix}Date`] || flightInfo[`${prefix}_date`] || item.date || '',
+        time: flightInfo[`${prefix}Time`] || flightInfo[`${prefix}_time`] || item.time || item.start_time || '00:00',
+        terminal: flightInfo[`${prefix}Terminal`] || flightInfo[`${prefix}_terminal`],
+        gate: flightInfo[`${prefix}Gate`] || flightInfo[`${prefix}_gate`]
+      };
+    };
+    
+    const transformedFlightInfo = {
+      airline: flightInfo.airline || 'Unknown Airline',
+      flightNumber: flightInfo.flightNumber || flightInfo.flight_number || 'Unknown',
+      departure: extractAirportInfo('departure'),
+      arrival: extractAirportInfo('arrival'),
+      duration: flightInfo.duration || flightInfo.flight_duration,
+      aircraft: flightInfo.aircraft || flightInfo.aircraft_type,
+      seatNumber: flightInfo.seatNumber || flightInfo.seat_number || flightInfo.seat,
+      bookingReference: flightInfo.bookingReference || flightInfo.booking_reference || flightInfo.confirmation,
+      status: flightInfo.status || 'scheduled'
+    };
+    
+    console.log('🔄 Transformed flight data:', transformedFlightInfo);
+    return transformedFlightInfo;
+  };
+
   // Group itinerary by day for better display
   const getGroupedItinerary = () => {
     const processedItems = getProcessedItinerary();
@@ -341,7 +382,7 @@ const SharedTripPage: React.FC = () => {
                       {/* Day Items */}
                       <div className="space-y-4 ml-11">
                         {dayItems.map((item: any, index: number) => {
-                          // Check if this is a flight item - use original FlightCard component
+                          // Check if this is a flight item - use original FlightCard component with data transformation
                           if (item.type === 'flight' && item.flightInfo) {
                             console.log('🛩️ Flight item data:', {
                               type: item.type,
@@ -351,10 +392,12 @@ const SharedTripPage: React.FC = () => {
                               fullItem: item
                             });
                             
+                            const transformedFlightInfo = transformFlightData(item);
+                            
                             return (
                               <FlightCard
                                 key={`${day}-${index}`}
-                                flightInfo={item.flightInfo}
+                                flightInfo={transformedFlightInfo}
                                 time={item.time || item.start_time || ''}
                                 // Don't pass onEdit or onDelete for read-only view
                                 className="mb-4"
