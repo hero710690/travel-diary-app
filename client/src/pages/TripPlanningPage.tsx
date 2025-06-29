@@ -1244,8 +1244,40 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
     }
   };
 
-  // Debug: Log function existence
-  console.log('🔧 handleEditHotel function defined:', !!handleEditHotel);
+  // Rebuild hotel stays from itinerary when component loads
+  useEffect(() => {
+    if (itinerary.length > 0) {
+      const hotelItems = itinerary.filter(item => item.type === 'accommodation' && item.hotelInfo);
+      const hotelStaysMap = new Map<string, any>();
+      
+      hotelItems.forEach(item => {
+        // Extract hotel stay ID from item ID (format: hotelStayId_day_X)
+        const hotelStayId = item.id.split('_day_')[0];
+        
+        if (!hotelStaysMap.has(hotelStayId)) {
+          // Find all items for this hotel stay to determine start and end days
+          const relatedItems = hotelItems.filter(i => i.id.startsWith(hotelStayId));
+          const days = relatedItems.map(i => i.day).sort((a, b) => a - b);
+          
+          hotelStaysMap.set(hotelStayId, {
+            id: hotelStayId,
+            hotelInfo: item.hotelInfo,
+            startDay: Math.min(...days),
+            endDay: Math.max(...days)
+          });
+        }
+      });
+      
+      const reconstructedHotelStays = Array.from(hotelStaysMap.values());
+      
+      // Only update if the hotel stays have changed to avoid infinite loops
+      if (reconstructedHotelStays.length !== hotelStays.length || 
+          !reconstructedHotelStays.every(stay => hotelStays.some(existing => existing.id === stay.id))) {
+        console.log('🏨 Rebuilding hotel stays from itinerary:', reconstructedHotelStays);
+        setHotelStays(reconstructedHotelStays);
+      }
+    }
+  }, [itinerary]); // Only depend on itinerary, not hotelStays to avoid infinite loops
 
   const handleUpdateHotel = (updatedHotelInfo: any) => {
     if (!editingHotel) return;
