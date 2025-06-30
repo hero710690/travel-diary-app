@@ -87,7 +87,7 @@ const HotelCard: React.FC<HotelCardProps> = ({
         </div>
 
         {/* Rating */}
-        {hotelInfo.rating && (
+        {hotelInfo.rating && hotelInfo.rating > 0 && (
           <div className="flex items-center space-x-2">
             <StarIcon className="h-4 w-4 text-yellow-400 fill-current flex-shrink-0" />
             <span className="text-sm text-gray-600">

@@ -631,8 +631,8 @@ const SharedTripPage: React.FC = () => {
                               checkOutDate: item.hotelInfo.checkOutDate || '',
                               roomType: item.hotelInfo.roomType || item.hotelInfo.room_type || '',
                               confirmationNumber: item.hotelInfo.confirmationNumber || item.hotelInfo.confirmation_number || '',
-                              rating: item.hotelInfo.rating || item.place?.rating || 0,
-                              user_ratings_total: item.hotelInfo.user_ratings_total || item.place?.user_ratings_total || 0,
+                              rating: item.hotelInfo.rating || item.place?.rating || null,
+                              user_ratings_total: item.hotelInfo.user_ratings_total || item.place?.user_ratings_total || null,
                               notes: item.hotelInfo.notes || item.notes || '',
                               coordinates: item.hotelInfo.coordinates || item.place?.geometry?.location || undefined
                             };
