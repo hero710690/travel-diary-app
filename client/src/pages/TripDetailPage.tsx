@@ -952,7 +952,7 @@ const TripDetailPage: React.FC = () => {
                                         {item.title}
                                       </h5>
                                       {item.description && (
-                                        <p className="text-xs text-gray-500 break-words">
+                                        <p className="text-xs text-gray-500 break-words text-left">
                                           {item.description}
                                         </p>
                                       )}
@@ -1135,11 +1135,11 @@ const TripDetailPage: React.FC = () => {
                                           {item.place.rating && (
                                             <div className="flex items-center space-x-1">
                                               <StarIcon className="h-3 w-3 text-yellow-400 fill-current flex-shrink-0" />
-                                              <span className="text-xs text-gray-600">
+                                              <span className="text-xs text-gray-600 text-left">
                                                 {item.place.rating.toFixed(1)} Google
                                               </span>
                                               {item.place.user_ratings_total && item.place.user_ratings_total > 0 && (
-                                                <span className="text-xs text-gray-400">
+                                                <span className="text-xs text-gray-400 text-left">
                                                   ({item.place.user_ratings_total.toLocaleString()} reviews)
                                                 </span>
                                               )}
@@ -1158,7 +1158,7 @@ const TripDetailPage: React.FC = () => {
                                                 </span>
                                               ))}
                                               {item.place.types.length > 2 && (
-                                                <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-500 rounded">
+                                                <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-500 rounded text-left">
                                                   +{item.place.types.length - 2}
                                                 </span>
                                               )}
