@@ -645,13 +645,21 @@ const TripDetailPage: React.FC = () => {
     return item.time || item.start_time || '';
   };
 
-  const getPlaceIcon = (type: string) => {
+  const getPlaceIcon = (type: string, item?: any) => {
+    // Check if this is a hotel/accommodation item
+    const isHotelItem = type === 'accommodation' || 
+                       (item?.place?.types && item.place.types.includes('lodging'));
+    
     switch (type) {
       case 'flight':
         return <PaperAirplaneIcon className="h-5 w-5 text-blue-600" />;
       case 'accommodation':
         return <HomeIcon className="h-5 w-5 text-blue-600" />;
       default:
+        // Check if it's a hotel based on place types
+        if (isHotelItem) {
+          return <HomeIcon className="h-5 w-5 text-blue-600" />;
+        }
         return <CameraIcon className="h-5 w-5 text-green-600" />;
     }
   };
@@ -920,7 +928,7 @@ const TripDetailPage: React.FC = () => {
                             {dayItems.map((item) => (
                               <div key={item.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
                                 <div className="flex-shrink-0 mt-1">
-                                  {getPlaceIcon(item.type)}
+                                  {getPlaceIcon(item.type, item)}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   {editingItem === item.id ? (
