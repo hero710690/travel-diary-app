@@ -22,7 +22,8 @@ import {
   StarIcon,
   UsersIcon,
   HeartIcon,
-  CameraIcon
+  CameraIcon,
+  HomeIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -648,6 +649,8 @@ const TripDetailPage: React.FC = () => {
     switch (type) {
       case 'flight':
         return <PaperAirplaneIcon className="h-5 w-5 text-blue-600" />;
+      case 'accommodation':
+        return <HomeIcon className="h-5 w-5 text-blue-600" />;
       default:
         return <CameraIcon className="h-5 w-5 text-green-600" />;
     }
