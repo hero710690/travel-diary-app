@@ -21,7 +21,8 @@ import {
   LinkIcon,
   StarIcon,
   UsersIcon,
-  HeartIcon
+  HeartIcon,
+  CameraIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -690,7 +691,7 @@ const TripDetailPage: React.FC = () => {
       case 'flight':
         return <PaperAirplaneIcon className="h-5 w-5 text-blue-600" />;
       default:
-        return <MapPinIcon className="h-5 w-5 text-green-600" />;
+        return <CameraIcon className="h-5 w-5 text-green-600" />;
     }
   };
 
@@ -1144,6 +1145,17 @@ const TripDetailPage: React.FC = () => {
                                           </div>
                                         );
                                       })()}
+                                      
+                                      {/* Address Display - Only for activity cards, not flight */}
+                                      {item.type !== 'flight' && 
+                                       (item.place?.formatted_address || item.location?.address) && (
+                                        <div className="flex items-start mt-2">
+                                          <MapPinIcon className="h-3 w-3 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
+                                          <p className="text-sm text-gray-600 text-left">
+                                            {item.place?.formatted_address || item.location?.address}
+                                          </p>
+                                        </div>
+                                      )}
                                       
                                       {/* Google Rating and Place Types - Only for non-flight items */}
                                       {item.place && item.type !== 'flight' && (
