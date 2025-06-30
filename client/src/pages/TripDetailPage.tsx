@@ -68,9 +68,9 @@ const TripDetailPage: React.FC = () => {
     notes: ''
   });
 
-  // Rating state
-  const [hoveredStar, setHoveredStar] = useState<number | null>(null);
-  const [ratingItemId, setRatingItemId] = useState<string | null>(null);
+  // Rating state - REMOVED (hearts are now static display only)
+  // const [hoveredStar, setHoveredStar] = useState<number | null>(null);
+  // const [ratingItemId, setRatingItemId] = useState<string | null>(null);
 
   // Flight Edit State - REMOVED (flight editing disabled in planned itinerary)
   // const [showFlightEditModal, setShowFlightEditModal] = useState(false);
@@ -277,64 +277,22 @@ const TripDetailPage: React.FC = () => {
     setEditForm({ time: '', duration: 0, notes: '' });
   };
 
-  const handleRatingClick = (itemId: string, rating: number) => {
-    if (!tripData?.itinerary) return;
-
-    // Find the original item in the backend data
-    const originalItemIndex = tripData.itinerary?.findIndex((backendItem: any) => {
-      return backendItem._id === itemId || backendItem.id === itemId;
-    });
-
-    if (originalItemIndex === -1) {
-      toast.error('Could not find item to update');
-      return;
-    }
-
-    // Create updated itinerary with rating
-    const updatedItinerary = [...(tripData.itinerary || [])];
-    const originalItem = updatedItinerary[originalItemIndex] as any;
-    
-    updatedItinerary[originalItemIndex] = {
-      ...originalItem,
-      userRating: rating
-    } as any;
-
-    updateItineraryMutation.mutate(updatedItinerary);
-    setRatingItemId(null);
-    setHoveredStar(null);
-  };
+  // Rating functionality removed - hearts are now static display only
+  // const handleRatingClick = (itemId: string, rating: number) => { ... }
 
   const renderRatingStars = (item: ItineraryItem) => {
     const hearts = [];
-    const isRatingThisItem = ratingItemId === item.id;
     
     for (let i = 1; i <= 5; i++) {
-      const isFilled = i <= (isRatingThisItem && hoveredStar ? hoveredStar : item.userRating || 0);
+      const isFilled = i <= (item.userRating || 0);
       hearts.push(
-        <button
-          key={i}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleRatingClick(item.id, i);
-          }}
-          onMouseEnter={() => {
-            setRatingItemId(item.id);
-            setHoveredStar(i);
-          }}
-          onMouseLeave={() => {
-            if (!item.userRating) {
-              setHoveredStar(null);
-            }
-          }}
-          className="p-0.5 hover:scale-110 transition-transform"
-          title={`Wish level ${i} heart${i > 1 ? 's' : ''}`}
-        >
+        <div key={i} className="inline-block">
           {isFilled ? (
             <HeartIconSolid className="h-3 w-3 text-red-500" />
           ) : (
-            <HeartIcon className="h-3 w-3 text-gray-300 hover:text-red-400" />
+            <HeartIcon className="h-3 w-3 text-gray-300" />
           )}
-        </button>
+        </div>
       );
     }
     return hearts;
