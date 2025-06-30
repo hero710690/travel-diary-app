@@ -117,7 +117,7 @@ const HotelCard: React.FC<HotelCardProps> = ({
 
         {/* Notes */}
         {hotelInfo.notes && (
-          <div className="text-sm text-gray-500 italic text-left">
+          <div className="text-sm text-gray-500 italic text-left break-words overflow-wrap-anywhere">
             <span className="font-medium not-italic">Note:</span> {hotelInfo.notes}
           </div>
         )}

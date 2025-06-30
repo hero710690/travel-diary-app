@@ -1175,7 +1175,7 @@ const TripDetailPage: React.FC = () => {
                                       )}
                                       
                                       {item.notes && (
-                                        <p className="text-xs text-gray-600 mt-1 italic text-left">
+                                        <p className="text-xs text-gray-600 mt-1 italic text-left break-words overflow-wrap-anywhere">
                                           Note: {item.notes}
                                         </p>
                                       )}

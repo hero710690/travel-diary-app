@@ -684,7 +684,7 @@ const SharedTripPage: React.FC = () => {
                                   {/* Description - Only show if it's different from the address */}
                                   {item.description && 
                                    item.description !== (item.place?.formatted_address || item.location?.address) && (
-                                    <p className="text-gray-600 mb-3 text-left">{item.description}</p>
+                                    <p className="text-gray-600 mb-3 text-left break-words overflow-wrap-anywhere">{item.description}</p>
                                   )}
                                   
                                   {/* Location with enhanced display */}
@@ -746,7 +746,7 @@ const SharedTripPage: React.FC = () => {
                                   {/* Notes */}
                                   {item.notes && (
                                     <div className="mt-3">
-                                      <p className="text-sm text-gray-600 text-left">
+                                      <p className="text-sm text-gray-600 text-left break-words overflow-wrap-anywhere">
                                         <strong>Notes:</strong> {item.notes}
                                       </p>
                                     </div>
@@ -797,7 +797,7 @@ const SharedTripPage: React.FC = () => {
                         </h3>
                         
                         {item.description && (
-                          <p className="text-gray-600 text-sm mb-3 text-left">{item.description}</p>
+                          <p className="text-gray-600 text-sm mb-3 text-left break-words overflow-wrap-anywhere">{item.description}</p>
                         )}
 
                         {/* Location */}
