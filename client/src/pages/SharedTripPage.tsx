@@ -444,17 +444,23 @@ const SharedTripPage: React.FC = () => {
     };
   };
 
-  // Group itinerary by day for better display
+  // Group itinerary by day for better display - includes empty days
   const getGroupedItinerary = () => {
     const processedItems = getProcessedItinerary();
     const grouped: { [key: number]: any[] } = {};
+    const totalDays = getDuration();
 
+    // Initialize all days (1 to totalDays) with empty arrays
+    for (let day = 1; day <= totalDays; day++) {
+      grouped[day] = [];
+    }
+
+    // Add items to their respective days
     processedItems.forEach(item => {
       const day = item.calculatedDay;
-      if (!grouped[day]) {
-        grouped[day] = [];
+      if (grouped[day]) {
+        grouped[day].push(item);
       }
-      grouped[day].push(item);
     });
 
     return grouped;
@@ -565,7 +571,15 @@ const SharedTripPage: React.FC = () => {
 
                       {/* Day Items */}
                       <div className="space-y-4 ml-11">
-                        {dayItems.map((item: any, index: number) => {
+                        {dayItems.length === 0 ? (
+                          <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
+                            <div className="text-gray-400 mb-2">
+                              <CalendarIcon className="h-8 w-8 mx-auto" />
+                            </div>
+                            <p className="text-sm text-gray-500">No activities planned for this day yet</p>
+                          </div>
+                        ) : (
+                          dayItems.map((item: any, index: number) => {
                           // Enhanced flight detection - check by title pattern as well as type
                           const title = item.title || item.custom_title || item.place?.name || '';
                           const isLikelyFlight = title.includes('Airline') || title.includes('Flight') || /[A-Z]{2,3}\d+/.test(title);
@@ -744,7 +758,8 @@ const SharedTripPage: React.FC = () => {
                               </div>
                             </div>
                           );
-                        })}
+                        })
+                        )}
                       </div>
                     </div>
                   ))}
