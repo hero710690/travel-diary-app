@@ -666,12 +666,12 @@ const TripDetailPage: React.FC = () => {
 
   // Helper function to determine hotel check-in/check-out status
   const getHotelStatus = (hotelItem: any, allItems: any[]) => {
-    const hotelName = hotelItem.title || hotelItem.custom_title || hotelItem.place?.name;
+    const hotelName = hotelItem.hotelInfo?.name || hotelItem.title || hotelItem.custom_title || hotelItem.place?.name;
     
     // Find all occurrences of this hotel in the itinerary
     const allHotelOccurrences = allItems.filter(item => {
-      const itemHotelName = item.title || item.custom_title || item.place?.name;
-      const isHotelItem = item.type === 'accommodation' || 
+      const itemHotelName = item.hotelInfo?.name || item.title || item.custom_title || item.place?.name;
+      const isHotelItem = item.type === 'accommodation' || item.hotelInfo || 
                          (item.place?.types && item.place.types.includes('lodging'));
       return itemHotelName === hotelName && isHotelItem;
     });
@@ -679,8 +679,8 @@ const TripDetailPage: React.FC = () => {
     // Sort by day and time to determine sequence
     const sortedOccurrences = allHotelOccurrences.sort((a, b) => {
       // First sort by day
-      const dayA = a.calculatedDay || 1;
-      const dayB = b.calculatedDay || 1;
+      const dayA = a.calculatedDay || a.day || 1;
+      const dayB = b.calculatedDay || b.day || 1;
       if (dayA !== dayB) {
         return dayA - dayB;
       }
@@ -690,16 +690,33 @@ const TripDetailPage: React.FC = () => {
       return timeA.localeCompare(timeB);
     });
     
+    // Find current item index using direct comparison first, then fallback to field matching
     const currentItemIndex = sortedOccurrences.findIndex(item => 
-      item.id === hotelItem.id || (
-        (item.calculatedDay || 1) === (hotelItem.calculatedDay || 1) && 
+      item === hotelItem || (
+        (item.calculatedDay || item.day || 1) === (hotelItem.calculatedDay || hotelItem.day || 1) && 
         (item.time || item.start_time) === (hotelItem.time || hotelItem.start_time) &&
-        (item.title || item.custom_title || item.place?.name) === hotelName
+        (item.hotelInfo?.name || item.title || item.custom_title || item.place?.name) === hotelName
       )
     );
     
     const isFirstOccurrence = currentItemIndex === 0;
     const isLastOccurrence = currentItemIndex === sortedOccurrences.length - 1;
+    
+    // Debug logging to help identify issues
+    console.log('🏨 Hotel status analysis (TripDetailPage):', {
+      hotelName,
+      currentDay: hotelItem.calculatedDay || hotelItem.day,
+      currentTime: hotelItem.time || hotelItem.start_time,
+      totalOccurrences: sortedOccurrences.length,
+      currentIndex: currentItemIndex,
+      isFirstOccurrence,
+      isLastOccurrence,
+      allOccurrences: sortedOccurrences.map(item => ({
+        day: item.calculatedDay || item.day,
+        time: item.time || item.start_time,
+        name: item.hotelInfo?.name || item.title || item.custom_title || item.place?.name
+      }))
+    });
     
     return {
       isCheckIn: isFirstOccurrence,
