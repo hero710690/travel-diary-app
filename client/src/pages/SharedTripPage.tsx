@@ -704,7 +704,10 @@ const SharedTripPage: React.FC = () => {
                                       <div className="flex items-center">
                                         <StarIconSolid className="h-4 w-4 text-yellow-400 mr-1" />
                                         <span className="text-sm text-gray-600">
-                                          {item.place.rating} ({item.place.user_ratings_total || 0} reviews)
+                                          {item.place.rating}
+                                          {item.place.user_ratings_total && item.place.user_ratings_total > 0 && (
+                                            <span> ({item.place.user_ratings_total} reviews)</span>
+                                          )}
                                         </span>
                                       </div>
                                     </div>
@@ -814,7 +817,10 @@ const SharedTripPage: React.FC = () => {
                             <div className="flex items-center">
                               <StarIconSolid className="h-4 w-4 text-yellow-400 mr-1" />
                               <span className="text-sm text-gray-600">
-                                {item.rating} ({item.user_ratings_total || 0} reviews)
+                                {item.rating}
+                                {item.user_ratings_total && item.user_ratings_total > 0 && (
+                                  <span> ({item.user_ratings_total} reviews)</span>
+                                )}
                               </span>
                             </div>
                           </div>
