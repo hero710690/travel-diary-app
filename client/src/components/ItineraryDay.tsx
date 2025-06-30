@@ -160,13 +160,17 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
                 <HotelCard
                   key={item.id}
                   hotelInfo={{
-                    name: item.title || item.place?.name || 'Hotel',
-                    address: item.description || item.place?.formatted_address || item.place?.address || '',
-                    checkInDate: '', // Will be filled from hotel stay data
-                    checkOutDate: '', // Will be filled from hotel stay data
-                    rating: item.place?.rating,
+                    name: item.hotelInfo?.name || item.title || item.place?.name || 'Hotel',
+                    address: item.hotelInfo?.address || item.description || item.place?.formatted_address || item.place?.address || '',
+                    checkInDate: item.hotelInfo?.checkInDate || '', 
+                    checkOutDate: item.hotelInfo?.checkOutDate || '', 
+                    rating: item.hotelInfo?.rating || item.place?.rating,
                     user_ratings_total: item.place?.user_ratings_total,
-                    notes: item.notes || ''
+                    notes: item.hotelInfo?.notes || item.notes || '',
+                    // Most importantly - preserve room type!
+                    roomType: item.hotelInfo?.roomType,
+                    confirmationNumber: item.hotelInfo?.confirmationNumber,
+                    coordinates: item.hotelInfo?.coordinates
                   }}
                   time={formatTime ? formatTime(item.time || '') : (item.time || '')}
                   isCheckIn={item.description?.includes('Check-in')}
