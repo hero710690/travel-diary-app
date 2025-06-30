@@ -664,6 +664,50 @@ const TripDetailPage: React.FC = () => {
     }
   };
 
+  // Helper function to determine hotel check-in/check-out status
+  const getHotelStatus = (hotelItem: any, allItems: any[]) => {
+    const hotelName = hotelItem.title || hotelItem.custom_title || hotelItem.place?.name;
+    
+    // Find all occurrences of this hotel in the itinerary
+    const allHotelOccurrences = allItems.filter(item => {
+      const itemHotelName = item.title || item.custom_title || item.place?.name;
+      const isHotelItem = item.type === 'accommodation' || 
+                         (item.place?.types && item.place.types.includes('lodging'));
+      return itemHotelName === hotelName && isHotelItem;
+    });
+    
+    // Sort by day and time to determine sequence
+    const sortedOccurrences = allHotelOccurrences.sort((a, b) => {
+      // First sort by day
+      const dayA = a.calculatedDay || 1;
+      const dayB = b.calculatedDay || 1;
+      if (dayA !== dayB) {
+        return dayA - dayB;
+      }
+      // Then sort by time
+      const timeA = a.time || a.start_time || '00:00';
+      const timeB = b.time || b.start_time || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+    
+    const currentItemIndex = sortedOccurrences.findIndex(item => 
+      item.id === hotelItem.id || (
+        (item.calculatedDay || 1) === (hotelItem.calculatedDay || 1) && 
+        (item.time || item.start_time) === (hotelItem.time || hotelItem.start_time) &&
+        (item.title || item.custom_title || item.place?.name) === hotelName
+      )
+    );
+    
+    const isFirstOccurrence = currentItemIndex === 0;
+    const isLastOccurrence = currentItemIndex === sortedOccurrences.length - 1;
+    
+    return {
+      isCheckIn: isFirstOccurrence,
+      isCheckOut: isLastOccurrence && sortedOccurrences.length > 1,
+      isStay: !isFirstOccurrence && !isLastOccurrence
+    };
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -1012,18 +1056,16 @@ const TripDetailPage: React.FC = () => {
                                               
                                               if (!isHotelItem) return null;
                                               
-                                              // Determine check-in/check-out status based on hotelStatus field or description fallback
-                                              const hotelStatus = (item as any).hotelStatus;
-                                              const isCheckIn = hotelStatus === 'Check-in' || item.description?.includes('Check-in') || false;
-                                              const isCheckOut = hotelStatus === 'Check-out' || item.description?.includes('Check-out') || false;
+                                              // Get all items for hotel status analysis
+                                              const hotelStatus = getHotelStatus(item, itinerary);
                                               
-                                              if (isCheckIn) {
+                                              if (hotelStatus.isCheckIn) {
                                                 return (
                                                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 ml-2">
                                                     Check-in
                                                   </span>
                                                 );
-                                              } else if (isCheckOut) {
+                                              } else if (hotelStatus.isCheckOut) {
                                                 return (
                                                   <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800 ml-2">
                                                     Check-out
