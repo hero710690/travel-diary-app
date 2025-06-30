@@ -203,7 +203,7 @@ const SharedTripPage: React.FC = () => {
     try {
       const start = new Date(tripData.start_date);
       const end = new Date(tripData.end_date);
-      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+      const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
       return days;
     } catch {
       return tripData.duration || 1;

@@ -736,7 +736,7 @@ const TripDetailPage: React.FC = () => {
           <div className="text-left">
             <h3 className="font-medium text-gray-900 text-left">Duration</h3>
             <p className="text-gray-600 text-left">
-              {Math.ceil((new Date(tripData.endDate).getTime() - new Date(tripData.startDate).getTime()) / (1000 * 60 * 60 * 24))} days
+              {Math.ceil((new Date(tripData.endDate).getTime() - new Date(tripData.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1} days
             </p>
           </div>
           <div className="text-left">
