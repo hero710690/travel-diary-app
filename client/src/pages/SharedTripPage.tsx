@@ -641,8 +641,9 @@ const SharedTripPage: React.FC = () => {
                                     )}
                                   </div>
                                   
-                                  {/* Address Display */}
-                                  {(item.place?.formatted_address || item.location?.address) && (
+                                  {/* Address Display - Only for activity cards, not accommodation or flight */}
+                                  {(item.type !== 'accommodation' && item.type !== 'flight' && 
+                                    (item.place?.formatted_address || item.location?.address)) && (
                                     <div className="flex items-start mb-3">
                                       <MapPinIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
                                       <p className="text-sm text-gray-600 text-left">
