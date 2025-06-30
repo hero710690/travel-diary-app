@@ -623,10 +623,24 @@ const SharedTripPage: React.FC = () => {
                             const allDayItems = Object.values(getGroupedItinerary()).flat();
                             const hotelStatus = getHotelStatus(item, allDayItems, index);
                             
+                            // Transform hotel data to match HotelCard interface
+                            const transformedHotelInfo = {
+                              name: item.hotelInfo.name || item.title || item.custom_title || 'Hotel',
+                              address: item.hotelInfo.address || item.description || item.place?.formatted_address || 'Address not available',
+                              checkInDate: item.hotelInfo.checkInDate || '',
+                              checkOutDate: item.hotelInfo.checkOutDate || '',
+                              roomType: item.hotelInfo.roomType || item.hotelInfo.room_type || '',
+                              confirmationNumber: item.hotelInfo.confirmationNumber || item.hotelInfo.confirmation_number || '',
+                              rating: item.hotelInfo.rating || item.place?.rating || 0,
+                              user_ratings_total: item.hotelInfo.user_ratings_total || item.place?.user_ratings_total || 0,
+                              notes: item.hotelInfo.notes || item.notes || '',
+                              coordinates: item.hotelInfo.coordinates || item.place?.geometry?.location || undefined
+                            };
+                            
                             return (
                               <HotelCard
                                 key={`${day}-${index}`}
-                                hotelInfo={item.hotelInfo}
+                                hotelInfo={transformedHotelInfo}
                                 time={formatTime(getItemTime(item))}
                                 isCheckIn={hotelStatus.isCheckIn}
                                 isCheckOut={hotelStatus.isCheckOut}
