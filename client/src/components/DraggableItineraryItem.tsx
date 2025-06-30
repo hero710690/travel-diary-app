@@ -254,7 +254,9 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                 </div>
               )}
               
-              {item.description && (
+              {/* Description - Only show if it's not the same as the address */}
+              {item.description && 
+               item.description !== (item.place?.formatted_address || item.location?.address) && (
                 <p className="text-sm text-gray-600 break-words line-clamp-2 text-left mb-2">
                   {item.description}
                 </p>
