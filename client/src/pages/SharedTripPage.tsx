@@ -667,7 +667,9 @@ const SharedTripPage: React.FC = () => {
                                     </div>
                                   )}
                                   
-                                  {item.description && (
+                                  {/* Description - Only show if it's different from the address */}
+                                  {item.description && 
+                                   item.description !== (item.place?.formatted_address || item.location?.address) && (
                                     <p className="text-gray-600 mb-3 text-left">{item.description}</p>
                                   )}
                                   
