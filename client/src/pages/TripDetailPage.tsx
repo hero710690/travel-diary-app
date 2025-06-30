@@ -1123,36 +1123,38 @@ const TripDetailPage: React.FC = () => {
                                         
                                         if (!isHotelItem) return null;
                                         
-                                        // Create hotel info from available data
-                                        let hotelAddress = item.description || item.place?.formatted_address || '';
-                                        
-                                        // Clean the address by removing status text
-                                        if (hotelAddress) {
-                                          hotelAddress = hotelAddress
-                                            .replace(/\s*-\s*Check-in\s*$/i, '')
-                                            .replace(/\s*-\s*Check-out\s*$/i, '')
-                                            .replace(/\s*-\s*Hotel Stay\s*$/i, '')
-                                            .replace(/\s*-\s*Stay\s*$/i, '')
-                                            .trim();
-                                        }
-                                        
-                                        return (
-                                          <div className="mt-2">
-                                            {/* Address only */}
-                                            {hotelAddress && (
-                                              <div className="text-sm text-gray-600 text-left">{hotelAddress}</div>
-                                            )}
-                                          </div>
-                                        );
+                                        // Hotel info section - address will be shown below with map pin icon
+                                        return null; // Remove duplicate address display
                                       })()}
                                       
-                                      {/* Address Display - Only for activity cards, not flight */}
+                                      {/* Address Display - For all items except flight */}
                                       {item.type !== 'flight' && 
-                                       (item.place?.formatted_address || item.location?.address) && (
+                                       (item.place?.formatted_address || item.location?.address || item.description) && (
                                         <div className="flex items-start mt-2">
                                           <MapPinIcon className="h-3 w-3 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
                                           <p className="text-sm text-gray-600 text-left">
-                                            {item.place?.formatted_address || item.location?.address}
+                                            {(() => {
+                                              // For hotels, clean the address from description or use place address
+                                              const isHotelItem = (item.type as any) === 'accommodation' || 
+                                                                 (item.place?.types && item.place.types.includes('lodging'));
+                                              
+                                              if (isHotelItem) {
+                                                let hotelAddress = item.description || item.place?.formatted_address || item.location?.address || '';
+                                                // Clean the address by removing status text
+                                                if (hotelAddress) {
+                                                  hotelAddress = hotelAddress
+                                                    .replace(/\s*-\s*Check-in\s*$/i, '')
+                                                    .replace(/\s*-\s*Check-out\s*$/i, '')
+                                                    .replace(/\s*-\s*Hotel Stay\s*$/i, '')
+                                                    .replace(/\s*-\s*Stay\s*$/i, '')
+                                                    .trim();
+                                                }
+                                                return hotelAddress;
+                                              }
+                                              
+                                              // For activities, use place or location address
+                                              return item.place?.formatted_address || item.location?.address;
+                                            })()}
                                           </p>
                                         </div>
                                       )}
