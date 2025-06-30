@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDrag } from 'react-dnd';
-import { ClockIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, HeartIcon, StarIcon, MapPinIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, HeartIcon, StarIcon, MapPinIcon, CameraIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import { ItineraryItem } from '../types';
 
@@ -216,7 +216,7 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center space-x-2 flex-1 min-w-0">
                   {item.type !== 'accommodation' && item.type !== 'flight' && (
-                    <MapPinIcon className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <CameraIcon className="h-4 w-4 text-blue-600 flex-shrink-0" />
                   )}
                   <h4 className="text-sm font-medium text-gray-900 break-words text-left">
                     {item.title}
@@ -255,9 +255,20 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
               )}
               
               {item.description && (
-                <p className="text-xs text-gray-500 break-words line-clamp-2 text-left mb-2">
+                <p className="text-sm text-gray-600 break-words line-clamp-2 text-left mb-2">
                   {item.description}
                 </p>
+              )}
+              
+              {/* Address Display - Only for activity cards, not accommodation or flight */}
+              {item.type !== 'accommodation' && item.type !== 'flight' && 
+               (item.place?.formatted_address || item.location?.address) && (
+                <div className="flex items-start mb-2">
+                  <MapPinIcon className="h-3 w-3 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-gray-600 text-left">
+                    {item.place?.formatted_address || item.location?.address}
+                  </p>
+                </div>
               )}
               
               {/* Google Rating and Place Types - Only for non-flight items */}
@@ -267,11 +278,11 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                   {item.place.rating && (
                     <div className="flex items-center space-x-1">
                       <StarIcon className="h-3 w-3 text-yellow-400 fill-current flex-shrink-0" />
-                      <span className="text-xs text-gray-600">
+                      <span className="text-sm text-gray-600">
                         {item.place.rating.toFixed(1)} Google
                       </span>
                       {item.place.user_ratings_total && item.place.user_ratings_total > 0 && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-sm text-gray-400">
                           ({item.place.user_ratings_total.toLocaleString()} reviews)
                         </span>
                       )}
@@ -284,13 +295,13 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                       {item.place.types.slice(0, 2).map((type) => (
                         <span
                           key={type}
-                          className="inline-block px-1.5 py-0.5 text-xs bg-blue-50 text-blue-600 rounded text-left"
+                          className="inline-block px-1.5 py-0.5 text-sm bg-blue-50 text-blue-600 rounded text-left"
                         >
                           {type.replace(/_/g, ' ')}
                         </span>
                       ))}
                       {item.place.types.length > 2 && (
-                        <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-500 rounded">
+                        <span className="inline-block px-1.5 py-0.5 text-sm bg-gray-100 text-gray-500 rounded">
                           +{item.place.types.length - 2}
                         </span>
                       )}
