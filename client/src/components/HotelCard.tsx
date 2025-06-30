@@ -91,7 +91,7 @@ const HotelCard: React.FC<HotelCardProps> = ({
           <div className="flex items-center space-x-2">
             <StarIcon className="h-4 w-4 text-yellow-400 fill-current flex-shrink-0" />
             <span className="text-sm text-gray-600">
-              {hotelInfo.rating.toFixed(1)} Google
+              {hotelInfo.rating.toFixed(1)}
               {hotelInfo.user_ratings_total && hotelInfo.user_ratings_total > 0 && (
                 <span className="text-gray-400 ml-1">
                   ({hotelInfo.user_ratings_total.toLocaleString()} reviews)
