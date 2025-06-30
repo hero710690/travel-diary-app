@@ -17,7 +17,8 @@ import {
   HeartIcon,
   StarIcon,
   PaperAirplaneIcon,
-  HomeIcon
+  HomeIcon,
+  CameraIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { format } from 'date-fns';
@@ -194,8 +195,8 @@ const SharedTripPage: React.FC = () => {
       return <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
     }
     
-    // All other activities use MapPinIcon
-    return <MapPinIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
+    // All other activities use CameraIcon instead of MapPinIcon
+    return <CameraIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
   };
 
   const getDuration = () => {
@@ -644,7 +645,8 @@ const SharedTripPage: React.FC = () => {
                                   {/* Address Display - Only for activity cards, not accommodation or flight */}
                                   {(item.type !== 'accommodation' && item.type !== 'flight' && 
                                     (item.place?.formatted_address || item.location?.address)) && (
-                                    <div className="mb-3">
+                                    <div className="flex items-start mb-3">
+                                      <MapPinIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
                                       <p className="text-sm text-gray-600 text-left">
                                         {item.place?.formatted_address || item.location?.address}
                                       </p>
