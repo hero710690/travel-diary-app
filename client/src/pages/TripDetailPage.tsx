@@ -702,22 +702,6 @@ const TripDetailPage: React.FC = () => {
     const isFirstOccurrence = currentItemIndex === 0;
     const isLastOccurrence = currentItemIndex === sortedOccurrences.length - 1;
     
-    // Debug logging to help identify issues
-    console.log('🏨 Hotel status analysis (TripDetailPage):', {
-      hotelName,
-      currentDay: hotelItem.calculatedDay || hotelItem.day,
-      currentTime: hotelItem.time || hotelItem.start_time,
-      totalOccurrences: sortedOccurrences.length,
-      currentIndex: currentItemIndex,
-      isFirstOccurrence,
-      isLastOccurrence,
-      allOccurrences: sortedOccurrences.map(item => ({
-        day: item.calculatedDay || item.day,
-        time: item.time || item.start_time,
-        name: item.hotelInfo?.name || item.title || item.custom_title || item.place?.name
-      }))
-    });
-    
     return {
       isCheckIn: isFirstOccurrence,
       isCheckOut: isLastOccurrence && sortedOccurrences.length > 1,
