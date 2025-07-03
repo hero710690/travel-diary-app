@@ -1534,6 +1534,18 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           ? `${item.flightInfo.departure.airportCode} → ${item.flightInfo.arrival.airportCode}`
           : item.title || item.place?.name || 'Planned Item';
         
+        // Enhanced hotel detection logic
+        const isHotelItem = item.type === 'accommodation' || 
+                          item.hotelInfo || 
+                          (item.place?.types && item.place.types.includes('lodging')) ||
+                          (item.title && (
+                            item.title.toLowerCase().includes('hotel') ||
+                            item.title.toLowerCase().includes('resort') ||
+                            item.title.toLowerCase().includes('inn') ||
+                            item.title.toLowerCase().includes('motel') ||
+                            item.title.toLowerCase().includes('lodge')
+                          ));
+        
         return {
           position: {
             lat: coordinates.lat,
@@ -1544,7 +1556,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           rating: item.place?.rating,
           types: item.place?.types,
           markerType: item.type === 'flight' ? 'flight' as const : 
-                     item.hotelInfo ? 'hotel' as const : 
+                     isHotelItem ? 'hotel' as const : 
                      'activity' as const
         };
       })
