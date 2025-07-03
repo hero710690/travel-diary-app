@@ -267,7 +267,7 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
               {item.type !== 'accommodation' && item.type !== 'flight' && 
                (item.place?.formatted_address || item.location?.address) && (
                 <div className="flex items-start mb-2">
-                  <MapPinIcon className="h-3 w-3 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
+                  <MapPinIcon className="h-4 w-4 text-gray-500 mr-1 mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-gray-600 text-left">
                     {item.place?.formatted_address || item.location?.address}
                   </p>
