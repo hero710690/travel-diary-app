@@ -697,25 +697,62 @@ const SharedTripPage: React.FC = () => {
                             );
                           }
 
-                          // Check if this is a hotel item
-                          if (item.type === 'accommodation' && item.hotelInfo) {
+                          // Check if this is a hotel item - more flexible detection
+                          const isHotelItem = item.type === 'accommodation' || 
+                                            item.hotelInfo || 
+                                            (item.place?.types && item.place.types.includes('lodging')) ||
+                                            (item.title && (
+                                              item.title.toLowerCase().includes('hotel') ||
+                                              item.title.toLowerCase().includes('resort') ||
+                                              item.title.toLowerCase().includes('inn') ||
+                                              item.title.toLowerCase().includes('motel') ||
+                                              item.title.toLowerCase().includes('lodge')
+                                            ));
+                          
+                          if (isHotelItem) {
                             const allDayItems = Object.values(getGroupedItinerary()).flat();
                             const hotelStatus = getHotelStatus(item, allDayItems, index);
                             
                             // Transform hotel data to match HotelCard interface
                             const transformedHotelInfo = {
-                              name: item.hotelInfo.name || item.title || item.custom_title || 'Hotel',
-                              address: item.hotelInfo.address || item.description || item.place?.formatted_address || 'Address not available',
-                              checkInDate: item.hotelInfo.checkInDate || '',
-                              checkOutDate: item.hotelInfo.checkOutDate || '',
-                              roomType: item.hotelInfo.roomType || item.hotelInfo.room_type || '',
-                              confirmationNumber: item.hotelInfo.confirmationNumber || item.hotelInfo.confirmation_number || '',
-                              rating: item.hotelInfo.rating || item.place?.rating || null,
-                              user_ratings_total: item.hotelInfo.user_ratings_total || item.place?.user_ratings_total || null,
-                              notes: item.hotelInfo.notes || item.notes || '',
-                              coordinates: item.hotelInfo.coordinates || item.place?.geometry?.location || undefined,
+                              name: item.hotelInfo?.name || item.title || item.custom_title || 'Hotel',
+                              address: item.description || 
+                                      item.custom_description || 
+                                      item.place?.address ||
+                                      item.place?.formatted_address || 
+                                      item.location?.address || 
+                                      item.hotelInfo?.address || 
+                                      'Address not available',
+                              checkInDate: item.hotelInfo?.checkInDate || '',
+                              checkOutDate: item.hotelInfo?.checkOutDate || '',
+                              roomType: item.hotelInfo?.roomType || item.hotelInfo?.room_type || '',
+                              confirmationNumber: item.hotelInfo?.confirmationNumber || item.hotelInfo?.confirmation_number || '',
+                              rating: item.hotelInfo?.rating || item.place?.rating || null,
+                              user_ratings_total: item.hotelInfo?.user_ratings_total || item.place?.user_ratings_total || null,
+                              notes: item.hotelInfo?.notes || item.notes || '',
+                              coordinates: item.hotelInfo?.coordinates || item.place?.geometry?.location || item.location?.coordinates || undefined,
                               types: item.place?.types || ['lodging'] // Add place types
                             };
+                            
+                            // Clean the address by removing status text (same as trip detail page)
+                            if (transformedHotelInfo.address && transformedHotelInfo.address !== 'Address not available') {
+                              transformedHotelInfo.address = transformedHotelInfo.address
+                                .replace(/\s*-\s*Check-in\s*$/i, '')
+                                .replace(/\s*-\s*Check-out\s*$/i, '')
+                                .replace(/\s*-\s*Hotel Stay\s*$/i, '')
+                                .replace(/\s*-\s*Stay\s*$/i, '')
+                                .trim();
+                            }
+                            
+                            // Clean the address by removing status text (same as trip detail page)
+                            if (transformedHotelInfo.address && transformedHotelInfo.address !== 'Address not available') {
+                              transformedHotelInfo.address = transformedHotelInfo.address
+                                .replace(/\s*-\s*Check-in\s*$/i, '')
+                                .replace(/\s*-\s*Check-out\s*$/i, '')
+                                .replace(/\s*-\s*Hotel Stay\s*$/i, '')
+                                .replace(/\s*-\s*Stay\s*$/i, '')
+                                .trim();
+                            }
                             
                             return (
                               <HotelCard
