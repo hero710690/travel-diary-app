@@ -685,7 +685,16 @@ const SharedTripPage: React.FC = () => {
                                   {/* Description - Only show if it's different from the address */}
                                   {item.description && 
                                    item.description !== (item.place?.formatted_address || item.location?.address) && (
-                                    <p className="text-gray-600 mb-3 text-left break-words overflow-wrap-anywhere">{item.description}</p>
+                                    <div className="flex items-start mb-3">
+                                      {/* Add MapPinIcon for hotel addresses */}
+                                      {(item.type === 'accommodation' || 
+                                        (item.place?.types && item.place.types.includes('lodging'))) && (
+                                        <MapPinIcon className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                                      )}
+                                      <p className="text-gray-600 text-left break-words overflow-wrap-anywhere">
+                                        {convertLinksToHyperlinks(item.description)}
+                                      </p>
+                                    </div>
                                   )}
                                   
                                   {/* Location with enhanced display */}
