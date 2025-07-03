@@ -31,6 +31,10 @@ const SharedTripPage: React.FC = () => {
   const [password, setPassword] = useState(searchParams.get('password') || '');
   const [showPasswordForm, setShowPasswordForm] = useState(false);
 
+  // Timeline navigation state
+  const [selectedDay, setSelectedDay] = useState<number>(1);
+  const [showAllDays, setShowAllDays] = useState<boolean>(false);
+
   const { data: tripData, isLoading, error, refetch } = useQuery(
     ['sharedTrip', token, password],
     () => collaborationService.getSharedTrip(token!, password || undefined),
@@ -209,6 +213,39 @@ const SharedTripPage: React.FC = () => {
     } catch {
       return tripData.duration || 1;
     }
+  };
+
+  // Generate days for timeline navigation
+  const generateDays = () => {
+    const totalDays = getDuration();
+    const days = [];
+    
+    for (let i = 1; i <= totalDays; i++) {
+      let dayDate = new Date();
+      try {
+        const startDate = new Date(tripData.start_date);
+        dayDate = new Date(startDate);
+        dayDate.setDate(startDate.getDate() + i - 1);
+      } catch {
+        // Fallback if date parsing fails
+        dayDate.setDate(dayDate.getDate() + i - 1);
+      }
+      
+      days.push({
+        dayNumber: i,
+        date: dayDate
+      });
+    }
+    
+    return days;
+  };
+
+  // Get visible days based on timeline selection
+  const getVisibleDays = () => {
+    if (showAllDays) {
+      return Object.keys(getGroupedItinerary()).map(day => parseInt(day));
+    }
+    return [selectedDay];
   };
 
   // Process and sort itinerary items properly
@@ -543,9 +580,62 @@ const SharedTripPage: React.FC = () => {
           {tripData.itinerary && tripData.itinerary.length > 0 && (
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 text-left">Itinerary</h2>
+              
+              {/* Timeline Navigation */}
+              {(() => {
+                const days = generateDays();
+                return days.length > 0 && (
+                  <div className="bg-gray-50 rounded-lg p-4 mb-6">
+                    <div className="flex items-center justify-between mb-3">
+                      <h4 className="text-sm font-medium text-gray-700 text-left">Timeline</h4>
+                      <button
+                        onClick={() => setShowAllDays(!showAllDays)}
+                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                      >
+                        {showAllDays ? 'Show Selected' : 'Show All'}
+                      </button>
+                    </div>
+                    
+                    {/* Scrollable Timeline */}
+                    <div className="relative">
+                      <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                        {days.map((day, index) => (
+                          <button
+                            key={day.dayNumber}
+                            onClick={() => {
+                              setSelectedDay(day.dayNumber);
+                              setShowAllDays(false);
+                            }}
+                            className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                              selectedDay === day.dayNumber && !showAllDays
+                                ? 'bg-blue-600 text-white'
+                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                            }`}
+                          >
+                            <div className="text-center">
+                              <div className="font-semibold">Day {day.dayNumber}</div>
+                              <div className="text-xs opacity-75">
+                                {day.date.toLocaleDateString('en-US', { 
+                                  month: 'short', 
+                                  day: 'numeric' 
+                                })}
+                              </div>
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                      
+                      {/* Timeline connector line */}
+                      <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-300 -z-10"></div>
+                    </div>
+                  </div>
+                );
+              })()}
+              
               <div className="space-y-8">
                 {Object.entries(getGroupedItinerary())
                   .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
+                  .filter(([day]) => getVisibleDays().includes(parseInt(day)))
                   .map(([day, dayItems]) => (
                     <div key={day} className="space-y-4">
                       {/* Day Header */}

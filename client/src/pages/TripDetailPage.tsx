@@ -111,6 +111,18 @@ const TripDetailPage: React.FC = () => {
     joinedAt?: string;
   }>>([]);
 
+  // Timeline navigation state
+  const [selectedDay, setSelectedDay] = useState<number>(1);
+  const [showAllDays, setShowAllDays] = useState<boolean>(false);
+
+  // Get visible days based on timeline selection
+  const getVisibleDays = () => {
+    if (showAllDays) {
+      return days;
+    }
+    return days.filter(day => day.dayNumber === selectedDay);
+  };
+
   const { data: tripResponse, isLoading, error, refetch } = useQuery(
     ['trip', id],
     () => tripsService.getTrip(id!),
@@ -945,7 +957,55 @@ const TripDetailPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {days.map((day) => {
+                  {/* Timeline Navigation */}
+                  {days.length > 0 && (
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-medium text-gray-700 text-left">Timeline</h4>
+                        <button
+                          onClick={() => setShowAllDays(!showAllDays)}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          {showAllDays ? 'Show Selected' : 'Show All'}
+                        </button>
+                      </div>
+                      
+                      {/* Scrollable Timeline */}
+                      <div className="relative">
+                        <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                          {days.map((day, index) => (
+                            <button
+                              key={day.dayNumber}
+                              onClick={() => {
+                                setSelectedDay(day.dayNumber);
+                                setShowAllDays(false);
+                              }}
+                              className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                                selectedDay === day.dayNumber && !showAllDays
+                                  ? 'bg-blue-600 text-white'
+                                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                              }`}
+                            >
+                              <div className="text-center">
+                                <div className="font-semibold">Day {day.dayNumber}</div>
+                                <div className="text-xs opacity-75">
+                                  {day.date.toLocaleDateString('en-US', { 
+                                    month: 'short', 
+                                    day: 'numeric' 
+                                  })}
+                                </div>
+                              </div>
+                            </button>
+                          ))}
+                        </div>
+                        
+                        {/* Timeline connector line */}
+                        <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-300 -z-10"></div>
+                      </div>
+                    </div>
+                  )}
+                  
+                  {getVisibleDays().map((day) => {
                     const dayItems = itinerary
                       .filter(item => item.day === day.dayNumber)
                       .sort((a, b) => {
