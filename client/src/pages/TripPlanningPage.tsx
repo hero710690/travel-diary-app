@@ -1528,12 +1528,18 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         const coordinates = item.location?.coordinates || item.place?.coordinates;
         if (!coordinates) return null;
         
+        // For flights, we'll let the GoogleMap component handle airport lookup
+        // Pass flight info in the title for airport code extraction
+        const flightTitle = item.type === 'flight' && item.flightInfo 
+          ? `${item.flightInfo.departure.airportCode} → ${item.flightInfo.arrival.airportCode}`
+          : item.title || item.place?.name || 'Planned Item';
+        
         return {
           position: {
             lat: coordinates.lat,
             lng: coordinates.lng,
           },
-          title: item.title || item.place?.name || 'Planned Item',
+          title: flightTitle,
           address: item.location?.address || item.place?.formatted_address,
           rating: item.place?.rating,
           types: item.place?.types,

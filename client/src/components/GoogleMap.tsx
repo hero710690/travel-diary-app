@@ -22,7 +22,42 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
   const [service, setService] = useState<google.maps.places.PlacesService>();
   const [mapMarkers, setMapMarkers] = useState<google.maps.Marker[]>([]);
 
-  // Get marker icon based on type
+  // Function to find airport location by airport code
+  const findAirportLocation = async (airportCode: string, placesService: google.maps.places.PlacesService): Promise<google.maps.LatLng | null> => {
+    return new Promise((resolve) => {
+      const request = {
+        query: `${airportCode} airport`,
+        fields: ['place_id', 'geometry', 'name']
+      };
+
+      placesService.textSearch(request, (results, status) => {
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
+          const location = results[0].geometry?.location;
+          if (location) {
+            resolve(location);
+            return;
+          }
+        }
+        
+        // Fallback: try with just the airport code
+        const fallbackRequest = {
+          query: airportCode,
+          fields: ['place_id', 'geometry', 'name']
+        };
+        
+        placesService.textSearch(fallbackRequest, (fallbackResults, fallbackStatus) => {
+          if (fallbackStatus === google.maps.places.PlacesServiceStatus.OK && fallbackResults && fallbackResults[0]) {
+            const location = fallbackResults[0].geometry?.location;
+            if (location) {
+              resolve(location);
+              return;
+            }
+          }
+          resolve(null);
+        });
+      });
+    });
+  };
   const getMarkerIcon = (markerType?: 'activity' | 'hotel' | 'flight' | 'default') => {
     const baseUrl = 'https://maps.google.com/mapfiles/ms/icons/';
     
@@ -240,19 +275,73 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
       mapMarkers.forEach(marker => marker.setMap(null));
       const newMarkers: google.maps.Marker[] = [];
       
-      // Add new markers
-      markers.forEach((markerData) => {
-        const marker = new google.maps.Marker({
-          position: markerData.position,
-          map: map,
-          title: markerData.title,
-          icon: getMarkerIcon(markerData.markerType)
-        });
-        
-        newMarkers.push(marker);
-      });
+      // Create places service for airport lookups
+      const placesService = new google.maps.places.PlacesService(map);
       
-      setMapMarkers(newMarkers);
+      // Process markers
+      const processMarkers = async () => {
+        for (const markerData of markers) {
+          // Handle flight markers differently - find airport locations
+          if (markerData.markerType === 'flight' && markerData.title.includes('→')) {
+            // Extract airport codes from flight description
+            const description = markerData.title;
+            const airportMatch = description.match(/([A-Z]{3})\s*→\s*([A-Z]{3})/);
+            
+            if (airportMatch) {
+              const [, departureCode, arrivalCode] = airportMatch;
+              
+              // Find both airport locations
+              const departureLocation = await findAirportLocation(departureCode, placesService);
+              const arrivalLocation = await findAirportLocation(arrivalCode, placesService);
+              
+              // Create markers for both airports if found
+              if (departureLocation) {
+                const departureMarker = new google.maps.Marker({
+                  position: departureLocation,
+                  map: map,
+                  title: `${departureCode} - Departure`,
+                  icon: {
+                    url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                    scaledSize: new google.maps.Size(32, 32),
+                    origin: new google.maps.Point(0, 0),
+                    anchor: new google.maps.Point(16, 32)
+                  }
+                });
+                newMarkers.push(departureMarker);
+              }
+              
+              if (arrivalLocation) {
+                const arrivalMarker = new google.maps.Marker({
+                  position: arrivalLocation,
+                  map: map,
+                  title: `${arrivalCode} - Arrival`,
+                  icon: {
+                    url: 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png',
+                    scaledSize: new google.maps.Size(32, 32),
+                    origin: new google.maps.Point(0, 0),
+                    anchor: new google.maps.Point(16, 32)
+                  }
+                });
+                newMarkers.push(arrivalMarker);
+              }
+            }
+          } else {
+            // Regular marker (activity, hotel, etc.)
+            const marker = new google.maps.Marker({
+              position: markerData.position,
+              map: map,
+              title: markerData.title,
+              icon: getMarkerIcon(markerData.markerType)
+            });
+            
+            newMarkers.push(marker);
+          }
+        }
+        
+        setMapMarkers(newMarkers);
+      };
+      
+      processMarkers();
     }
   }, [map, markers]);
 
