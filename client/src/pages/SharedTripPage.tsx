@@ -462,19 +462,6 @@ const SharedTripPage: React.FC = () => {
     const isFirstOccurrence = currentItemIndex === 0;
     const isLastOccurrence = currentItemIndex === sortedOccurrences.length - 1;
     
-    console.log('🏨 Hotel status analysis:', {
-      hotelName,
-      currentDay: hotelItem.calculatedDay,
-      totalOccurrences: sortedOccurrences.length,
-      currentIndex: currentItemIndex,
-      isFirstOccurrence,
-      isLastOccurrence,
-      allOccurrences: sortedOccurrences.map(item => ({
-        day: item.calculatedDay,
-        time: item.time || item.start_time
-      }))
-    });
-    
     return {
       isCheckIn: isFirstOccurrence,
       isCheckOut: isLastOccurrence && sortedOccurrences.length > 1,
@@ -726,7 +713,8 @@ const SharedTripPage: React.FC = () => {
                               rating: item.hotelInfo.rating || item.place?.rating || null,
                               user_ratings_total: item.hotelInfo.user_ratings_total || item.place?.user_ratings_total || null,
                               notes: item.hotelInfo.notes || item.notes || '',
-                              coordinates: item.hotelInfo.coordinates || item.place?.geometry?.location || undefined
+                              coordinates: item.hotelInfo.coordinates || item.place?.geometry?.location || undefined,
+                              types: item.place?.types || ['lodging'] // Add place types
                             };
                             
                             return (
