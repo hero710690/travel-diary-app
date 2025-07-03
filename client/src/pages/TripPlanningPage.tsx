@@ -1508,31 +1508,18 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         <div className="grid grid-cols-1 xl:grid-cols-3 lg:grid-cols-2 gap-4 lg:gap-6">
           {/* Left Panel - Search and Places */}
           <div className="xl:col-span-1 space-y-4 lg:space-y-6">
-            {/* Selected Places */}
+            {/* Left panel - can be used for other features in the future */}
             <div className="bg-white rounded-lg shadow p-4 lg:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4 text-left">
-                Selected Places ({selectedPlaces.length})
-              </h2>
-              <div className="space-y-2 max-h-80 lg:max-h-96 overflow-y-auto">
-                {selectedPlaces.map((place) => (
-                  <DraggablePlace
-                    key={place.place_id}
-                    place={place}
-                    onRemove={() => setSelectedPlaces(prev => 
-                      prev.filter(p => p.place_id !== place.place_id)
-                    )}
-                  />
-                ))}
-                {selectedPlaces.length === 0 && (
-                  <p className="text-gray-500 text-sm text-left">
-                    Search and select places to add to your itinerary
-                  </p>
-                )}
+              <h2 className="text-lg font-medium text-gray-900 mb-4 text-left">Trip Tools</h2>
+              <div className="space-y-3">
+                <p className="text-gray-500 text-sm text-left">
+                  Use the search and map to find places, then drag them to your itinerary on the right.
+                </p>
               </div>
             </div>
           </div>
 
-          {/* Middle Panel - Map with Search */}
+          {/* Middle Panel - Map with Search and Selected Places */}
           <div className="xl:col-span-1 lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-4 lg:p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center text-left">
@@ -1545,13 +1532,39 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                 )}
               </h2>
               
-              {/* Places Search - moved from left panel */}
-              <div className="mb-4">
-                <h3 className="text-md font-medium text-gray-800 mb-3 text-left">Search Places</h3>
-                <PlacesSearch
-                  onPlaceSelect={handlePlaceSelect}
-                  placeholder="Search restaurants, attractions, hotels..."
-                />
+              {/* Search Places and Selected Places - side by side */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+                {/* Search Places - left side */}
+                <div>
+                  <h3 className="text-md font-medium text-gray-800 mb-3 text-left">Search Places</h3>
+                  <PlacesSearch
+                    onPlaceSelect={handlePlaceSelect}
+                    placeholder="Search restaurants, attractions, hotels..."
+                  />
+                </div>
+                
+                {/* Selected Places - right side */}
+                <div>
+                  <h3 className="text-md font-medium text-gray-800 mb-3 text-left">
+                    Selected Places ({selectedPlaces.length})
+                  </h3>
+                  <div className="space-y-2 max-h-40 overflow-y-auto">
+                    {selectedPlaces.map((place) => (
+                      <DraggablePlace
+                        key={place.place_id}
+                        place={place}
+                        onRemove={() => setSelectedPlaces(prev => 
+                          prev.filter(p => p.place_id !== place.place_id)
+                        )}
+                      />
+                    ))}
+                    {selectedPlaces.length === 0 && (
+                      <p className="text-gray-500 text-sm text-left">
+                        Search and select places to add them here
+                      </p>
+                    )}
+                  </div>
+                </div>
               </div>
               
               {!isMapReady && (
