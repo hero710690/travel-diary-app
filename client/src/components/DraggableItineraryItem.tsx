@@ -147,7 +147,7 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
   return (
     <div
       ref={drag}
-      className={`bg-white border border-gray-200 rounded-lg p-3 shadow-sm transition-all duration-200 ${
+      className={`bg-white border border-gray-200 rounded-lg p-6 shadow-sm transition-all duration-200 ${
         isDragging 
           ? 'opacity-50 shadow-lg transform rotate-2' 
           : 'hover:shadow-md cursor-move'
