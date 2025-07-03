@@ -48,7 +48,7 @@
   - **Impact**: No impact - functionality moved to FlightForm.tsx
 
 ### 🔄 **RECENTLY UPDATED** - Monitor for Issues
-- **FlightForm.tsx** - Enhanced with date input fields for departure/arrival dates (✅ Just updated)
+- **FlightForm.tsx** - Enhanced with date input fields for departure/arrival dates, removed arrival date constraints for cross-day flights (✅ Just updated)
 - **TripDetailPage.tsx** - Added flight editing modal with FlightForm integration, enhanced ShareModal integration, improved hotel status badge logic, added hyperlink functionality in notes (✅ Just updated)
 - **TripPlanningPage.tsx** - Updated to use FlightForm for adding flights, enhanced hotel form with notes field, added Share Trip button (✅ Just updated)
 - **DraggableItineraryItem.tsx** - Added editable notes functionality and hotel information display, added hyperlink functionality in notes (✅ Just updated)
@@ -186,6 +186,23 @@
 *Next Review: 2025-06-28*
 
 ---
+
+## 📋 Recent Changes (2025-07-03)
+
+### ✈️ **Flight Form Arrival Date Constraint Removal** (10:00)
+- **User Request**: Remove restrictive arrival date constraints to support cross-day flights
+- **Problem**: Flight form limited arrival dates to trip end date, preventing valid overnight/long-haul flights
+- **Solution**: Removed `min` and `max` constraints from arrival date input field
+- **Real-World Scenarios Supported**:
+  - Red-eye flights: Depart 11:30 PM, arrive 6:00 AM next day
+  - Long-haul international: Depart Monday, arrive Wednesday (crossing time zones)
+  - Multi-stop flights: Extended travel time across multiple days
+  - Delayed flights: Arrival dates extending beyond original trip dates
+- **Technical Change**: Removed `min={tripStartDate}` and `max={tripEndDate}` from arrival date input
+- **Departure Constraints**: Maintained (logical to keep within trip dates)
+- **Validation**: Required field validation preserved for both dates
+- **Bundle Impact**: `main.8de065b4.js` (167.5 kB gzipped, -4B for removed constraints)
+- **Status**: ✅ **DEPLOYED** - Flight form now supports all real-world flight scenarios
 
 ## 📋 Recent Changes (2025-06-30)
 

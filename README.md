@@ -295,6 +295,26 @@ The Lambda handler supports the following endpoints:
 
 ## 🚀 Recent Updates
 
+### **2025-07-03 - Flight Form Flexibility Enhancement** ✅ **IMPROVED**
+
+#### **✈️ Cross-Day Flight Support**
+- **Removed Arrival Date Constraints**: Flight arrival dates no longer restricted to trip end date
+- **Real-World Flight Scenarios**: Now supports overnight flights, long-haul international travel, and multi-day journeys
+- **Maintained Validation**: Required field validation preserved while removing restrictive constraints
+- **User Experience**: No more "invalid date" errors for legitimate cross-day flights
+
+#### **🌍 Supported Flight Types**
+- **Red-Eye Flights**: Depart late night, arrive early morning next day
+- **International Long-Haul**: Flights crossing multiple time zones and days
+- **Multi-Stop Journeys**: Extended travel time with layovers
+- **Charter/Private Flights**: Flexible scheduling not bound by trip dates
+- **Delayed Flights**: Accommodates schedule changes extending beyond trip dates
+
+#### **📊 Technical Improvements**
+- **Bundle Optimization**: 167.5 kB gzipped (-4B for removed constraints)
+- **Form Flexibility**: Departure dates still constrained (logical), arrival dates unrestricted
+- **Data Integrity**: All validation maintained except restrictive date limits
+
 ### **2025-06-30 - Hyperlink Functionality in Notes** ✅ **NEW**
 
 #### **🔗 Smart URL Detection & Conversion**
