@@ -173,7 +173,9 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
                     // Most importantly - preserve room type!
                     roomType: item.hotelInfo?.roomType,
                     confirmationNumber: item.hotelInfo?.confirmationNumber,
-                    coordinates: item.hotelInfo?.coordinates
+                    coordinates: item.hotelInfo?.coordinates,
+                    // Add place types
+                    types: item.place?.types || ['lodging']
                   }}
                   time={formatTime ? formatTime(item.time || '') : (item.time || '')}
                   isCheckIn={item.description?.includes('Check-in')}

@@ -19,6 +19,7 @@ interface HotelInfo {
   rating?: number;
   user_ratings_total?: number;
   notes?: string;
+  types?: string[]; // Add place types
   coordinates?: {
     lat: number;
     lng: number;
@@ -99,6 +100,23 @@ const HotelCard: React.FC<HotelCardProps> = ({
                 </span>
               )}
             </span>
+          </div>
+        )}
+
+        {/* Place Types */}
+        {hotelInfo.types && hotelInfo.types.length > 0 && (
+          <div className="flex flex-wrap gap-1">
+            {hotelInfo.types
+              .filter(type => type !== 'establishment' && type !== 'point_of_interest')
+              .slice(0, 3)
+              .map((type, index) => (
+                <span
+                  key={index}
+                  className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+                >
+                  {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                </span>
+              ))}
           </div>
         )}
 
