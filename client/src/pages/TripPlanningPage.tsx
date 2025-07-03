@@ -1427,7 +1427,8 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
   };
 
   const getMapMarkers = () => {
-    return selectedPlaces
+    // Add selected places (search results) - default red markers
+    const selectedPlaceMarkers = selectedPlaces
       .filter(place => place.geometry?.location)
       .map(place => ({
         position: {
@@ -1435,11 +1436,36 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           lng: place.geometry!.location!.lng(),
         },
         title: place.name,
-        id: place.place_id,
-        rating: place.rating,
         address: place.formatted_address,
+        rating: place.rating,
         types: place.types,
+        markerType: 'default' as const
       }));
+    
+    // Add existing itinerary items - colored by type
+    const itineraryMarkers = itinerary
+      .filter(item => item.location?.coordinates || item.place?.coordinates)
+      .map(item => {
+        const coordinates = item.location?.coordinates || item.place?.coordinates;
+        if (!coordinates) return null;
+        
+        return {
+          position: {
+            lat: coordinates.lat,
+            lng: coordinates.lng,
+          },
+          title: item.title || item.place?.name || 'Planned Item',
+          address: item.location?.address || item.place?.formatted_address,
+          rating: item.place?.rating,
+          types: item.place?.types,
+          markerType: item.type === 'flight' ? 'flight' as const : 
+                     item.hotelInfo ? 'hotel' as const : 
+                     'activity' as const
+        };
+      })
+      .filter((marker): marker is NonNullable<typeof marker> => marker !== null);
+    
+    return [...selectedPlaceMarkers, ...itineraryMarkers];
   };
 
   if (isLoading) {
@@ -1581,6 +1607,29 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                 markers={getMapMarkers()}
                 className={`w-full h-96 rounded-lg ${!isMapReady ? 'opacity-50' : ''}`}
               />
+              
+              {/* Map Legend */}
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                <h4 className="text-xs font-medium text-gray-700 mb-2 text-left">Map Legend</h4>
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-blue-500 mr-2"></div>
+                    <span className="text-gray-600">Activities</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-purple-500 mr-2"></div>
+                    <span className="text-gray-600">Hotels</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-green-500 mr-2"></div>
+                    <span className="text-gray-600">Flights</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="w-3 h-3 rounded-full bg-red-500 mr-2"></div>
+                    <span className="text-gray-600">Search Results</span>
+                  </div>
+                </div>
+              </div>
               
               {isMapReady && (
                 <p className="text-xs text-gray-500 mt-2 text-left">

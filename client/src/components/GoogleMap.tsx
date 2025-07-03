@@ -11,6 +11,7 @@ interface MapProps {
     address?: string;
     rating?: number;
     types?: string[];
+    markerType?: 'activity' | 'hotel' | 'flight' | 'default';
   }>;
   className?: string;
 }
@@ -20,6 +21,42 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
   const [map, setMap] = useState<google.maps.Map>();
   const [service, setService] = useState<google.maps.places.PlacesService>();
   const [mapMarkers, setMapMarkers] = useState<google.maps.Marker[]>([]);
+
+  // Get marker icon based on type
+  const getMarkerIcon = (markerType?: 'activity' | 'hotel' | 'flight' | 'default') => {
+    const baseUrl = 'https://maps.google.com/mapfiles/ms/icons/';
+    
+    switch (markerType) {
+      case 'activity':
+        return {
+          url: `${baseUrl}blue-dot.png`,
+          scaledSize: new google.maps.Size(32, 32),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(16, 32)
+        };
+      case 'hotel':
+        return {
+          url: `${baseUrl}purple-dot.png`,
+          scaledSize: new google.maps.Size(32, 32),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(16, 32)
+        };
+      case 'flight':
+        return {
+          url: `${baseUrl}green-dot.png`,
+          scaledSize: new google.maps.Size(32, 32),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(16, 32)
+        };
+      default:
+        return {
+          url: `${baseUrl}red-dot.png`,
+          scaledSize: new google.maps.Size(32, 32),
+          origin: new google.maps.Point(0, 0),
+          anchor: new google.maps.Point(16, 32)
+        };
+    }
+  };
 
   // Initialize map
   useEffect(() => {
@@ -209,6 +246,7 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
           position: markerData.position,
           map: map,
           title: markerData.title,
+          icon: getMarkerIcon(markerData.markerType)
         });
         
         newMarkers.push(marker);
