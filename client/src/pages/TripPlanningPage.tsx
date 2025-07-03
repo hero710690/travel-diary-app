@@ -1304,9 +1304,33 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         const firstItem = hotelItems[0];
         const days = hotelItems.map(item => item.day).sort((a, b) => a - b);
         
+        // Create comprehensive hotelInfo from available data
+        const hotelInfo = {
+          // Use existing hotelInfo as base, then fill in missing fields
+          ...firstItem.hotelInfo,
+          name: firstItem.hotelInfo?.name || firstItem.title || firstItem.place?.name || 'Hotel',
+          address: firstItem.hotelInfo?.address || firstItem.description || firstItem.place?.formatted_address || (firstItem.place as any)?.address || '',
+          checkInDate: firstItem.hotelInfo?.checkInDate || '',
+          checkOutDate: firstItem.hotelInfo?.checkOutDate || '',
+          checkInTime: (firstItem.hotelInfo as any)?.checkInTime || '15:00',
+          checkOutTime: (firstItem.hotelInfo as any)?.checkOutTime || '11:00',
+          nights: (firstItem.hotelInfo as any)?.nights || (days.length > 1 ? days.length - 1 : 1),
+          roomType: (firstItem.hotelInfo as any)?.roomType || '',
+          confirmationNumber: (firstItem.hotelInfo as any)?.confirmationNumber || '',
+          phone: (firstItem.hotelInfo as any)?.phone || (firstItem.place as any)?.formatted_phone_number || '',
+          rating: firstItem.hotelInfo?.rating || firstItem.place?.rating || 0,
+          pricePerNight: (firstItem.hotelInfo as any)?.pricePerNight || '',
+          totalPrice: (firstItem.hotelInfo as any)?.totalPrice || '',
+          notes: (firstItem.hotelInfo as any)?.notes || firstItem.notes || '',
+          coordinates: firstItem.hotelInfo?.coordinates || (firstItem.place?.geometry?.location ? {
+            lat: firstItem.place.geometry.location.lat(),
+            lng: firstItem.place.geometry.location.lng()
+          } : undefined)
+        };
+        
         hotelStay = {
           id: hotelStayId,
-          hotelInfo: firstItem.hotelInfo,
+          hotelInfo: hotelInfo,
           startDay: Math.min(...days),
           endDay: Math.max(...days)
         };
@@ -1344,17 +1368,28 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           );
           const days = relatedItems.map(i => i.day).sort((a, b) => a - b);
           
-          // Use hotelInfo if available, otherwise create from item data
-          const hotelInfo = item.hotelInfo || {
-            name: item.title || item.place?.name || 'Hotel',
-            address: item.description || item.place?.formatted_address || '',
-            checkInDate: '',
-            checkOutDate: '',
-            rating: item.place?.rating,
-            coordinates: item.place?.geometry?.location ? {
+          // Create comprehensive hotelInfo with all available data
+          const hotelInfo = {
+            // Use existing hotelInfo as base, then fill in missing fields
+            ...item.hotelInfo,
+            name: item.hotelInfo?.name || item.title || item.place?.name || 'Hotel',
+            address: item.hotelInfo?.address || item.description || item.place?.formatted_address || (item.place as any)?.address || '',
+            checkInDate: item.hotelInfo?.checkInDate || '',
+            checkOutDate: item.hotelInfo?.checkOutDate || '',
+            checkInTime: (item.hotelInfo as any)?.checkInTime || '15:00',
+            checkOutTime: (item.hotelInfo as any)?.checkOutTime || '11:00',
+            nights: (item.hotelInfo as any)?.nights || (days.length > 1 ? days.length - 1 : 1),
+            roomType: (item.hotelInfo as any)?.roomType || '',
+            confirmationNumber: (item.hotelInfo as any)?.confirmationNumber || '',
+            phone: (item.hotelInfo as any)?.phone || (item.place as any)?.formatted_phone_number || '',
+            rating: item.hotelInfo?.rating || item.place?.rating || 0,
+            pricePerNight: (item.hotelInfo as any)?.pricePerNight || '',
+            totalPrice: (item.hotelInfo as any)?.totalPrice || '',
+            notes: (item.hotelInfo as any)?.notes || item.notes || '',
+            coordinates: item.hotelInfo?.coordinates || (item.place?.geometry?.location ? {
               lat: item.place.geometry.location.lat(),
               lng: item.place.geometry.location.lng()
-            } : undefined
+            } : undefined)
           };
           
           hotelStaysMap.set(hotelStayId, {
