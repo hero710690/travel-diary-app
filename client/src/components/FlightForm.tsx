@@ -235,8 +235,6 @@ const FlightForm: React.FC<FlightFormProps> = ({
                   value={formData.arrival.date}
                   onChange={(e) => updateField('arrival.date', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  min={tripStartDate?.split('T')[0]}
-                  max={tripEndDate?.split('T')[0]}
                   required
                 />
               </div>
