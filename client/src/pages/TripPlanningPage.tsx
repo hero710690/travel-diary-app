@@ -1508,15 +1508,6 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         <div className="grid grid-cols-1 xl:grid-cols-3 lg:grid-cols-2 gap-4 lg:gap-6">
           {/* Left Panel - Search and Places */}
           <div className="xl:col-span-1 space-y-4 lg:space-y-6">
-            {/* Places Search */}
-            <div className="bg-white rounded-lg shadow p-4 lg:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4 text-left">Search Places</h2>
-              <PlacesSearch
-                onPlaceSelect={handlePlaceSelect}
-                placeholder="Search restaurants, attractions, hotels..."
-              />
-            </div>
-
             {/* Selected Places */}
             <div className="bg-white rounded-lg shadow p-4 lg:p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4 text-left">
@@ -1541,7 +1532,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             </div>
           </div>
 
-          {/* Middle Panel - Map */}
+          {/* Middle Panel - Map with Search */}
           <div className="xl:col-span-1 lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-4 lg:p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center text-left">
@@ -1553,6 +1544,16 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                   </span>
                 )}
               </h2>
+              
+              {/* Places Search - moved from left panel */}
+              <div className="mb-4">
+                <h3 className="text-md font-medium text-gray-800 mb-3 text-left">Search Places</h3>
+                <PlacesSearch
+                  onPlaceSelect={handlePlaceSelect}
+                  placeholder="Search restaurants, attractions, hotels..."
+                />
+              </div>
+              
               {!isMapReady && (
                 <div className="w-full h-96 rounded-lg bg-gray-100 flex items-center justify-center mb-4">
                   <div className="text-center">
