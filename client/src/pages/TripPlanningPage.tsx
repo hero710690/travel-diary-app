@@ -1290,31 +1290,76 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
   };
 
   const handleEditHotel = (hotelStayId: string) => {
-    const hotelStay = hotelStays.find(stay => stay.id === hotelStayId);
+    // First try to find in existing hotel stays
+    let hotelStay = hotelStays.find(stay => stay.id === hotelStayId);
+    
+    // If not found, try to reconstruct from itinerary directly
+    if (!hotelStay) {
+      const hotelItems = itinerary.filter(item => 
+        (item.type === 'accommodation' || item.hotelInfo) && 
+        item.id.startsWith(hotelStayId)
+      );
+      
+      if (hotelItems.length > 0) {
+        const firstItem = hotelItems[0];
+        const days = hotelItems.map(item => item.day).sort((a, b) => a - b);
+        
+        hotelStay = {
+          id: hotelStayId,
+          hotelInfo: firstItem.hotelInfo,
+          startDay: Math.min(...days),
+          endDay: Math.max(...days)
+        };
+      }
+    }
+    
     if (hotelStay) {
       setEditingHotel(hotelStay);
       setShowHotelEditModal(true);
+    } else {
+      toast.error('Unable to edit hotel. Please try refreshing the page.');
     }
   };
 
   // Rebuild hotel stays from itinerary when component loads
   useEffect(() => {
     if (itinerary.length > 0) {
-      const hotelItems = itinerary.filter(item => item.type === 'accommodation' && item.hotelInfo);
+      // More flexible filtering - check for accommodation type OR hotelInfo presence
+      const hotelItems = itinerary.filter(item => 
+        item.type === 'accommodation' || 
+        item.hotelInfo ||
+        (item.place?.types && item.place.types.includes('lodging'))
+      );
+      
       const hotelStaysMap = new Map<string, any>();
       
       hotelItems.forEach(item => {
         // Extract hotel stay ID from item ID (format: hotelStayId_day_X)
-        const hotelStayId = item.id.split('_day_')[0];
+        const hotelStayId = item.id.includes('_day_') ? item.id.split('_day_')[0] : item.id;
         
         if (!hotelStaysMap.has(hotelStayId)) {
           // Find all items for this hotel stay to determine start and end days
-          const relatedItems = hotelItems.filter(i => i.id.startsWith(hotelStayId));
+          const relatedItems = hotelItems.filter(i => 
+            i.id.startsWith(hotelStayId) || i.id === hotelStayId
+          );
           const days = relatedItems.map(i => i.day).sort((a, b) => a - b);
+          
+          // Use hotelInfo if available, otherwise create from item data
+          const hotelInfo = item.hotelInfo || {
+            name: item.title || item.place?.name || 'Hotel',
+            address: item.description || item.place?.formatted_address || '',
+            checkInDate: '',
+            checkOutDate: '',
+            rating: item.place?.rating,
+            coordinates: item.place?.geometry?.location ? {
+              lat: item.place.geometry.location.lat(),
+              lng: item.place.geometry.location.lng()
+            } : undefined
+          };
           
           hotelStaysMap.set(hotelStayId, {
             id: hotelStayId,
-            hotelInfo: item.hotelInfo,
+            hotelInfo: hotelInfo,
             startDay: Math.min(...days),
             endDay: Math.max(...days)
           });
@@ -1323,12 +1368,11 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
       
       const reconstructedHotelStays = Array.from(hotelStaysMap.values());
       
-      // Only update if the hotel stays have changed to avoid infinite loops
-      if (reconstructedHotelStays.length !== hotelStays.length || 
-          !reconstructedHotelStays.every(stay => hotelStays.some(existing => existing.id === stay.id))) {
-        console.log('🏨 Rebuilding hotel stays from itinerary:', reconstructedHotelStays);
-        setHotelStays(reconstructedHotelStays);
-      }
+      // Always update hotel stays to ensure they're current
+      setHotelStays(reconstructedHotelStays);
+    } else {
+      // Clear hotel stays if no itinerary
+      setHotelStays([]);
     }
   }, [itinerary]); // Only depend on itinerary, not hotelStays to avoid infinite loops
 
@@ -1754,10 +1798,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
       )}
 
       {/* Hotel Edit Modal */}
-      {(() => {
-        console.log('🏨 Modal check - showHotelEditModal:', showHotelEditModal, 'editingHotel:', editingHotel);
-        return showHotelEditModal && editingHotel;
-      })() && (
+      {showHotelEditModal && editingHotel && (
         <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50" style={{zIndex: 9999}}>
           <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
             <div className="mt-3">
