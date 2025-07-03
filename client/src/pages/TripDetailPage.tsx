@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { tripsService } from '../services/trips';
 import { collaborationService } from '../services/collaboration';
 import { safeParseDate, getDaysDifferenceIgnoreTime } from '../utils/dateUtils';
+import { convertLinksToHyperlinks } from '../utils/linkUtils';
 // FlightForm import removed - flight editing disabled in planned itinerary
 import { 
   PencilIcon, 
@@ -1219,7 +1220,7 @@ const TripDetailPage: React.FC = () => {
                                       
                                       {item.notes && (
                                         <p className="text-xs text-gray-600 mt-1 italic text-left break-words overflow-wrap-anywhere">
-                                          Note: {item.notes}
+                                          Note: {convertLinksToHyperlinks(item.notes)}
                                         </p>
                                       )}
                                       

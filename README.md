@@ -295,6 +295,26 @@ The Lambda handler supports the following endpoints:
 
 ## 🚀 Recent Updates
 
+### **2025-06-30 - Hyperlink Functionality in Notes** ✅ **NEW**
+
+#### **🔗 Smart URL Detection & Conversion**
+- **Automatic Link Detection**: URLs in notes automatically converted to clickable hyperlinks
+- **Multiple URL Formats**: Supports http://, https://, and www. URLs
+- **Security Features**: Links open in new tab with `noopener noreferrer` for security
+- **Visual Design**: Blue color with hover effects, proper text wrapping for long URLs
+
+#### **📝 Enhanced Note Experience**
+- **Activity Notes**: All activity notes now support clickable links
+- **Hotel Notes**: Hotel booking links and references now clickable
+- **Trip Detail Notes**: Notes in trip detail view support hyperlinks
+- **Itinerary Notes**: Planning notes with links are now interactive
+
+#### **🛠️ Technical Implementation**
+- **New Utility**: `linkUtils.tsx` with regex-based URL detection
+- **React Components**: Converts text to React elements with proper link handling
+- **Click Prevention**: Prevents parent element clicks when clicking links
+- **Bundle Size**: 167.5 kB gzipped (+170B for hyperlink functionality)
+
 ### **2025-06-30 - Hotel Status Badge Logic & UI Consistency Fixes** ✅ **FIXED**
 
 #### **🏨 Hotel Status Badge Logic Improvements**

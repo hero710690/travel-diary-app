@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDrag } from 'react-dnd';
+import { convertLinksToHyperlinks } from '../utils/linkUtils';
 import { ClockIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, HeartIcon, StarIcon, MapPinIcon, CameraIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import { ItineraryItem } from '../types';
@@ -317,7 +318,7 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                 <div className="mt-2 p-2 bg-gray-50 rounded text-left">
                   <div className="text-xs text-gray-500 mb-1">Notes:</div>
                   <div className="text-xs text-gray-700 whitespace-pre-wrap">
-                    {item.notes}
+                    {convertLinksToHyperlinks(item.notes)}
                   </div>
                 </div>
               )}

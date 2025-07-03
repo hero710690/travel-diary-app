@@ -7,6 +7,7 @@ import {
   TrashIcon,
   HomeIcon
 } from '@heroicons/react/24/outline';
+import { convertLinksToHyperlinks } from '../utils/linkUtils';
 
 interface HotelInfo {
   name: string;
@@ -118,7 +119,7 @@ const HotelCard: React.FC<HotelCardProps> = ({
         {/* Notes */}
         {hotelInfo.notes && (
           <div className="text-sm text-gray-500 italic text-left break-words overflow-wrap-anywhere">
-            <span className="font-medium not-italic">Note:</span> {hotelInfo.notes}
+            <span className="font-medium not-italic">Note:</span> {convertLinksToHyperlinks(hotelInfo.notes)}
           </div>
         )}
       </div>

@@ -22,6 +22,7 @@ import {
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { format } from 'date-fns';
+import { convertLinksToHyperlinks } from '../utils/linkUtils';
 
 const SharedTripPage: React.FC = () => {
   const { token } = useParams<{ token: string }>();
@@ -750,7 +751,7 @@ const SharedTripPage: React.FC = () => {
                                   {item.notes && (
                                     <div className="mt-3">
                                       <p className="text-sm text-gray-600 text-left break-words overflow-wrap-anywhere">
-                                        <strong>Notes:</strong> {item.notes}
+                                        <strong>Notes:</strong> {convertLinksToHyperlinks(item.notes)}
                                       </p>
                                     </div>
                                   )}

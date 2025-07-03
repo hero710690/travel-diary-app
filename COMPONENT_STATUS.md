@@ -49,12 +49,13 @@
 
 ### 🔄 **RECENTLY UPDATED** - Monitor for Issues
 - **FlightForm.tsx** - Enhanced with date input fields for departure/arrival dates (✅ Just updated)
-- **TripDetailPage.tsx** - Added flight editing modal with FlightForm integration, enhanced ShareModal integration, improved hotel status badge logic (✅ Just updated)
+- **TripDetailPage.tsx** - Added flight editing modal with FlightForm integration, enhanced ShareModal integration, improved hotel status badge logic, added hyperlink functionality in notes (✅ Just updated)
 - **TripPlanningPage.tsx** - Updated to use FlightForm for adding flights, enhanced hotel form with notes field, added Share Trip button (✅ Just updated)
-- **DraggableItineraryItem.tsx** - Added editable notes functionality and hotel information display (✅ Just updated)
-- **SharedTripPage.tsx** - Enhanced with Edit Trip button and permission checking, improved hotel status badge logic (✅ Just updated)
-- **HotelCard.tsx** - Fixed rating display to prevent zero artifacts, improved text overflow prevention (✅ Just updated)
+- **DraggableItineraryItem.tsx** - Added editable notes functionality and hotel information display, added hyperlink functionality in notes (✅ Just updated)
+- **SharedTripPage.tsx** - Enhanced with Edit Trip button and permission checking, improved hotel status badge logic, added hyperlink functionality in notes (✅ Just updated)
+- **HotelCard.tsx** - Fixed rating display to prevent zero artifacts, improved text overflow prevention, added hyperlink functionality in notes (✅ Just updated)
 - **types/index.ts** - FlightInfo interface with date fields, HotelInfo interface with notes field, new ShareSettings and ShareLink interfaces (✅ Just updated)
+- **linkUtils.tsx** - New utility for converting URLs in text to clickable hyperlinks (✅ Just added)
 
 ### 🧪 **DEVELOPMENT/DEBUG** - Not Production Critical
 - **AuthDebug.tsx** - Auth debugging
@@ -187,6 +188,26 @@
 ---
 
 ## 📋 Recent Changes (2025-06-30)
+
+### 🔗 **Hyperlink Functionality in Notes** (09:00)
+- **User Request**: Make URLs in notes clickable as hyperlinks for better user experience
+- **Feature Implementation**: Created comprehensive hyperlink detection and conversion system
+- **New Utility**: Added `linkUtils.tsx` with `convertLinksToHyperlinks` function
+- **URL Detection**: Supports http, https, and www URLs with regex pattern matching
+- **Link Styling**: Blue color with hover effects, opens in new tab with security attributes
+- **Click Prevention**: Added `stopPropagation` to prevent parent element clicks
+- **Components Updated**:
+  - **SharedTripPage.tsx**: Activity notes now show clickable links
+  - **TripDetailPage.tsx**: Trip detail notes now show clickable links  
+  - **DraggableItineraryItem.tsx**: Itinerary item notes now show clickable links
+  - **HotelCard.tsx**: Hotel notes now show clickable links
+- **Security Features**: 
+  - `target="_blank"` for external links
+  - `rel="noopener noreferrer"` for security
+  - `break-all` class for long URL handling
+- **User Experience**: URLs automatically detected and converted to clickable links in all note fields
+- **Bundle Impact**: `main.30dd6321.js` (167.5 kB gzipped, +170B for hyperlink functionality)
+- **Status**: ✅ **BUILT** - Ready for deployment (pending AWS permissions)
 
 ### 🏨 **Hotel Status Badge Logic Improvements & UI Consistency Fixes** (08:00)
 - **User Issues Resolved**: Fixed poor hotel status badge logic and various UI consistency issues
