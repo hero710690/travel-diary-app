@@ -290,39 +290,27 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
             if (airportMatch) {
               const [, departureCode, arrivalCode] = airportMatch;
               
-              // Find both airport locations
-              const departureLocation = await findAirportLocation(departureCode, placesService);
-              const arrivalLocation = await findAirportLocation(arrivalCode, placesService);
+              // Create array of unique airports to avoid duplicates
+              const uniqueAirports = Array.from(new Set([departureCode, arrivalCode]));
               
-              // Create markers for both airports if found
-              if (departureLocation) {
-                const departureMarker = new google.maps.Marker({
-                  position: departureLocation,
-                  map: map,
-                  title: `${departureCode} - Departure`,
-                  icon: {
-                    url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
-                    scaledSize: new google.maps.Size(32, 32),
-                    origin: new google.maps.Point(0, 0),
-                    anchor: new google.maps.Point(16, 32)
-                  }
-                });
-                newMarkers.push(departureMarker);
-              }
-              
-              if (arrivalLocation) {
-                const arrivalMarker = new google.maps.Marker({
-                  position: arrivalLocation,
-                  map: map,
-                  title: `${arrivalCode} - Arrival`,
-                  icon: {
-                    url: 'https://maps.google.com/mapfiles/ms/icons/orange-dot.png',
-                    scaledSize: new google.maps.Size(32, 32),
-                    origin: new google.maps.Point(0, 0),
-                    anchor: new google.maps.Point(16, 32)
-                  }
-                });
-                newMarkers.push(arrivalMarker);
+              // Find and create markers for unique airports
+              for (const airportCode of uniqueAirports) {
+                const airportLocation = await findAirportLocation(airportCode, placesService);
+                
+                if (airportLocation) {
+                  const airportMarker = new google.maps.Marker({
+                    position: airportLocation,
+                    map: map,
+                    title: `${airportCode} Airport`,
+                    icon: {
+                      url: 'https://maps.google.com/mapfiles/ms/icons/green-dot.png',
+                      scaledSize: new google.maps.Size(32, 32),
+                      origin: new google.maps.Point(0, 0),
+                      anchor: new google.maps.Point(16, 32)
+                    }
+                  });
+                  newMarkers.push(airportMarker);
+                }
               }
             }
           } else {
