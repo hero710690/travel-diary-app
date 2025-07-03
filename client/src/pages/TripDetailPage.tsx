@@ -59,6 +59,23 @@ interface ItineraryItem {
 }
 
 const TripDetailPage: React.FC = () => {
+  // Date formatting function for flight dates
+  const formatFlightDate = (dateString: string) => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      // Format as "Mon, Jan 15" or similar
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString; // Return original if parsing fails
+    }
+  };
+
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -1100,6 +1117,11 @@ const TripDetailPage: React.FC = () => {
                                               <div className="font-medium text-gray-900 text-center">
                                                 {item.flightInfo.departure?.airportCode || 'DEP'}
                                               </div>
+                                              {item.flightInfo.departure?.date && (
+                                                <div className="text-xs text-gray-600 text-center font-medium">
+                                                  {formatFlightDate(item.flightInfo.departure.date)}
+                                                </div>
+                                              )}
                                               <div className="text-xs text-gray-600 text-center">
                                                 Dep: {item.flightInfo.departure?.time || item.time}
                                               </div>
@@ -1113,6 +1135,11 @@ const TripDetailPage: React.FC = () => {
                                               <div className="font-medium text-gray-900 text-center">
                                                 {item.flightInfo.arrival?.airportCode || 'ARR'}
                                               </div>
+                                              {item.flightInfo.arrival?.date && (
+                                                <div className="text-xs text-gray-600 text-center font-medium">
+                                                  {formatFlightDate(item.flightInfo.arrival.date)}
+                                                </div>
+                                              )}
                                               <div className="text-xs text-gray-600 text-center">
                                                 Arr: {item.flightInfo.arrival?.time || item.time}
                                               </div>
