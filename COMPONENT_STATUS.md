@@ -49,10 +49,11 @@
 
 ### 🔄 **RECENTLY UPDATED** - Monitor for Issues
 - **FlightForm.tsx** - Enhanced with date input fields for departure/arrival dates, removed arrival date constraints for cross-day flights (✅ Just updated)
+- **FlightCard.tsx** - Added departure and arrival date display to flight cards across all pages (✅ Just updated)
 - **TripDetailPage.tsx** - Added flight editing modal with FlightForm integration, enhanced ShareModal integration, improved hotel status badge logic, added hyperlink functionality in notes (✅ Just updated)
 - **TripPlanningPage.tsx** - Updated to use FlightForm for adding flights, enhanced hotel form with notes field, added Share Trip button (✅ Just updated)
 - **DraggableItineraryItem.tsx** - Added editable notes functionality and hotel information display, added hyperlink functionality in notes (✅ Just updated)
-- **SharedTripPage.tsx** - Enhanced with Edit Trip button and permission checking, improved hotel status badge logic, added hyperlink functionality in notes (✅ Just updated)
+- **SharedTripPage.tsx** - Enhanced with Edit Trip button and permission checking, improved hotel status badge logic, added hyperlink functionality in notes, added MapPinIcon to hotel descriptions (✅ Just updated)
 - **HotelCard.tsx** - Fixed rating display to prevent zero artifacts, improved text overflow prevention, added hyperlink functionality in notes (✅ Just updated)
 - **types/index.ts** - FlightInfo interface with date fields, HotelInfo interface with notes field, new ShareSettings and ShareLink interfaces (✅ Just updated)
 - **linkUtils.tsx** - New utility for converting URLs in text to clickable hyperlinks (✅ Just added)
@@ -188,6 +189,25 @@
 ---
 
 ## 📋 Recent Changes (2025-07-03)
+
+### ✈️ **Flight Card Date Display Enhancement** (11:30)
+- **User Request**: Add departure and arrival dates to flight cards across all pages
+- **Problem**: Flight cards only showed times (Dep: 10:30 AM, Arr: 2:45 PM) without dates
+- **Solution**: Added formatted date display above departure and arrival times
+- **Date Format**: "Mon, Jan 15" (weekday, month, day) for compact, readable display
+- **Technical Implementation**:
+  - New `formatDate()` function with safe date parsing and error handling
+  - Conditional rendering for dates (only shows if date exists)
+  - Enhanced departure section with date between airport name and time
+  - Enhanced arrival section with date between airport name and time
+  - Font-medium weight for better date visibility
+- **Cross-Page Coverage**: 
+  - ✅ Trip Planning Page flight cards
+  - ✅ Trip Detail Page flight cards  
+  - ✅ Shared Trip Page flight cards
+- **User Experience**: Complete flight schedule information, better context for multi-day and cross-timezone flights
+- **Bundle Impact**: `main.5fabf249.js` (167.63 kB gzipped, +86B for date formatting)
+- **Status**: ✅ **DEPLOYED** - Flight dates now visible on all flight cards
 
 ### ✈️ **Flight Form Arrival Date Constraint Removal** (10:00)
 - **User Request**: Remove restrictive arrival date constraints to support cross-day flights

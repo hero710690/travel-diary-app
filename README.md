@@ -295,6 +295,31 @@ The Lambda handler supports the following endpoints:
 
 ## 🚀 Recent Updates
 
+### **2025-07-03 - Flight Card Date Display Enhancement** ✅ **ENHANCED**
+
+#### **✈️ Complete Flight Schedule Information**
+- **Added Departure & Arrival Dates**: Flight cards now show both dates and times for complete schedule context
+- **Smart Date Formatting**: Displays dates as "Mon, Jan 15" format for compact, readable presentation
+- **Cross-Page Consistency**: Enhancement applies to all flight cards across trip planning, detail, and shared pages
+- **Multi-Day Flight Support**: Clear indication of flights spanning multiple days or time zones
+
+#### **📅 Enhanced Flight Display**
+- **Before**: Only showed "Dep: 10:30 AM" and "Arr: 2:45 PM"
+- **After**: Shows "Mon, Jan 15" above times for both departure and arrival
+- **Professional Layout**: Maintains clean card design while adding essential date information
+- **Conditional Display**: Dates only appear when available, graceful handling of missing data
+
+#### **🌍 Real-World Flight Scenarios**
+- **Red-Eye Flights**: Clear distinction between departure and arrival dates
+- **International Travel**: Better context for cross-timezone flight schedules
+- **Multi-Day Trips**: Easy identification of which day each flight occurs
+- **Complex Itineraries**: Improved coordination between connecting flights
+
+#### **📊 Technical Implementation**
+- **Bundle Size**: 167.63 kB gzipped (+86B for date formatting functionality)
+- **Safe Date Parsing**: Error handling and fallbacks for robust date display
+- **Responsive Design**: Maintains card layout integrity across all screen sizes
+
 ### **2025-07-03 - Flight Form Flexibility Enhancement** ✅ **IMPROVED**
 
 #### **✈️ Cross-Day Flight Support**
