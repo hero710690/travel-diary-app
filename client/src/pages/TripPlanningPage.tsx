@@ -425,6 +425,18 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
   // Share State
   const [showShareModal, setShowShareModal] = useState(false);
 
+  // Timeline navigation state
+  const [selectedDay, setSelectedDay] = useState<number>(1);
+  const [showAllDays, setShowAllDays] = useState<boolean>(false);
+
+  // Get visible days based on timeline selection
+  const getVisibleDays = () => {
+    if (showAllDays) {
+      return days;
+    }
+    return days.filter(day => day.dayNumber === selectedDay);
+  };
+
   // Fetch trip data (either from regular API or use shared data)
   const { data: tripData, isLoading } = useQuery(
     ['trip', id, shareToken],
@@ -1585,6 +1597,55 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                 <CalendarIcon className="h-5 w-5 mr-2 flex-shrink-0" />
                 Daily Itinerary
               </h2>
+              
+              {/* Timeline Navigation */}
+              {days.length > 0 && (
+                <div className="mb-4">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-medium text-gray-700 text-left">Timeline</h3>
+                    <button
+                      onClick={() => setShowAllDays(!showAllDays)}
+                      className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                    >
+                      {showAllDays ? 'Show Selected' : 'Show All'}
+                    </button>
+                  </div>
+                  
+                  {/* Scrollable Timeline */}
+                  <div className="relative">
+                    <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
+                      {days.map((day, index) => (
+                        <button
+                          key={day.dayNumber}
+                          onClick={() => {
+                            setSelectedDay(day.dayNumber);
+                            setShowAllDays(false);
+                          }}
+                          className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                            selectedDay === day.dayNumber && !showAllDays
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                          }`}
+                        >
+                          <div className="text-center">
+                            <div className="font-semibold">Day {day.dayNumber}</div>
+                            <div className="text-xs opacity-75">
+                              {day.date.toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {/* Timeline connector line */}
+                    <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-200 -z-10"></div>
+                  </div>
+                </div>
+              )}
+              
               <div className="space-y-4 max-h-80 lg:max-h-96 overflow-y-auto">
                 {days.length === 0 ? (
                   <div className="text-center py-8">
@@ -1595,7 +1656,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                     </div>
                   </div>
                 ) : (
-                  days.map((day) => (
+                  getVisibleDays().map((day) => (
                     <ItineraryDay
                       key={day.dayNumber}
                       day={day}
