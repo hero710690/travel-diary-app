@@ -1505,22 +1505,9 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 xl:grid-cols-3 lg:grid-cols-2 gap-4 lg:gap-6">
-          {/* Left Panel - Search and Places */}
-          <div className="xl:col-span-1 space-y-4 lg:space-y-6">
-            {/* Left panel - can be used for other features in the future */}
-            <div className="bg-white rounded-lg shadow p-4 lg:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4 text-left">Trip Tools</h2>
-              <div className="space-y-3">
-                <p className="text-gray-500 text-sm text-left">
-                  Use the search and map to find places, then drag them to your itinerary on the right.
-                </p>
-              </div>
-            </div>
-          </div>
-
-          {/* Middle Panel - Map with Search and Selected Places */}
-          <div className="xl:col-span-1 lg:col-span-1">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
+          {/* Map View Block - Now Broader */}
+          <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-4 lg:p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center text-left">
                 <MapIcon className="h-5 w-5 mr-2 flex-shrink-0" />
@@ -1592,7 +1579,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           </div>
 
           {/* Right Panel - Itinerary */}
-          <div className="xl:col-span-1 lg:col-span-2 xl:lg:col-span-1">
+          <div className="lg:col-span-1">
             <div className="bg-white rounded-lg shadow p-4 lg:p-6">
               <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center text-left">
                 <CalendarIcon className="h-5 w-5 mr-2 flex-shrink-0" />
