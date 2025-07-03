@@ -24,6 +24,22 @@ const FlightCard: React.FC<FlightCardProps> = ({
   onDelete, 
   className = '' 
 }) => {
+  const formatDate = (dateString: string) => {
+    if (!dateString) return '';
+    
+    try {
+      const date = new Date(dateString);
+      // Format as "Mon, Jan 15" or similar
+      return date.toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString; // Return original if parsing fails
+    }
+  };
+
   const formatTime = (timeString: string) => {
     if (!timeString) return '';
     
@@ -91,6 +107,11 @@ const FlightCard: React.FC<FlightCardProps> = ({
           <div className="text-xs text-gray-500 break-words text-left">
             {flightInfo.departure.airport}
           </div>
+          {flightInfo.departure.date && (
+            <div className="text-xs text-gray-600 text-center font-medium">
+              {formatDate(flightInfo.departure.date)}
+            </div>
+          )}
           <div className="text-xs text-gray-600 text-center">
             Dep: {formatTime(flightInfo.departure.time)}
           </div>
@@ -122,6 +143,11 @@ const FlightCard: React.FC<FlightCardProps> = ({
           <div className="text-xs text-gray-500 break-words text-left">
             {flightInfo.arrival.airport}
           </div>
+          {flightInfo.arrival.date && (
+            <div className="text-xs text-gray-600 text-center font-medium">
+              {formatDate(flightInfo.arrival.date)}
+            </div>
+          )}
           <div className="text-xs text-gray-600 text-center">
             Arr: {formatTime(flightInfo.arrival.time)}
           </div>
