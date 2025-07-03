@@ -217,7 +217,7 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center space-x-2 flex-1 min-w-0">
                   {item.type !== 'accommodation' && item.type !== 'flight' && (
-                    <CameraIcon className="h-4 w-4 text-blue-600 flex-shrink-0" />
+                    <CameraIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
                   )}
                   <h4 className="text-lg font-semibold text-gray-900 break-words text-left">
                     {item.title}
