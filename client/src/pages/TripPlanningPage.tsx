@@ -1605,6 +1605,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                       onMoveItem={handleMoveItineraryItem}
                       onEditHotel={handleEditHotel}
                       formatTime={formatTime}
+                      tripEndDate={tripData?.endDate}
                       // onAddFlight removed - using top-level Add Flight button instead
                     />
                   ))

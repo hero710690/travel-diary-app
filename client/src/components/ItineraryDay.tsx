@@ -31,6 +31,7 @@ interface ItineraryDayProps {
   onMoveItem?: (itemId: string, newDay: number) => void;
   onEditHotel?: (hotelStayId: string) => void;
   formatTime?: (timeString: string) => string;
+  tripEndDate?: string; // Add trip end date for flight time logic
   // onAddFlight removed - using top-level Add Flight button instead
 }
 
@@ -42,7 +43,8 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
   onUpdateItem,
   onMoveItem,
   onEditHotel,
-  formatTime
+  formatTime,
+  tripEndDate
   // onAddFlight removed - using top-level Add Flight button instead
 }) => {
   // Flight form state for editing existing flights only (not for adding new ones)
@@ -155,6 +157,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
                   time={formatTime ? formatTime(item.time || '') : (item.time || '')}
                   onEdit={() => handleEditFlight(item)}
                   onDelete={() => onRemoveItem(item.id)}
+                  tripEndDate={tripEndDate}
                 />
               ) : isHotelItem ? (
                 <HotelCard

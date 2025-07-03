@@ -613,6 +613,7 @@ const SharedTripPage: React.FC = () => {
                                 key={`${day}-${index}`}
                                 flightInfo={transformedFlightInfo}
                                 time={formatTime(getItemTime(item))}
+                                tripEndDate={tripData.end_date}
                                 // Don't pass onEdit or onDelete for read-only view
                                 className="mb-4"
                               />

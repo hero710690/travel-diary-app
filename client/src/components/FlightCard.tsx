@@ -15,6 +15,7 @@ interface FlightCardProps {
   onEdit?: () => void;
   onDelete?: () => void;
   className?: string;
+  tripEndDate?: string; // Add trip end date to determine departure flights
 }
 
 const FlightCard: React.FC<FlightCardProps> = ({ 
@@ -22,7 +23,8 @@ const FlightCard: React.FC<FlightCardProps> = ({
   time, 
   onEdit, 
   onDelete, 
-  className = '' 
+  className = '',
+  tripEndDate
 }) => {
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -80,6 +82,31 @@ const FlightCard: React.FC<FlightCardProps> = ({
     }
   };
 
+  // Determine if this is a departure flight at the end of the trip
+  const isEndOfTripDeparture = () => {
+    if (!tripEndDate || !flightInfo.departure?.date) return false;
+    
+    try {
+      const tripEnd = new Date(tripEndDate);
+      const flightDate = new Date(flightInfo.departure.date);
+      
+      // Check if flight departure date matches trip end date
+      return tripEnd.toDateString() === flightDate.toDateString();
+    } catch {
+      return false;
+    }
+  };
+
+  // Get the appropriate time to display next to clock icon
+  const getDisplayTime = () => {
+    if (isEndOfTripDeparture() && flightInfo.departure?.time) {
+      // For end-of-trip flights, show departure time
+      return formatTime(flightInfo.departure.time);
+    }
+    // For other flights, show the provided time (usually arrival time)
+    return formatTime(time);
+  };
+
   return (
     <div className={`bg-white border border-gray-200 rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow ${className}`}>
       {/* Header */}
@@ -93,7 +120,7 @@ const FlightCard: React.FC<FlightCardProps> = ({
         <div className="flex items-center space-x-2 flex-shrink-0">
           <span className="text-sm text-gray-500 flex items-center whitespace-nowrap">
             <ClockIcon className="h-4 w-4 mr-1" />
-            {formatTime(time)}
+            {getDisplayTime()}
           </span>
         </div>
       </div>
