@@ -427,6 +427,37 @@ The Lambda handler supports the following endpoints:
 - Caching layer
 - Database connection pooling
 
+## 🚧 Future Features & Roadmap
+
+### 🗺️ **Map View Integration** 
+**Status**: 📋 **PLANNED** - Under consideration
+
+**Description**: Add interactive map views to trip detail and shared trip pages for enhanced spatial understanding and better trip visualization.
+
+**Proposed Features**:
+- ✅ **Trip Detail Page Map** - Interactive map showing all trip locations with color-coded markers
+- ✅ **Shared Trip Page Map** - Read-only map view for trip participants and viewers
+- ✅ **Day-by-Day Filtering** - Toggle map markers by specific days
+- ✅ **Responsive Design** - Adaptive layouts for desktop, tablet, and mobile
+- ✅ **Location Details** - Click markers to view activity details
+- ✅ **Route Visualization** - Optional routes between consecutive locations
+
+**Benefits**:
+- 🎯 **Enhanced Trip Management** - Visual context for editing and planning
+- 🤝 **Better Collaboration** - Shared visual reference for trip discussions
+- 📍 **Spatial Understanding** - See distances and relationships between locations
+- 🗺️ **Professional Presentation** - More engaging trip sharing experience
+
+**Technical Considerations**:
+- Reuse existing GoogleMap component with marker conversion logic
+- Implement responsive UI patterns (side-by-side, toggle, collapsible)
+- Consider performance impact of rendering multiple markers
+- Maintain consistency with existing map functionality
+
+**Priority**: Medium - Valuable enhancement but not critical for core functionality
+
+---
+
 ## 🤝 Contributing
 
 1. Fork the repository
