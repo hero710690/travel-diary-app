@@ -649,9 +649,6 @@ const SharedTripPage: React.FC = () => {
                     <div key={day} className="space-y-4">
                       {/* Day Header */}
                       <div className="flex items-center mb-4">
-                        <div className="flex items-center justify-center w-8 h-8 bg-blue-600 text-white rounded-full text-sm font-semibold mr-3">
-                          {day}
-                        </div>
                         <h3 className="text-lg font-semibold text-gray-900">Day {day}</h3>
                         {tripData.start_date && (
                           <span className="ml-3 text-sm text-gray-500">
