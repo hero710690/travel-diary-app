@@ -92,15 +92,15 @@ const HotelCard: React.FC<HotelCardProps> = ({
         {/* Address */}
         <div className="flex items-start space-x-2">
           <MapPinIcon className="h-4 w-4 text-gray-500 flex-shrink-0 mt-0.5" />
-          <div className="flex items-start flex-1">
-            <span className="text-sm text-gray-600 text-left flex-1">{hotelInfo.address || 'Address not available'}</span>
+          <div className="flex-1">
+            <span className="text-sm text-gray-600 text-left">{hotelInfo.address || 'Address not available'}</span>
             {hotelInfo.address && hotelInfo.address !== 'Address not available' && (
               <button
                 onClick={() => window.open(generateGoogleMapsUrl(hotelInfo.address, hotelInfo.name), '_blank')}
-                className="ml-2 p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                className="ml-2 text-blue-600 hover:text-blue-800 transition-colors"
                 title="View on Google Maps"
               >
-                <GlobeAltIcon className="h-4 w-4" />
+                <span className="text-sm">(View on Google Map <GlobeAltIcon className="h-4 w-4 inline" />)</span>
               </button>
             )}
           </div>

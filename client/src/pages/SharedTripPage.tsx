@@ -161,10 +161,10 @@ const SharedTripPage: React.FC = () => {
   }) => (
     <button
       onClick={() => window.open(generateGoogleMapsUrl(address, placeName), '_blank')}
-      className={`ml-2 p-1 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors ${className}`}
+      className={`ml-2 text-blue-600 hover:text-blue-800 transition-colors ${className}`}
       title="View on Google Maps"
     >
-      <GlobeAltIcon className="h-4 w-4" />
+      <span className="text-sm">(View on Google Map <GlobeAltIcon className="h-4 w-4 inline" />)</span>
     </button>
   );
 
@@ -814,14 +814,14 @@ const SharedTripPage: React.FC = () => {
                                     (item.place?.formatted_address || item.location?.address)) && (
                                     <div className="flex items-start mb-3">
                                       <MapPinIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                                      <div className="flex items-start flex-1">
-                                        <p className="text-sm text-gray-600 text-left flex-1">
+                                      <div className="flex-1">
+                                        <p className="text-sm text-gray-600 text-left">
                                           {item.place?.formatted_address || item.location?.address}
+                                          <ViewOnGoogleMapsButton 
+                                            address={item.place?.formatted_address || item.location?.address || ''}
+                                            placeName={item.title}
+                                          />
                                         </p>
-                                        <ViewOnGoogleMapsButton 
-                                          address={item.place?.formatted_address || item.location?.address || ''}
-                                          placeName={item.title}
-                                        />
                                       </div>
                                     </div>
                                   )}
@@ -835,18 +835,18 @@ const SharedTripPage: React.FC = () => {
                                         (item.place?.types && item.place.types.includes('lodging'))) && (
                                         <MapPinIcon className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
                                       )}
-                                      <div className="flex items-start flex-1">
-                                        <p className="text-gray-600 text-left break-words overflow-wrap-anywhere flex-1">
+                                      <div className="flex-1">
+                                        <p className="text-gray-600 text-left break-words overflow-wrap-anywhere">
                                           {convertLinksToHyperlinks(item.description)}
+                                          {/* Add Google Maps button for hotel addresses */}
+                                          {(item.type === 'accommodation' || 
+                                            (item.place?.types && item.place.types.includes('lodging'))) && (
+                                            <ViewOnGoogleMapsButton 
+                                              address={item.description}
+                                              placeName={item.title}
+                                            />
+                                          )}
                                         </p>
-                                        {/* Add Google Maps button for hotel addresses */}
-                                        {(item.type === 'accommodation' || 
-                                          (item.place?.types && item.place.types.includes('lodging'))) && (
-                                          <ViewOnGoogleMapsButton 
-                                            address={item.description}
-                                            placeName={item.title}
-                                          />
-                                        )}
                                       </div>
                                     </div>
                                   )}
@@ -855,7 +855,7 @@ const SharedTripPage: React.FC = () => {
                                   {item.location?.name && (
                                     <div className="flex items-center mb-3 text-sm text-gray-600">
                                       <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
-                                      <div className="flex items-center flex-1">
+                                      <div className="flex-1">
                                         <span className="text-left">{item.location.name}</span>
                                         {item.location.address && (
                                           <span className="text-gray-400 ml-2">• {item.location.address}</span>
@@ -977,7 +977,7 @@ const SharedTripPage: React.FC = () => {
                         {item.location?.name && (
                           <div className="flex items-center mb-2 text-sm text-gray-600">
                             <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
-                            <div className="flex items-center flex-1">
+                            <div className="flex-1">
                               <span className="text-left">{item.location.name}</span>
                               <ViewOnGoogleMapsButton 
                                 address={item.location.address || item.location.name}
