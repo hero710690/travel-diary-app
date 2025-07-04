@@ -667,16 +667,17 @@ const SharedTripPage: React.FC = () => {
                       </div>
 
                       {/* Day Items */}
-                      <div className="space-y-4 ml-11">
+                      <div className="space-y-4">
                         {dayItems.length === 0 ? (
-                          <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-6 text-center">
+                          <div className="bg-gray-50 border-2 border-dashed border-gray-200 rounded-lg p-6 text-center mx-auto max-w-4xl">
                             <div className="text-gray-400 mb-2">
                               <CalendarIcon className="h-8 w-8 mx-auto" />
                             </div>
                             <p className="text-sm text-gray-500">No activities planned for this day yet</p>
                           </div>
                         ) : (
-                          dayItems.map((item: any, index: number) => {
+                          <div className="max-w-4xl mx-auto">
+                            {dayItems.map((item: any, index: number) => {
                           // Enhanced flight detection - check by title pattern as well as type
                           const title = item.title || item.custom_title || item.place?.name || '';
                           const isLikelyFlight = title.includes('Airline') || title.includes('Flight') || /[A-Z]{2,3}\d+/.test(title);
@@ -944,7 +945,8 @@ const SharedTripPage: React.FC = () => {
                               </div>
                             </div>
                           );
-                        })
+                        })}
+                          </div>
                         )}
                       </div>
                     </div>
