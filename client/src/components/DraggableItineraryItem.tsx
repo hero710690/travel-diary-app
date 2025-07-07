@@ -226,13 +226,14 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                     {item.title}
                   </h4>
                   {/* Hotel Status Badge */}
-                  {item.type === 'accommodation' && (item as any).hotelStatus && (
+                  {item.type === 'accommodation' && (
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      (item as any).hotelStatus === 'Check-in' ? 'bg-green-100 text-green-800' :
-                      (item as any).hotelStatus === 'Check-out' ? 'bg-orange-100 text-orange-800' :
+                      (item as any).calculatedHotelStatus?.isCheckIn ? 'bg-green-100 text-green-800' :
+                      (item as any).calculatedHotelStatus?.isCheckOut ? 'bg-orange-100 text-orange-800' :
                       'bg-blue-100 text-blue-800'
                     }`}>
-                      {(item as any).hotelStatus}
+                      {(item as any).calculatedHotelStatus?.isCheckIn ? 'Check-in' :
+                       (item as any).calculatedHotelStatus?.isCheckOut ? 'Check-out' : 'Stay'}
                     </span>
                   )}
                 </div>

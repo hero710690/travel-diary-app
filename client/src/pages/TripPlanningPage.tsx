@@ -401,6 +401,52 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
     return item.time || item.start_time || '';
   };
 
+  // Helper function to determine hotel check-in/check-out status (same as TripDetailPage)
+  const getHotelStatus = (hotelItem: any, allItems: any[]) => {
+    const hotelName = hotelItem.hotelInfo?.name || hotelItem.title || hotelItem.custom_title || hotelItem.place?.name;
+    
+    // Find all occurrences of this hotel in the itinerary
+    const allHotelOccurrences = allItems.filter(item => {
+      const itemHotelName = item.hotelInfo?.name || item.title || item.custom_title || item.place?.name;
+      const isHotelItem = item.type === 'accommodation' || item.hotelInfo || 
+                         (item.place?.types && item.place.types.includes('lodging'));
+      return itemHotelName === hotelName && isHotelItem;
+    });
+    
+    // Sort by day and time to determine sequence
+    const sortedOccurrences = allHotelOccurrences.sort((a, b) => {
+      // First sort by day
+      const dayA = a.day || 1;
+      const dayB = b.day || 1;
+      if (dayA !== dayB) {
+        return dayA - dayB;
+      }
+      // Then sort by time
+      const timeA = a.time || '00:00';
+      const timeB = b.time || '00:00';
+      return timeA.localeCompare(timeB);
+    });
+    
+    // Find current item index
+    const currentItemIndex = sortedOccurrences.findIndex(item => 
+      item === hotelItem || (
+        (item.day || 1) === (hotelItem.day || 1) && 
+        (item.time) === (hotelItem.time) &&
+        (item.hotelInfo?.name || item.title || item.custom_title || item.place?.name) === hotelName
+      )
+    );
+    
+    const isFirstOccurrence = currentItemIndex === 0;
+    const isLastOccurrence = currentItemIndex === sortedOccurrences.length - 1;
+    const isSingleDay = sortedOccurrences.length === 1;
+    
+    return {
+      isCheckIn: isFirstOccurrence && !isSingleDay,
+      isCheckOut: isLastOccurrence,
+      isStay: !isFirstOccurrence && !isLastOccurrence
+    };
+  };
+
   // Hotel Stay State
   const [showHotelModal, setShowHotelModal] = useState(false);
   const [hotelStays, setHotelStays] = useState<Array<{
@@ -1802,21 +1848,34 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                     </div>
                   </div>
                 ) : (
-                  getVisibleDays().map((day) => (
-                    <ItineraryDay
-                      key={day.dayNumber}
-                      day={day}
-                      items={itinerary.filter(item => item.day === day.dayNumber)}
-                      onDrop={(place) => handleDropToDay(place, day.dayNumber)}
-                      onRemoveItem={handleRemoveFromItinerary}
-                      onUpdateItem={handleUpdateItineraryItem}
-                      onMoveItem={handleMoveItineraryItem}
-                      onEditHotel={handleEditHotel}
-                      formatTime={formatTime}
-                      tripEndDate={tripData?.endDate}
-                      // onAddFlight removed - using top-level Add Flight button instead
-                    />
-                  ))
+                  getVisibleDays().map((day) => {
+                    const dayItems = itinerary.filter(item => item.day === day.dayNumber);
+                    
+                    // Calculate hotel status for each hotel item
+                    const itemsWithHotelStatus = dayItems.map(item => {
+                      if (item.type === 'accommodation') {
+                        const calculatedHotelStatus = getHotelStatus(item, itinerary);
+                        return { ...item, calculatedHotelStatus };
+                      }
+                      return item;
+                    });
+                    
+                    return (
+                      <ItineraryDay
+                        key={day.dayNumber}
+                        day={day}
+                        items={itemsWithHotelStatus}
+                        onDrop={(place) => handleDropToDay(place, day.dayNumber)}
+                        onRemoveItem={handleRemoveFromItinerary}
+                        onUpdateItem={handleUpdateItineraryItem}
+                        onMoveItem={handleMoveItineraryItem}
+                        onEditHotel={handleEditHotel}
+                        formatTime={formatTime}
+                        tripEndDate={tripData?.endDate}
+                        // onAddFlight removed - using top-level Add Flight button instead
+                      />
+                    );
+                  })
                 )}
               </div>
             </div>
