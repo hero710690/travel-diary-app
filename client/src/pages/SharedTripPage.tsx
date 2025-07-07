@@ -363,22 +363,10 @@ const SharedTripPage: React.FC = () => {
   const transformFlightData = (item: any) => {
     console.log('🛩️ Raw flight item data (DETAILED):', JSON.stringify(item, null, 2));
     
-    // If flightInfo already exists and has proper structure, use it but fix missing airport names
+    // If flightInfo already exists and has proper structure, use it
     if (item.flightInfo && item.flightInfo.departure && item.flightInfo.arrival) {
-      console.log('✅ Flight data already properly structured, checking for missing airport names');
-      
-      const flightInfo = { ...item.flightInfo };
-      
-      // Fix missing airport names by using airport codes
-      if (!flightInfo.departure.airport && flightInfo.departure.airportCode) {
-        flightInfo.departure.airport = `${flightInfo.departure.airportCode} Airport`;
-      }
-      if (!flightInfo.arrival.airport && flightInfo.arrival.airportCode) {
-        flightInfo.arrival.airport = `${flightInfo.arrival.airportCode} Airport`;
-      }
-      
-      console.log('🔄 Fixed flight data:', JSON.stringify(flightInfo, null, 2));
-      return flightInfo;
+      console.log('✅ Flight data already properly structured');
+      return item.flightInfo;
     }
     
     // Check if we have any flight info at all
@@ -440,7 +428,7 @@ const SharedTripPage: React.FC = () => {
       airline: airline,
       flightNumber: flightNumber,
       departure: {
-        airport: flightInfo.departureAirport || flightInfo.departure_airport || `${departureCode} Airport`,
+        airport: flightInfo.departureAirport || flightInfo.departure_airport || '',
         airportCode: flightInfo.departureAirportCode || flightInfo.departure_airport_code || departureCode,
         date: flightInfo.departureDate || flightInfo.departure_date || item.date || '',
         time: flightInfo.departureTime || flightInfo.departure_time || item.time || item.start_time || '00:00',
@@ -448,7 +436,7 @@ const SharedTripPage: React.FC = () => {
         gate: flightInfo.departureGate || flightInfo.departure_gate
       },
       arrival: {
-        airport: flightInfo.arrivalAirport || flightInfo.arrival_airport || `${arrivalCode} Airport`,
+        airport: flightInfo.arrivalAirport || flightInfo.arrival_airport || '',
         airportCode: flightInfo.arrivalAirportCode || flightInfo.arrival_airport_code || arrivalCode,
         date: flightInfo.arrivalDate || flightInfo.arrival_date || item.date || '',
         time: flightInfo.arrivalTime || flightInfo.arrival_time || item.end_time || '00:00',
