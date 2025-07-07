@@ -456,12 +456,25 @@ const SharedTripPage: React.FC = () => {
 
   // Helper function to determine hotel check-in/check-out status
   const getHotelStatus = (hotelItem: any, dayItems: any[], currentIndex: number) => {
-    const hotelName = hotelItem.hotelInfo?.name || hotelItem.title || hotelItem.custom_title;
+    // Get hotel name from multiple possible sources (including place.name for lodging items)
+    const hotelName = hotelItem.hotelInfo?.name || 
+                     hotelItem.title || 
+                     hotelItem.custom_title || 
+                     hotelItem.place?.name;
     
     // Find all occurrences of this hotel in the itinerary
     const allHotelOccurrences = dayItems.filter(item => {
-      const itemHotelName = item.hotelInfo?.name || item.title || item.custom_title;
-      return itemHotelName === hotelName && (item.type === 'accommodation' || item.hotelInfo);
+      const itemHotelName = item.hotelInfo?.name || 
+                           item.title || 
+                           item.custom_title || 
+                           item.place?.name;
+      
+      // Check if this is a hotel/accommodation item (including lodging places)
+      const isHotelItem = item.type === 'accommodation' || 
+                         item.hotelInfo || 
+                         (item.place?.types && item.place.types.includes('lodging'));
+      
+      return itemHotelName === hotelName && isHotelItem;
     });
     
     // Sort by day and time to determine sequence
@@ -477,16 +490,18 @@ const SharedTripPage: React.FC = () => {
     const currentItemIndex = sortedOccurrences.findIndex(item => 
       item === hotelItem || (
         item.calculatedDay === hotelItem.calculatedDay && 
-        (item.time || item.start_time) === (hotelItem.time || hotelItem.start_time)
+        (item.time || item.start_time) === (hotelItem.time || hotelItem.start_time) &&
+        (item.hotelInfo?.name || item.title || item.custom_title || item.place?.name) === hotelName
       )
     );
     
     const isFirstOccurrence = currentItemIndex === 0;
     const isLastOccurrence = currentItemIndex === sortedOccurrences.length - 1;
+    const isSingleDay = sortedOccurrences.length === 1;
     
     return {
-      isCheckIn: isFirstOccurrence,
-      isCheckOut: isLastOccurrence && sortedOccurrences.length > 1,
+      isCheckIn: isFirstOccurrence && !isSingleDay,
+      isCheckOut: isLastOccurrence,
       isStay: !isFirstOccurrence && !isLastOccurrence
     };
   };
