@@ -20,6 +20,26 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
   onEditHotel,
   formatTime
 }) => {
+  // Debug hotel status for accommodation items
+  const isAccommodationItem = item.type === 'accommodation' || 
+                             (item.place?.types && item.place.types.includes('lodging'));
+  
+  if (isAccommodationItem) {
+    console.log('🏨 DraggableItineraryItem hotel debug:', {
+      itemId: item.id,
+      title: item.title,
+      customTitle: (item as any).customTitle,
+      placeName: item.place?.name,
+      day: item.day,
+      time: item.time,
+      type: item.type,
+      placeTypes: item.place?.types,
+      storedHotelStatus: (item as any).hotelStatus,
+      calculatedHotelStatus: (item as any).calculatedHotelStatus,
+      hasCalculatedStatus: !!(item as any).calculatedHotelStatus
+    });
+  }
+  
   const [isEditing, setIsEditing] = useState(false);
   const [editTime, setEditTime] = useState(item.time);
   const [editDuration, setEditDuration] = useState(item.duration || 60);
@@ -222,11 +242,15 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                   {item.type === 'accommodation' && (
                     <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
                   )}
+                  {/* Also show home icon for lodging places */}
+                  {item.type !== 'accommodation' && item.place?.types && item.place.types.includes('lodging') && (
+                    <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  )}
                   <h4 className="text-lg font-semibold text-gray-900 break-words text-left">
                     {item.title}
                   </h4>
                   {/* Hotel Status Badge */}
-                  {item.type === 'accommodation' && (
+                  {((item.type === 'accommodation') || (item.place?.types && item.place.types.includes('lodging'))) && (
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       (item as any).calculatedHotelStatus?.isCheckIn ? 'bg-green-100 text-green-800' :
                       (item as any).calculatedHotelStatus?.isCheckOut ? 'bg-orange-100 text-orange-800' :

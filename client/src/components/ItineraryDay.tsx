@@ -178,8 +178,8 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
                     types: item.place?.types || ['lodging']
                   }}
                   time={formatTime ? formatTime(item.time || '') : (item.time || '')}
-                  isCheckIn={item.description?.includes('Check-in')}
-                  isCheckOut={item.description?.includes('Check-out')}
+                  isCheckIn={(item as any).calculatedHotelStatus?.isCheckIn || false}
+                  isCheckOut={(item as any).calculatedHotelStatus?.isCheckOut || false}
                   onEdit={() => {
                     // Extract hotel stay ID from item ID (format: hotelStayId_day_X)
                     const hotelStayId = item.id.split('_day_')[0];

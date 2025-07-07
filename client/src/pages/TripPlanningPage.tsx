@@ -403,15 +403,47 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
 
   // Helper function to determine hotel check-in/check-out status (same as TripDetailPage)
   const getHotelStatus = (hotelItem: any, allItems: any[]) => {
-    const hotelName = hotelItem.hotelInfo?.name || hotelItem.title || hotelItem.custom_title || hotelItem.place?.name;
+    // Get hotel name from multiple possible sources
+    const hotelName = hotelItem.hotelInfo?.name || 
+                     hotelItem.title || 
+                     hotelItem.customTitle || 
+                     hotelItem.place?.name;
+    
+    console.log('🏨 TripPlanningPage getHotelStatus debug:', {
+      hotelName,
+      itemId: hotelItem.id,
+      hasHotelInfo: !!hotelItem.hotelInfo,
+      hasPlace: !!hotelItem.place,
+      placeTypes: hotelItem.place?.types
+    });
     
     // Find all occurrences of this hotel in the itinerary
     const allHotelOccurrences = allItems.filter(item => {
-      const itemHotelName = item.hotelInfo?.name || item.title || item.custom_title || item.place?.name;
-      const isHotelItem = item.type === 'accommodation' || item.hotelInfo || 
+      const itemHotelName = item.hotelInfo?.name || 
+                           item.title || 
+                           item.customTitle || 
+                           item.place?.name;
+      
+      // Check if this is a hotel/accommodation item
+      const isHotelItem = item.type === 'accommodation' || 
+                         item.hotelInfo || 
                          (item.place?.types && item.place.types.includes('lodging'));
-      return itemHotelName === hotelName && isHotelItem;
+      
+      const matches = itemHotelName === hotelName && isHotelItem;
+      
+      if (matches) {
+        console.log('🏨 Found matching hotel occurrence:', {
+          itemId: item.id,
+          name: itemHotelName,
+          day: item.day,
+          time: item.time
+        });
+      }
+      
+      return matches;
     });
+    
+    console.log('🏨 All hotel occurrences found:', allHotelOccurrences.length);
     
     // Sort by day and time to determine sequence
     const sortedOccurrences = allHotelOccurrences.sort((a, b) => {
@@ -432,7 +464,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
       item === hotelItem || (
         (item.day || 1) === (hotelItem.day || 1) && 
         (item.time) === (hotelItem.time) &&
-        (item.hotelInfo?.name || item.title || item.custom_title || item.place?.name) === hotelName
+        (item.hotelInfo?.name || item.title || item.customTitle || item.place?.name) === hotelName
       )
     );
     
@@ -440,11 +472,22 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
     const isLastOccurrence = currentItemIndex === sortedOccurrences.length - 1;
     const isSingleDay = sortedOccurrences.length === 1;
     
-    return {
+    const result = {
       isCheckIn: isFirstOccurrence && !isSingleDay,
       isCheckOut: isLastOccurrence,
       isStay: !isFirstOccurrence && !isLastOccurrence
     };
+    
+    console.log('🏨 Hotel status calculation result:', {
+      currentItemIndex,
+      isFirstOccurrence,
+      isLastOccurrence,
+      isSingleDay,
+      totalOccurrences: sortedOccurrences.length,
+      result
+    });
+    
+    return result;
   };
 
   // Hotel Stay State
@@ -1853,7 +1896,21 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                     
                     // Calculate hotel status for each hotel item
                     const itemsWithHotelStatus = dayItems.map(item => {
-                      if (item.type === 'accommodation') {
+                      // Check if this is an accommodation item (hotel)
+                      const isAccommodationItem = item.type === 'accommodation' || 
+                                                 item.hotelInfo || 
+                                                 (item.place?.types && item.place.types.includes('lodging'));
+                      
+                      if (isAccommodationItem) {
+                        console.log('🏨 Processing accommodation item:', {
+                          itemId: item.id,
+                          title: item.title,
+                          customTitle: item.customTitle,
+                          placeName: item.place?.name,
+                          day: item.day,
+                          time: item.time
+                        });
+                        
                         const calculatedHotelStatus = getHotelStatus(item, itinerary);
                         return { ...item, calculatedHotelStatus };
                       }
