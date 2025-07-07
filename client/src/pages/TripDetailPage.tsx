@@ -731,10 +731,11 @@ const TripDetailPage: React.FC = () => {
     
     const isFirstOccurrence = currentItemIndex === 0;
     const isLastOccurrence = currentItemIndex === sortedOccurrences.length - 1;
+    const isSingleDay = sortedOccurrences.length === 1;
     
     return {
-      isCheckIn: isFirstOccurrence,
-      isCheckOut: isLastOccurrence && sortedOccurrences.length > 1,
+      isCheckIn: isFirstOccurrence && !isSingleDay,
+      isCheckOut: isLastOccurrence,
       isStay: !isFirstOccurrence && !isLastOccurrence
     };
   };

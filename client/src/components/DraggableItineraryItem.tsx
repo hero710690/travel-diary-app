@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDrag } from 'react-dnd';
 import { convertLinksToHyperlinks } from '../utils/linkUtils';
-import { ClockIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, HeartIcon, StarIcon, MapPinIcon, CameraIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, HeartIcon, StarIcon, MapPinIcon, CameraIcon, HomeIcon } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import { ItineraryItem } from '../types';
 
@@ -219,9 +219,22 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                   {item.type !== 'accommodation' && item.type !== 'flight' && (
                     <CameraIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
                   )}
+                  {item.type === 'accommodation' && (
+                    <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  )}
                   <h4 className="text-lg font-semibold text-gray-900 break-words text-left">
                     {item.title}
                   </h4>
+                  {/* Hotel Status Badge */}
+                  {item.type === 'accommodation' && (item as any).hotelStatus && (
+                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                      (item as any).hotelStatus === 'Check-in' ? 'bg-green-100 text-green-800' :
+                      (item as any).hotelStatus === 'Check-out' ? 'bg-orange-100 text-orange-800' :
+                      'bg-blue-100 text-blue-800'
+                    }`}>
+                      {(item as any).hotelStatus}
+                    </span>
+                  )}
                 </div>
                 <div className="flex items-center space-x-2 flex-shrink-0 ml-4">
                   <span className="text-sm text-gray-500 flex items-center whitespace-nowrap">
