@@ -705,11 +705,11 @@ const SharedTripPage: React.FC = () => {
                             isLikelyFlight,
                             hasFlightType,
                             hasFlightInfo,
-                            shouldTreatAsFlight: (hasFlightType && hasFlightInfo) || isLikelyFlight
+                            shouldTreatAsFlight: hasFlightType || isLikelyFlight
                           });
 
-                          // Check if this is a flight item - use original FlightCard component with data transformation
-                          if ((hasFlightType && hasFlightInfo) || isLikelyFlight) {
+                          // Check if this is a flight item - treat as flight if type is 'flight' OR if it looks like a flight
+                          if (hasFlightType || isLikelyFlight) {
                             console.log('🛩️ Processing as flight item:', {
                               type: item.type,
                               flightInfo: item.flightInfo,
