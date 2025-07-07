@@ -363,10 +363,22 @@ const SharedTripPage: React.FC = () => {
   const transformFlightData = (item: any) => {
     console.log('🛩️ Raw flight item data (DETAILED):', JSON.stringify(item, null, 2));
     
-    // If flightInfo already exists and has proper structure, use it
+    // If flightInfo already exists and has proper structure, use it but fix missing airport names
     if (item.flightInfo && item.flightInfo.departure && item.flightInfo.arrival) {
-      console.log('✅ Flight data already properly structured');
-      return item.flightInfo;
+      console.log('✅ Flight data already properly structured, checking for missing airport names');
+      
+      const flightInfo = { ...item.flightInfo };
+      
+      // Fix missing airport names by using airport codes
+      if (!flightInfo.departure.airport && flightInfo.departure.airportCode) {
+        flightInfo.departure.airport = `${flightInfo.departure.airportCode} Airport`;
+      }
+      if (!flightInfo.arrival.airport && flightInfo.arrival.airportCode) {
+        flightInfo.arrival.airport = `${flightInfo.arrival.airportCode} Airport`;
+      }
+      
+      console.log('🔄 Fixed flight data:', JSON.stringify(flightInfo, null, 2));
+      return flightInfo;
     }
     
     // Check if we have any flight info at all
@@ -693,23 +705,30 @@ const SharedTripPage: React.FC = () => {
                         ) : (
                           <div className="max-w-4xl mx-auto">
                             {dayItems.map((item: any, index: number) => {
-                          // Enhanced flight detection - check by title pattern as well as type
+                          // Enhanced flight detection - check by title pattern, type, and place types
                           const title = item.title || item.custom_title || item.place?.name || '';
-                          const isLikelyFlight = title.includes('Airline') || title.includes('Flight') || /[A-Z]{2,3}\d+/.test(title);
+                          const isLikelyFlight = title.includes('Airline') || title.includes('Flight') || 
+                                               /[A-Z]{2,3}\s*\d+/.test(title); // Allow space between airline code and number
                           const hasFlightType = item.type === 'flight';
                           const hasFlightInfo = !!item.flightInfo;
+                          const hasFlightPlaceType = item.place?.types && item.place.types.includes('flight');
                           
-                          console.log('🔍 Item analysis:', {
-                            title,
-                            type: item.type,
-                            isLikelyFlight,
-                            hasFlightType,
-                            hasFlightInfo,
-                            shouldTreatAsFlight: hasFlightType || isLikelyFlight
-                          });
+                          // Debug all items to see what's happening
+                          if (hasFlightType || isLikelyFlight || hasFlightInfo || hasFlightPlaceType) {
+                            console.log('🔍 Flight detection analysis:', {
+                              title,
+                              type: item.type,
+                              isLikelyFlight,
+                              hasFlightType,
+                              hasFlightInfo,
+                              hasFlightPlaceType,
+                              shouldTreatAsFlight: hasFlightType || isLikelyFlight || hasFlightPlaceType,
+                              placeTypes: item.place?.types
+                            });
+                          }
 
-                          // Check if this is a flight item - treat as flight if type is 'flight' OR if it looks like a flight
-                          if (hasFlightType || isLikelyFlight) {
+                          // Check if this is a flight item - treat as flight if type is 'flight' OR looks like flight OR has flight place type
+                          if (hasFlightType || isLikelyFlight || hasFlightPlaceType) {
                             console.log('🛩️ Processing as flight item:', {
                               type: item.type,
                               flightInfo: item.flightInfo,
