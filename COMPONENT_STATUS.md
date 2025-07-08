@@ -48,6 +48,23 @@
   - **Impact**: No impact - functionality moved to FlightForm.tsx
 
 ### 🔄 **RECENTLY UPDATED** - Monitor for Issues
+
+#### **Hotel Status Logic Fixes (July 8, 2025)**
+- **TripDetailPage.tsx** - ✅ Fixed hotel status calculation logic
+- **TripPlanningPage.tsx** - ✅ Added unified hotel status calculation
+- **SharedTripPage.tsx** - ✅ Fixed hotel status logic and flight detection
+- **ItineraryDay.tsx** - ✅ Updated to use calculated hotel status for HotelCard
+- **DraggableItineraryItem.tsx** - ✅ Enhanced to support calculated hotel status
+
+**Changes Made:**
+- Fixed single-day hotel stay status (now shows "Check-out" instead of no status)
+- Enhanced hotel detection to include `place.types.includes('lodging')` items
+- Unified hotel status calculation across all pages
+- Improved flight detection in SharedTripPage with multiple criteria
+- Removed automatic airport name generation logic
+
+**Status**: ✅ **STABLE** - All hotel status badges working correctly
+**Impact**: Positive - Hotel status now displays correctly across all pages
 - **FlightForm.tsx** - Enhanced with date input fields for departure/arrival dates, removed arrival date constraints for cross-day flights (✅ Just updated)
 - **FlightCard.tsx** - Added departure and arrival date display to flight cards across all pages (✅ Just updated)
 - **TripDetailPage.tsx** - Added flight editing modal with FlightForm integration, enhanced ShareModal integration, improved hotel status badge logic, added hyperlink functionality in notes (✅ Just updated)

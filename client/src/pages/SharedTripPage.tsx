@@ -361,17 +361,13 @@ const SharedTripPage: React.FC = () => {
 
   // Transform flight data to match FlightInfo interface
   const transformFlightData = (item: any) => {
-    console.log('🛩️ Raw flight item data (DETAILED):', JSON.stringify(item, null, 2));
-    
     // If flightInfo already exists and has proper structure, use it
     if (item.flightInfo && item.flightInfo.departure && item.flightInfo.arrival) {
-      console.log('✅ Flight data already properly structured');
       return item.flightInfo;
     }
     
     // Check if we have any flight info at all
     if (!item.flightInfo) {
-      console.log('❌ No flightInfo found, creating minimal structure');
       // Create a minimal flight info from available data
       return {
         airline: item.title || item.custom_title || 'Unknown Airline',
@@ -392,7 +388,6 @@ const SharedTripPage: React.FC = () => {
     }
     
     const flightInfo = item.flightInfo;
-    console.log('🔍 FlightInfo object:', JSON.stringify(flightInfo, null, 2));
     
     // Try to parse flight number and airline from title if not in flightInfo
     let airline = flightInfo.airline || 'Unknown Airline';
@@ -450,7 +445,6 @@ const SharedTripPage: React.FC = () => {
       status: flightInfo.status || 'scheduled'
     };
     
-    console.log('🔄 Transformed flight data (DETAILED):', JSON.stringify(transformedFlightInfo, null, 2));
     return transformedFlightInfo;
   };
 
@@ -700,31 +694,9 @@ const SharedTripPage: React.FC = () => {
                           const hasFlightType = item.type === 'flight';
                           const hasFlightInfo = !!item.flightInfo;
                           const hasFlightPlaceType = item.place?.types && item.place.types.includes('flight');
-                          
-                          // Debug all items to see what's happening
-                          if (hasFlightType || isLikelyFlight || hasFlightInfo || hasFlightPlaceType) {
-                            console.log('🔍 Flight detection analysis:', {
-                              title,
-                              type: item.type,
-                              isLikelyFlight,
-                              hasFlightType,
-                              hasFlightInfo,
-                              hasFlightPlaceType,
-                              shouldTreatAsFlight: hasFlightType || isLikelyFlight || hasFlightPlaceType,
-                              placeTypes: item.place?.types
-                            });
-                          }
 
                           // Check if this is a flight item - treat as flight if type is 'flight' OR looks like flight OR has flight place type
                           if (hasFlightType || isLikelyFlight || hasFlightPlaceType) {
-                            console.log('🛩️ Processing as flight item:', {
-                              type: item.type,
-                              flightInfo: item.flightInfo,
-                              time: item.time,
-                              start_time: item.start_time,
-                              fullItem: item
-                            });
-                            
                             const transformedFlightInfo = transformFlightData(item);
                             
                             return (

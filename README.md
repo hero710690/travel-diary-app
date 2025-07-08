@@ -25,9 +25,24 @@ A comprehensive full-stack travel planning and diary application built with mode
 - ✅ **Collaborative Planning** - Multi-user trip collaboration
 - ✅ **Wish Level Rating** - Personal rating system for places (1-5 hearts)
 
-### 🗺️ **Map & Places Features**
-- ✅ **Interactive Google Maps** - Click to select places directly on map
-- ✅ **Smart Place Detection** - Prioritizes establishments over generic locations
+### 🏨 **Hotel & Accommodation Features**
+- ✅ **Hotel Status Badges** - Proper Check-in/Check-out/Stay status display
+- ✅ **Multi-day Hotel Stays** - Intelligent status calculation across days
+- ✅ **Hotel Search Integration** - Dedicated hotel search functionality
+- ✅ **Accommodation Detection** - Supports both hotelInfo and lodging place types
+
+### ✈️ **Flight & Transportation Features**
+- ✅ **Flight Card Display** - Comprehensive flight information cards
+- ✅ **Enhanced Flight Detection** - Multiple detection criteria for flight items
+- ✅ **Spaced Flight Numbers** - Supports formats like "WS 110" and "CI31"
+- ✅ **Flight Data Transformation** - Handles various flight data formats
+
+### 🔄 **Recent Updates (July 8, 2025)**
+- ✅ **Fixed Hotel Status Logic** - Corrected single-day stay status display
+- ✅ **Unified Hotel Status Calculation** - Consistent across all pages
+- ✅ **Enhanced Flight Detection** - Improved recognition in shared trips
+- ✅ **Lodging Place Support** - Better detection of accommodation items
+- ✅ **Removed Auto-generation** - Cleaner flight data display
 - ✅ **Place Details** - Google ratings, reviews, place types, and photos
 - ✅ **Exact Place Selection** - Click on specific places (not nearby search)
 - ✅ **Visual Feedback** - Temporary markers with color coding
