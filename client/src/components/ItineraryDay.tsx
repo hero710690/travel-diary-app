@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { useDrop } from 'react-dnd';
 import { format } from 'date-fns';
-import { ItineraryItem, FlightInfo } from '../types';
+import { ItineraryItem, FlightInfo, BusInfo } from '../types';
 import DraggableItineraryItem from './DraggableItineraryItem';
 import FlightCard from './FlightCard';
+import BusCard from './BusCard';
 import HotelCard from './HotelCard';
 import FlightForm from './FlightForm'; // Restored for editing existing flights
+import BusForm from './BusForm'; // Added for bus support
+import toast from 'react-hot-toast';
 import { 
   PlusIcon 
   // PaperAirplaneIcon removed - no longer needed for add buttons 
@@ -31,6 +34,7 @@ interface ItineraryDayProps {
   onMoveItem?: (itemId: string, newDay: number) => void;
   onEditHotel?: (hotelStayId: string) => void;
   formatTime?: (timeString: string) => string;
+  tripStartDate?: string; // Add trip start date for day calculation
   tripEndDate?: string; // Add trip end date for flight time logic
   // onAddFlight removed - using top-level Add Flight button instead
 }
@@ -44,12 +48,15 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
   onMoveItem,
   onEditHotel,
   formatTime,
+  tripStartDate,
   tripEndDate
   // onAddFlight removed - using top-level Add Flight button instead
 }) => {
-  // Flight form state for editing existing flights only (not for adding new ones)
+  // Form states for editing existing transportation items
   const [showFlightForm, setShowFlightForm] = useState(false);
   const [editingFlight, setEditingFlight] = useState<ItineraryItem | null>(null);
+  const [showBusForm, setShowBusForm] = useState(false);
+  const [editingBus, setEditingBus] = useState<ItineraryItem | null>(null);
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: ['place', 'itinerary-item'],
@@ -108,6 +115,114 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
     setShowFlightForm(false);
     setEditingFlight(null);
   };
+  
+  // Bus editing functions
+  const handleEditBus = (item: ItineraryItem) => {
+    console.log('🚌 handleEditBus called with item:', item);
+    console.log('🚌 item.busInfo:', item.busInfo);
+    console.log('🚌 item type:', item.type);
+    
+    if (!item.busInfo) {
+      console.error('🚌 No busInfo found in item:', item);
+      toast.error('Bus information not found. Cannot edit.');
+      return;
+    }
+    
+    setEditingBus(item);
+    setShowBusForm(true);
+    console.log('🚌 Bus edit form opened');
+  };
+
+  const handleUpdateBus = (busInfo: BusInfo) => {
+    console.log('🚌 handleUpdateBus called with:', busInfo);
+    console.log('🚌 editingBus:', editingBus);
+    console.log('🚌 onUpdateItem available:', !!onUpdateItem);
+    
+    if (!editingBus) {
+      console.error('🚌 No editingBus found');
+      return;
+    }
+    
+    if (!onUpdateItem) {
+      console.error('🚌 No onUpdateItem function provided');
+      return;
+    }
+
+    // Calculate the new day based on arrival date
+    let newDay = editingBus.day; // Default to current day
+    
+    if (tripStartDate && busInfo.arrival.date) {
+      try {
+        const tripStart = new Date(tripStartDate);
+        const arrivalDate = new Date(busInfo.arrival.date);
+        
+        // Calculate day difference (same logic as in TripPlanningPage)
+        const timeDiff = arrivalDate.getTime() - tripStart.getTime();
+        const dayDiff = Math.floor(timeDiff / (1000 * 3600 * 24));
+        newDay = Math.max(1, dayDiff + 1);
+        
+        console.log('🚌 Day recalculation:', {
+          tripStartDate,
+          arrivalDate: busInfo.arrival.date,
+          dayDiff,
+          newDay,
+          originalDay: editingBus.day
+        });
+      } catch (error) {
+        console.error('🚌 Error calculating day:', error);
+        // Keep original day if calculation fails
+      }
+    }
+
+    // Create the update object with all necessary fields
+    const updateData = {
+      type: 'bus' as const,
+      day: newDay, // Include the recalculated day
+      busInfo: busInfo,
+      time: busInfo.arrival.time,
+      title: `${busInfo.company} ${busInfo.busNumber}`,
+      description: `${busInfo.departure.city} → ${busInfo.arrival.city}`,
+      notes: `Bus from ${busInfo.departure.city} to ${busInfo.arrival.city}${busInfo.bookingReference ? ` (Confirmation: ${busInfo.bookingReference})` : ''}`,
+      place: {
+        name: `${busInfo.company} ${busInfo.busNumber}`,
+        address: `${busInfo.departure.city} → ${busInfo.arrival.city}`,
+        coordinates: undefined,
+        place_id: editingBus.place?.place_id || `bus_${editingBus.id}`,
+        types: ['bus'],
+        rating: 0,
+        photos: []
+      }
+    };
+    
+    console.log('🚌 Calling onUpdateItem with:', {
+      itemId: editingBus.id,
+      updateData,
+      dayChanged: newDay !== editingBus.day
+    });
+    
+    try {
+      onUpdateItem(editingBus.id, updateData);
+      console.log('🚌 onUpdateItem called successfully');
+      
+      if (newDay !== editingBus.day) {
+        toast.success(`Bus ${busInfo.company} ${busInfo.busNumber} updated and moved to Day ${newDay}`);
+      } else {
+        toast.success(`Bus ${busInfo.company} ${busInfo.busNumber} updated successfully`);
+      }
+    } catch (error) {
+      console.error('🚌 Error calling onUpdateItem:', error);
+      toast.error('Failed to update bus information');
+    }
+    
+    // Close the form
+    setEditingBus(null);
+    setShowBusForm(false);
+  };
+
+  const handleCancelBusForm = () => {
+    setShowBusForm(false);
+    setEditingBus(null);
+  };
 
   return (
     <div
@@ -156,6 +271,15 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
                   flightInfo={item.flightInfo}
                   time={formatTime ? formatTime(item.time || '') : (item.time || '')}
                   onEdit={() => handleEditFlight(item)}
+                  onDelete={() => onRemoveItem(item.id)}
+                  tripEndDate={tripEndDate}
+                />
+              ) : item.type === 'bus' && item.busInfo ? (
+                <BusCard
+                  key={item.id}
+                  busInfo={item.busInfo}
+                  time={formatTime ? formatTime(item.time || '') : (item.time || '')}
+                  onEdit={() => handleEditBus(item)}
                   onDelete={() => onRemoveItem(item.id)}
                   tripEndDate={tripEndDate}
                 />
@@ -218,6 +342,17 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
           initialData={editingFlight.flightInfo}
           onSave={handleUpdateFlight}
           onCancel={handleCancelFlightForm}
+        />
+      )}
+
+      {/* Bus Form Modal - for editing existing bus items */}
+      {showBusForm && editingBus && (
+        <BusForm
+          initialData={editingBus.busInfo}
+          onSave={handleUpdateBus}
+          onCancel={handleCancelBusForm}
+          tripStartDate={editingBus.busInfo?.departure.date}
+          tripEndDate={tripEndDate}
         />
       )}
     </div>

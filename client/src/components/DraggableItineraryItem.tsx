@@ -62,16 +62,35 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
   };
 
   const getDurationOptions = () => {
-    const options = [];
-    // Add common durations
-    const commonDurations = [15, 30, 45, 60, 90, 120, 180, 240, 300, 360, 480];
-    for (const duration of commonDurations) {
-      options.push({
-        value: duration,
-        label: formatDuration(duration)
-      });
+    try {
+      const options = [];
+      // Add common durations with validation
+      const commonDurations = [15, 30, 45, 60, 90, 120, 180, 240, 300, 360, 480];
+      
+      for (const duration of commonDurations) {
+        if (typeof duration === 'number' && duration > 0) {
+          options.push({
+            value: duration,
+            label: formatDuration(duration)
+          });
+        }
+      }
+      
+      // Ensure we have at least one option
+      if (options.length === 0) {
+        options.push({ value: 60, label: '1h' });
+      }
+      
+      return options;
+    } catch (error) {
+      console.error('❌ Error generating duration options:', error);
+      // Return safe fallback
+      return [
+        { value: 30, label: '30m' },
+        { value: 60, label: '1h' },
+        { value: 120, label: '2h' }
+      ];
     }
-    return options;
   };
 
   const [{ isDragging }, drag] = useDrag(() => ({
@@ -90,20 +109,50 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
   };
 
   const handleEditSave = () => {
-    if (onUpdate) {
+    try {
+      if (!onUpdate) {
+        console.warn('⚠️ No onUpdate function provided');
+        setIsEditing(false);
+        return;
+      }
+
+      // Validate time format
+      const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9]$/;
+      if (!timeRegex.test(editTime)) {
+        alert('Please enter a valid time in HH:MM format');
+        return;
+      }
+
       const updateData: any = {
         time: editTime,
-        notes: editNotes // Include notes in the update
+        notes: editNotes || '' // Include notes in the update
       };
       
       // Only update duration for non-accommodation items
       if (item.type !== 'accommodation') {
-        updateData.duration = editDuration;
+        // Ensure duration is a valid number with bounds checking
+        let validDuration: number;
+        
+        if (typeof editDuration === 'number' && !isNaN(editDuration)) {
+          validDuration = Math.max(15, Math.min(1440, Math.round(editDuration))); // 15 min to 24 hours
+        } else {
+          const parsed = parseInt(String(editDuration), 10);
+          validDuration = !isNaN(parsed) && parsed > 0 ? Math.max(15, Math.min(1440, parsed)) : 60;
+        }
+        
+        updateData.duration = validDuration;
+        console.log('✅ Validated duration for save:', validDuration, 'from edit value:', editDuration);
       }
       
+      console.log('🔄 Updating item with data:', updateData);
       onUpdate(item.id, updateData);
+      setIsEditing(false);
+      
+    } catch (error) {
+      console.error('❌ Error saving item updates:', error);
+      alert('Failed to save changes. Please check your input and try again.');
+      // Don't exit edit mode if there's an error
     }
-    setIsEditing(false);
   };
 
   const handleEditCancel = () => {
@@ -192,7 +241,28 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                   <span className="text-xs text-gray-500">Duration:</span>
                   <select
                     value={editDuration}
-                    onChange={(e) => setEditDuration(parseInt(e.target.value))}
+                    onChange={(e) => {
+                      try {
+                        const value = e.target.value;
+                        if (!value || value === '') {
+                          setEditDuration(60);
+                          return;
+                        }
+                        
+                        const newDuration = parseInt(value, 10);
+                        if (isNaN(newDuration) || newDuration <= 0) {
+                          console.warn('⚠️ Invalid duration value:', value);
+                          setEditDuration(60); // fallback to 60 minutes
+                        } else {
+                          // Ensure duration is within reasonable bounds
+                          const boundedDuration = Math.max(15, Math.min(1440, newDuration));
+                          setEditDuration(boundedDuration);
+                        }
+                      } catch (error) {
+                        console.error('❌ Error parsing duration:', error);
+                        setEditDuration(60); // fallback to 60 minutes
+                      }
+                    }}
                     className="text-xs border border-gray-300 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     {getDurationOptions().map(option => (
