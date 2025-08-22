@@ -8,7 +8,8 @@ import {
   Bars3Icon, 
   XMarkIcon,
   HomeIcon,
-  ArrowRightOnRectangleIcon
+  ArrowRightOnRectangleIcon,
+  UserGroupIcon
 } from '@heroicons/react/24/outline';
 
 interface LayoutProps {
@@ -23,6 +24,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
 
   const navigation = [
     { name: 'Dashboard', href: '/dashboard', icon: HomeIcon },
+    { name: 'Shared Trips', href: '/shared-trips', icon: UserGroupIcon },
     { name: 'New Trip', href: '/trips/new', icon: PlusIcon },
     { name: 'Profile', href: '/profile', icon: UserIcon },
   ];

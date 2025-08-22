@@ -30,6 +30,7 @@ interface AuthContextType extends AuthState {
   register: (email: string, password: string, nickname?: string) => Promise<void>;
   logout: () => Promise<void>;
   clearError: () => void;
+  setUser: (user: User, token: string) => void;
 }
 
 // PRODUCTION MODE - Start with no user, require real authentication
@@ -235,12 +236,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     dispatch({ type: 'CLEAR_ERROR' });
   };
 
+  const setUser = (user: User, token: string): void => {
+    console.log('🔥🔥🔥 AuthProvider SET_USER CALLED (PRODUCTION MODE)!', { user });
+    authService.storeAuthData(user, token);
+    dispatch({ type: 'AUTH_SUCCESS', payload: user });
+  };
+
   const value: AuthContextType = {
     ...state,
     login,
     register,
     logout,
     clearError,
+    setUser,
   };
 
   console.log('🔥🔥🔥 AuthProvider - Providing context value (PRODUCTION MODE):', value);

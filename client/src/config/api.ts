@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
     LOGIN: '/auth/login',
     ME: '/auth/me',
     LOGOUT: '/auth/logout',
+    REGISTER_WITH_INVITE: '/auth/register-with-invite',
   },
   // Trips
   TRIPS: {
@@ -22,12 +23,20 @@ export const API_ENDPOINTS = {
     DELETE: (id: string) => `/trips/${id}`,
     // Collaboration endpoints
     INVITE: (id: string) => `/trips/${id}/invite`,
+    INVITE_LINK: (id: string) => `/trips/${id}/invite-link`,
     SHARE: (id: string) => `/trips/${id}/share`,
   },
-  // Collaboration
+  // Collaboration & Invitations
   COLLABORATION: {
     RESPOND_INVITE: '/invite/respond',
     SHARED_TRIP: (token: string) => `/shared/${token}`,
+  },
+  // Invitations
+  INVITATIONS: {
+    DETAILS: (token: string) => `/invite/${token}/details`,
+    ACCEPT: '/invite/accept',
+    PENDING: '/invitations/pending',
+    REVOKE: (token: string) => `/invite/${token}`,
   },
   // Health
   HEALTH: '/health',

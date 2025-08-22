@@ -65,7 +65,7 @@ const InviteResponsePage: React.FC = () => {
   }, [token, action]);
 
   const handleGoToTrips = () => {
-    navigate('/trips');
+    navigate('/dashboard');
   };
 
   const handleGoHome = () => {

@@ -5,6 +5,8 @@ import { tripsService } from '../services/trips';
 import { collaborationService } from '../services/collaboration';
 import { safeParseDate, getDaysDifferenceIgnoreTime } from '../utils/dateUtils';
 import { convertLinksToHyperlinks } from '../utils/linkUtils';
+import FlightCard from '../components/FlightCard';
+import BusCard from '../components/BusCard';
 // FlightForm import removed - flight editing disabled in planned itinerary
 import { 
   PencilIcon, 
@@ -24,12 +26,13 @@ import {
   UsersIcon,
   HeartIcon,
   CameraIcon,
-  HomeIcon
+  HomeIcon,
+  TruckIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import LoadingSpinner from '../components/LoadingSpinner';
 import ShareModal from '../components/ShareModal';
-import InviteCollaboratorModal from '../components/InviteCollaboratorModal';
+import InvitationModal from '../components/InvitationModal';
 import toast from 'react-hot-toast';
 import { format, addDays } from 'date-fns';
 
@@ -40,8 +43,9 @@ interface ItineraryItem {
   title: string;
   description: string;
   duration?: number;
-  type: 'activity' | 'flight';
+  type: 'activity' | 'flight' | 'bus';
   flightInfo?: any;
+  busInfo?: any;
   location?: {
     name: string;
     address: string;
@@ -98,8 +102,6 @@ const TripDetailPage: React.FC = () => {
   // Collaboration & Sharing State
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState<'viewer' | 'editor'>('viewer');
   const [shareLink, setShareLink] = useState('');
   const [isGeneratingLink, setIsGeneratingLink] = useState(false);
   const [collaborators, setCollaborators] = useState<Array<{
@@ -175,37 +177,6 @@ const TripDetailPage: React.FC = () => {
   };
 
   // Collaboration & Sharing Functions
-  const handleInviteUser = async () => {
-    if (!inviteEmail.trim()) {
-      toast.error('Please enter an email address');
-      return;
-    }
-
-    try {
-      // TODO: Replace with actual API call when backend is ready
-      console.log('Inviting user:', { email: inviteEmail, role: inviteRole, tripId: id });
-      
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Add to collaborators list (mock data)
-      const newCollaborator = {
-        id: Date.now().toString(),
-        email: inviteEmail,
-        name: inviteEmail.split('@')[0],
-        role: inviteRole,
-        status: 'pending' as const,
-      };
-      
-      setCollaborators(prev => [...prev, newCollaborator]);
-      setInviteEmail('');
-      setShowInviteModal(false);
-      toast.success(`Invitation sent to ${inviteEmail}`);
-    } catch (error) {
-      toast.error('Failed to send invitation');
-    }
-  };
-
   const handleGenerateShareLink = async () => {
     setIsGeneratingLink(true);
     try {
@@ -239,18 +210,6 @@ const TripDetailPage: React.FC = () => {
       toast.success('Link copied to clipboard!');
     } catch (error) {
       toast.error('Failed to copy link');
-    }
-  };
-
-  const handleRemoveCollaborator = async (collaboratorId: string) => {
-    try {
-      // TODO: Replace with actual API call when backend is ready
-      console.log('Removing collaborator:', collaboratorId);
-      
-      setCollaborators(prev => prev.filter(c => c.id !== collaboratorId));
-      toast.success('Collaborator removed');
-    } catch (error) {
-      toast.error('Failed to remove collaborator');
     }
   };
 
@@ -489,6 +448,7 @@ const TripDetailPage: React.FC = () => {
         }
 
         const isFlightItem = item.flightInfo || (item.place?.types && item.place.types.includes('flight'));
+        const isBusItem = item.busInfo || (item.place?.types && item.place.types.includes('bus')) || item.type === 'bus';
 
         const transformedItem = {
           id: item._id || `item_${index}`,
@@ -501,11 +461,12 @@ const TripDetailPage: React.FC = () => {
             address: item.place?.address || '',
             coordinates: item.place?.coordinates || undefined,
           },
-          duration: item.estimated_duration || (isFlightItem ? 120 : 60),
-          type: isFlightItem ? 'flight' as const : 'activity' as const,
+          duration: item.estimated_duration || (isFlightItem ? 120 : isBusItem ? 120 : 60),
+          type: isFlightItem ? 'flight' as const : isBusItem ? 'bus' as const : 'activity' as const,
           notes: item.notes || '',
           userRating: item.userRating || undefined, // ✅ FIXED: Include user rating for hearts display
           flightInfo: item.flightInfo || undefined,
+          busInfo: item.busInfo || undefined,
           place: item.place || undefined, // ✅ PRESERVE: Include full place data with rating and types
         };
         
@@ -683,6 +644,8 @@ const TripDetailPage: React.FC = () => {
     switch (type) {
       case 'flight':
         return <PaperAirplaneIcon className="h-5 w-5 text-blue-600" />;
+      case 'bus':
+        return <TruckIcon className="h-5 w-5 text-green-600" />;
       case 'accommodation':
         return <HomeIcon className="h-5 w-5 text-blue-600" />;
       default:
@@ -762,73 +725,91 @@ const TripDetailPage: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex justify-between items-start mb-4">
-          <div className="text-left">
-            <h1 className="text-2xl font-bold text-gray-900 mb-2 text-left">{tripData.name}</h1>
-            <p className="text-gray-600 text-left">{tripData.description}</p>
+      <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+        <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-start lg:space-y-0 mb-4">
+          <div className="text-left flex-1 min-w-0">
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 mb-2 truncate">{tripData.name}</h1>
+            <p className="text-sm sm:text-base text-gray-600 line-clamp-2">{tripData.description}</p>
           </div>
-          <div className="flex space-x-2">
-            <button
-              onClick={() => refetch()}
-              className="inline-flex items-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              title="Refresh data"
-            >
-              <ArrowPathIcon className="h-4 w-4" />
-            </button>
-            <Link
-              to={`/trips/${id}/plan`}
-              className="inline-flex items-center px-4 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <MapIcon className="h-4 w-4 mr-2" />
-              Plan Trip
-            </Link>
-            <button
-              onClick={() => setShowInviteModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-            >
-              <UserPlusIcon className="h-4 w-4 mr-2" />
-              Invite
-            </button>
-            <button
-              onClick={() => setShowShareModal(true)}
-              className="inline-flex items-center px-4 py-2 border border-purple-300 shadow-sm text-sm font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
-            >
-              <ShareIcon className="h-4 w-4 mr-2" />
-              Share
-            </button>
-            <Link
-              to={`/trips/${id}/edit`}
-              className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-            >
-              <PencilIcon className="h-4 w-4 mr-2" />
-              Edit Trip
-            </Link>
-            <button
-              onClick={handleDeleteTrip}
-              disabled={deleteTripMutation.isLoading}
-              className="inline-flex items-center px-4 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <TrashIcon className="h-4 w-4 mr-2" />
-              {deleteTripMutation.isLoading ? 'Deleting...' : 'Delete Trip'}
-            </button>
+          
+          {/* Responsive button layout */}
+          <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 lg:flex-shrink-0">
+            {/* Primary actions - always visible */}
+            <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+              <button
+                onClick={() => refetch()}
+                className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                title="Refresh data"
+              >
+                <ArrowPathIcon className="h-4 w-4" />
+                <span className="ml-2 sm:hidden">Refresh</span>
+              </button>
+              
+              <Link
+                to={`/trips/${id}/plan`}
+                className="inline-flex items-center justify-center px-4 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <MapIcon className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Plan Trip</span>
+                <span className="sm:hidden">Plan</span>
+              </Link>
+            </div>
+            
+            {/* Secondary actions - collapsible on mobile */}
+            <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+              <button
+                onClick={() => setShowInviteModal(true)}
+                className="inline-flex items-center justify-center px-3 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                <UserPlusIcon className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Invite Collaborators</span>
+                <span className="sm:hidden">Invite</span>
+              </button>
+              
+              <button
+                onClick={() => setShowShareModal(true)}
+                className="inline-flex items-center justify-center px-3 py-2 border border-purple-300 shadow-sm text-sm font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+              >
+                <ShareIcon className="h-4 w-4 mr-2" />
+                Share
+              </button>
+              
+              <Link
+                to={`/trips/${id}/edit`}
+                className="inline-flex items-center justify-center px-3 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                <PencilIcon className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">Edit Trip</span>
+                <span className="sm:hidden">Edit</span>
+              </Link>
+              
+              <button
+                onClick={handleDeleteTrip}
+                disabled={deleteTripMutation.isLoading}
+                className="inline-flex items-center justify-center px-3 py-2 border border-red-300 shadow-sm text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <TrashIcon className="h-4 w-4 mr-2" />
+                <span className="hidden sm:inline">{deleteTripMutation.isLoading ? 'Deleting...' : 'Delete Trip'}</span>
+                <span className="sm:hidden">{deleteTripMutation.isLoading ? 'Deleting...' : 'Delete'}</span>
+              </button>
+            </div>
           </div>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <div className="text-left">
-            <h3 className="font-medium text-gray-900 text-left">Destination</h3>
-            <p className="text-gray-600 text-left">{tripData.destination}</p>
+            <h3 className="text-sm sm:text-base font-medium text-gray-900">Destination</h3>
+            <p className="text-sm sm:text-base text-gray-600 truncate">{tripData.destination}</p>
           </div>
           <div className="text-left">
-            <h3 className="font-medium text-gray-900 text-left">Duration</h3>
-            <p className="text-gray-600 text-left">
+            <h3 className="text-sm sm:text-base font-medium text-gray-900">Duration</h3>
+            <p className="text-sm sm:text-base text-gray-600">
               {Math.ceil((new Date(tripData.endDate).getTime() - new Date(tripData.startDate).getTime()) / (1000 * 60 * 60 * 24)) + 1} days
             </p>
           </div>
-          <div className="text-left">
-            <h3 className="font-medium text-gray-900 text-left">Dates</h3>
-            <p className="text-gray-600 text-left">
+          <div className="text-left sm:col-span-2 lg:col-span-1">
+            <h3 className="text-sm sm:text-base font-medium text-gray-900">Dates</h3>
+            <p className="text-xs sm:text-sm lg:text-base text-gray-600">
               {(() => {
                 try {
                   const startDate = new Date(tripData.startDate);
@@ -889,7 +870,7 @@ const TripDetailPage: React.FC = () => {
               
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-3 text-left">Quick Stats</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <div className="flex items-center">
                       <CalendarIcon className="h-8 w-8 text-blue-600" />
@@ -906,6 +887,17 @@ const TripDetailPage: React.FC = () => {
                         <p className="text-sm font-medium text-green-900 text-left">Flights</p>
                         <p className="text-2xl font-bold text-green-600 text-left">
                           {itinerary.filter(item => item.type === 'flight').length}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-orange-50 p-4 rounded-lg">
+                    <div className="flex items-center">
+                      <TruckIcon className="h-8 w-8 text-orange-600" />
+                      <div className="ml-3 text-left">
+                        <p className="text-sm font-medium text-orange-900 text-left">Buses</p>
+                        <p className="text-2xl font-bold text-orange-600 text-left">
+                          {itinerary.filter(item => item.type === 'bus').length}
                         </p>
                       </div>
                     </div>
@@ -928,22 +920,24 @@ const TripDetailPage: React.FC = () => {
 
           {activeTab === 'itinerary' && (
             <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-gray-900 text-left">Planned Itinerary</h3>
+              {/* Header Section - Responsive */}
+              <div className="flex flex-col space-y-3 sm:flex-row sm:justify-between sm:items-center sm:space-y-0">
+                <h3 className="text-lg font-medium text-gray-900">Planned Itinerary</h3>
                 <Link
                   to={`/trips/${id}/plan`}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
+                  className="inline-flex items-center justify-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
                 >
                   <PencilIcon className="h-4 w-4 mr-2" />
-                  Edit Itinerary
+                  <span className="hidden sm:inline">Edit Itinerary</span>
+                  <span className="sm:hidden">Edit</span>
                 </Link>
               </div>
 
               {itinerary.length === 0 ? (
-                <div className="text-center py-12">
-                  <CalendarIcon className="mx-auto h-12 w-12 text-gray-400" />
+                <div className="text-center py-8 sm:py-12">
+                  <CalendarIcon className="mx-auto h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
                   <h3 className="mt-2 text-sm font-medium text-gray-900">No itinerary planned yet</h3>
-                  <p className="mt-1 text-sm text-gray-500">
+                  <p className="mt-1 text-sm text-gray-500 px-4">
                     Start planning your trip by adding places and activities.
                   </p>
                   <div className="mt-6">
@@ -958,50 +952,50 @@ const TripDetailPage: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-6">
-                  {/* Timeline Navigation */}
+                  {/* Timeline Navigation - Card-based like Overview */}
                   {days.length > 0 && (
-                    <div className="bg-gray-50 rounded-lg p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-sm font-medium text-gray-700 text-left">Timeline</h4>
+                    <div className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6">
+                      <div className="flex flex-col space-y-3 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4">
+                        <h4 className="text-base font-medium text-gray-900">Timeline Navigation</h4>
                         <button
                           onClick={() => setShowAllDays(!showAllDays)}
-                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200"
                         >
-                          {showAllDays ? 'Show Selected' : 'Show All'}
+                          {showAllDays ? 'Show Selected Day' : 'Show All Days'}
                         </button>
                       </div>
                       
-                      {/* Scrollable Timeline */}
-                      <div className="relative">
-                        <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
-                          {days.map((day, index) => (
-                            <button
-                              key={day.dayNumber}
-                              onClick={() => {
-                                setSelectedDay(day.dayNumber);
-                                setShowAllDays(false);
-                              }}
-                              className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                                selectedDay === day.dayNumber && !showAllDays
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-                              }`}
-                            >
-                              <div className="text-center">
-                                <div className="font-semibold">Day {day.dayNumber}</div>
-                                <div className="text-xs opacity-75">
-                                  {day.date.toLocaleDateString('en-US', { 
-                                    month: 'short', 
-                                    day: 'numeric' 
-                                  })}
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                        
-                        {/* Timeline connector line */}
-                        <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-300 -z-10"></div>
+                      {/* Responsive Timeline Grid - Compact mobile design */}
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-7 xl:grid-cols-8 gap-1.5 sm:gap-2 md:gap-3">
+                        {days.map((day, index) => (
+                          <button
+                            key={day.dayNumber}
+                            onClick={() => {
+                              setSelectedDay(day.dayNumber);
+                              setShowAllDays(false);
+                            }}
+                            className={`p-2 sm:p-3 rounded-md sm:rounded-lg text-center transition-colors ${
+                              selectedDay === day.dayNumber && !showAllDays
+                                ? 'bg-blue-600 text-white shadow-md'
+                                : 'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200'
+                            }`}
+                          >
+                            <div className="font-semibold text-xs sm:text-sm">Day {day.dayNumber}</div>
+                            <div className="text-xs opacity-75 mt-0.5 sm:mt-1 hidden sm:block">
+                              {day.date.toLocaleDateString('en-US', { 
+                                month: 'short', 
+                                day: 'numeric' 
+                              })}
+                            </div>
+                            {/* Mobile-only compact date */}
+                            <div className="text-xs opacity-75 mt-0.5 sm:hidden">
+                              {day.date.toLocaleDateString('en-US', { 
+                                month: 'numeric', 
+                                day: 'numeric' 
+                              })}
+                            </div>
+                          </button>
+                        ))}
                       </div>
                     </div>
                   )}
@@ -1010,24 +1004,28 @@ const TripDetailPage: React.FC = () => {
                     const dayItems = itinerary
                       .filter(item => item.day === day.dayNumber)
                       .sort((a, b) => {
-                        // Use arrival time for flights, regular time for activities
+                        // Use arrival time for flights and buses, regular time for activities
                         const timeA = a.type === 'flight' && a.flightInfo?.arrival?.time 
                           ? a.flightInfo.arrival.time 
+                          : a.type === 'bus' && a.busInfo?.arrival?.time
+                          ? a.busInfo.arrival.time
                           : a.time;
                         const timeB = b.type === 'flight' && b.flightInfo?.arrival?.time 
                           ? b.flightInfo.arrival.time 
+                          : b.type === 'bus' && b.busInfo?.arrival?.time
+                          ? b.busInfo.arrival.time
                           : b.time;
                         return timeA.localeCompare(timeB);
                       });
 
                     return (
-                      <div key={day.dayNumber} className="border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-center justify-between mb-4">
+                      <div key={day.dayNumber} className="bg-white border border-gray-200 rounded-lg p-4 sm:p-6 shadow-sm">
+                        <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 mb-4">
                           <div className="text-left">
-                            <h4 className="font-medium text-gray-900 text-left">
+                            <h4 className="text-lg font-medium text-gray-900">
                               Day {day.dayNumber}
                             </h4>
-                            <p className="text-sm text-gray-500 text-left">
+                            <p className="text-sm text-gray-500">
                               {(() => {
                                 try {
                                   return format(day.date, 'EEEE, MMMM d, yyyy');
@@ -1038,39 +1036,50 @@ const TripDetailPage: React.FC = () => {
                               })()}
                             </p>
                           </div>
-                          <div className="text-xs text-gray-400">
+                          <div className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                             {dayItems.length} {dayItems.length === 1 ? 'activity' : 'activities'}
                           </div>
                         </div>
 
                         {dayItems.length === 0 ? (
                           <div className="text-center py-8 text-gray-500">
+                            <CalendarIcon className="mx-auto h-8 w-8 text-gray-300 mb-2" />
                             <p className="text-sm">No activities planned for this day</p>
                           </div>
                         ) : (
-                          <div className="space-y-3">
+                          <div className="grid grid-cols-1 gap-4">
                             {dayItems.map((item) => (
-                              <div key={item.id} className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg">
-                                <div className="flex-shrink-0 mt-1">
-                                  {getPlaceIcon(item.type, item)}
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  {editingItem === item.id ? (
-                                    // Edit mode
+                              <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+                                <div className="flex items-start space-x-3">
+                                  <div className="flex-shrink-0 mt-1">
+                                    {getPlaceIcon(item.type, item)}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    {editingItem === item.id ? (
+                                    // Edit mode - Mobile responsive
                                     <div className="space-y-3">
-                                      <div className="flex items-center space-x-2">
-                                        <ClockIcon className="h-4 w-4 text-gray-400" />
-                                        <input
-                                          type="time"
-                                          value={editForm.time}
-                                          onChange={(e) => setEditForm({...editForm, time: e.target.value})}
-                                          className="text-sm border border-gray-300 rounded px-2 py-1"
-                                        />
-                                        {item.type === 'flight' && item.flightInfo && (
-                                          <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
-                                            Flight
-                                          </span>
-                                        )}
+                                      <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
+                                        <div className="flex items-center space-x-2">
+                                          <ClockIcon className="h-4 w-4 text-gray-400" />
+                                          <input
+                                            type="time"
+                                            value={editForm.time}
+                                            onChange={(e) => setEditForm({...editForm, time: e.target.value})}
+                                            className="text-sm border border-gray-300 rounded px-2 py-1 flex-1 sm:flex-none"
+                                          />
+                                        </div>
+                                        <div className="flex space-x-2">
+                                          {item.type === 'flight' && item.flightInfo && (
+                                            <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                                              Flight
+                                            </span>
+                                          )}
+                                          {item.type === 'bus' && item.busInfo && (
+                                            <span className="text-xs text-green-600 bg-green-100 px-2 py-1 rounded">
+                                              Bus
+                                            </span>
+                                          )}
+                                        </div>
                                       </div>
                                       <h5 className="text-sm font-medium text-gray-900 break-words">
                                         {item.title}
@@ -1080,16 +1089,18 @@ const TripDetailPage: React.FC = () => {
                                           {item.description}
                                         </p>
                                       )}
-                                      <div className="flex items-center space-x-2">
+                                      <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
                                         <span className="text-xs text-gray-400">Duration:</span>
-                                        <input
-                                          type="number"
-                                          value={editForm.duration}
-                                          onChange={(e) => setEditForm({...editForm, duration: parseInt(e.target.value) || 0})}
-                                          className="text-xs border border-gray-300 rounded px-2 py-1 w-16"
-                                          min="1"
-                                        />
-                                        <span className="text-xs text-gray-400">minutes</span>
+                                        <div className="flex items-center space-x-2">
+                                          <input
+                                            type="number"
+                                            value={editForm.duration}
+                                            onChange={(e) => setEditForm({...editForm, duration: parseInt(e.target.value) || 0})}
+                                            className="text-xs border border-gray-300 rounded px-2 py-1 w-16 sm:w-20"
+                                            min="1"
+                                          />
+                                          <span className="text-xs text-gray-400">minutes</span>
+                                        </div>
                                       </div>
                                       <div>
                                         <label className="text-xs text-gray-400 block mb-1">Notes:</label>
@@ -1101,18 +1112,18 @@ const TripDetailPage: React.FC = () => {
                                           placeholder="Add notes or comments..."
                                         />
                                       </div>
-                                      <div className="flex items-center space-x-2">
+                                      <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:space-y-0 sm:space-x-2">
                                         <button
                                           onClick={() => handleSaveEdit(item)}
                                           disabled={updateItineraryMutation.isLoading}
-                                          className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 disabled:opacity-50"
+                                          className="inline-flex items-center justify-center px-3 py-2 text-xs font-medium rounded text-green-700 bg-green-100 hover:bg-green-200 disabled:opacity-50"
                                         >
                                           <CheckIcon className="h-3 w-3 mr-1" />
                                           Save
                                         </button>
                                         <button
                                           onClick={handleCancelEdit}
-                                          className="inline-flex items-center px-2 py-1 text-xs font-medium rounded text-gray-700 bg-gray-100 hover:bg-gray-200"
+                                          className="inline-flex items-center justify-center px-3 py-2 text-xs font-medium rounded text-gray-700 bg-gray-100 hover:bg-gray-200"
                                         >
                                           <XMarkIcon className="h-3 w-3 mr-1" />
                                           Cancel
@@ -1120,12 +1131,12 @@ const TripDetailPage: React.FC = () => {
                                       </div>
                                     </div>
                                   ) : (
-                                    // View mode
+                                    // View mode - Mobile responsive
                                     <div>
-                                      <div className="flex items-start justify-between mb-3">
-                                        <div className="flex-1">
-                                          <div className="flex items-center">
-                                            <h5 className="text-sm font-medium text-gray-900 break-words text-left">
+                                      <div className="flex flex-col space-y-2 sm:flex-row sm:items-start sm:justify-between sm:space-y-0 mb-3">
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:space-y-0">
+                                            <h5 className="text-sm sm:text-base font-medium text-gray-900 break-words pr-2">
                                               {item.title}
                                             </h5>
                                             
@@ -1161,8 +1172,8 @@ const TripDetailPage: React.FC = () => {
                                             })()}
                                           </div>
                                         </div>
-                                        <div className="flex items-center text-sm text-gray-500 flex-shrink-0 ml-4">
-                                          <ClockIcon className="h-4 w-4 mr-1" />
+                                        <div className="flex items-center text-xs sm:text-sm text-gray-500 flex-shrink-0 mt-1 sm:mt-0 sm:ml-4">
+                                          <ClockIcon className="h-3 w-3 sm:h-4 sm:w-4 mr-1" />
                                           <span className="whitespace-nowrap">
                                             {formatTime(getItemTime(item))}
                                           </span>
@@ -1170,46 +1181,103 @@ const TripDetailPage: React.FC = () => {
                                       </div>
                                       
                                       
-                                      {/* Flight Details - Only for flight items */}
+                                      {/* Flight Details - Mobile responsive */}
                                       {item.type === 'flight' && item.flightInfo && (
-                                        <div className="mt-2 p-2 bg-blue-50 rounded border text-left">
-                                          <div className="flex items-center justify-between text-sm">
-                                            <div className="text-center">
-                                              <div className="font-medium text-gray-900 text-center">
+                                        <div className="mt-2 p-2 sm:p-3 bg-blue-50 rounded border">
+                                          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 text-sm">
+                                            <div className="text-center flex-1">
+                                              <div className="font-medium text-gray-900">
                                                 {item.flightInfo.departure?.airportCode || 'DEP'}
                                               </div>
                                               {item.flightInfo.departure?.date && (
-                                                <div className="text-xs text-gray-600 text-center font-medium">
+                                                <div className="text-xs text-gray-600 font-medium">
                                                   {formatFlightDate(item.flightInfo.departure.date)}
                                                 </div>
                                               )}
-                                              <div className="text-xs text-gray-600 text-center">
+                                              <div className="text-xs text-gray-600">
                                                 Dep: {item.flightInfo.departure?.time || item.time}
                                               </div>
                                             </div>
-                                            <div className="flex items-center justify-center mx-2">
-                                              <div className="h-px bg-gray-300 w-8"></div>
-                                              <PaperAirplaneIcon className="h-4 w-4 text-gray-400 mx-2" />
-                                              <div className="h-px bg-gray-300 w-8"></div>
+                                            <div className="flex items-center justify-center mx-2 sm:mx-4">
+                                              <div className="h-px bg-gray-300 w-6 sm:w-8"></div>
+                                              <PaperAirplaneIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mx-2" />
+                                              <div className="h-px bg-gray-300 w-6 sm:w-8"></div>
                                             </div>
-                                            <div className="text-center">
-                                              <div className="font-medium text-gray-900 text-center">
+                                            <div className="text-center flex-1">
+                                              <div className="font-medium text-gray-900">
                                                 {item.flightInfo.arrival?.airportCode || 'ARR'}
                                               </div>
                                               {item.flightInfo.arrival?.date && (
-                                                <div className="text-xs text-gray-600 text-center font-medium">
+                                                <div className="text-xs text-gray-600 font-medium">
                                                   {formatFlightDate(item.flightInfo.arrival.date)}
                                                 </div>
                                               )}
-                                              <div className="text-xs text-gray-600 text-center">
+                                              <div className="text-xs text-gray-600">
                                                 Arr: {item.flightInfo.arrival?.time || item.time}
                                               </div>
                                             </div>
                                           </div>
-                                          <div className="flex items-center justify-center mt-2">
-                                            {item.flightInfo.duration && (
-                                              <div className="text-xs text-gray-600 text-center">
+                                          {item.flightInfo.duration && (
+                                            <div className="flex items-center justify-center mt-2">
+                                              <div className="text-xs text-gray-600">
                                                 {item.flightInfo.duration}
+                                              </div>
+                                            </div>
+                                          )}
+                                        </div>
+                                      )}
+
+                                      {/* Bus Details - Mobile responsive */}
+                                      {item.type === 'bus' && item.busInfo && (
+                                        <div className="mt-2 p-2 sm:p-3 bg-green-50 rounded border">
+                                          <div className="flex flex-col space-y-2 sm:flex-row sm:items-center sm:justify-between sm:space-y-0 text-sm">
+                                            <div className="text-center flex-1">
+                                              <div className="font-medium text-gray-900">
+                                                {item.busInfo.departure?.city || 'DEP'}
+                                              </div>
+                                              <div className="text-xs text-gray-500 break-words">
+                                                {item.busInfo.departure?.station}
+                                              </div>
+                                              {item.busInfo.departure?.date && (
+                                                <div className="text-xs text-gray-600 font-medium">
+                                                  {formatFlightDate(item.busInfo.departure.date)}
+                                                </div>
+                                              )}
+                                              <div className="text-xs text-gray-600">
+                                                Dep: {item.busInfo.departure?.time || item.time}
+                                              </div>
+                                            </div>
+                                            <div className="flex items-center justify-center mx-2 sm:mx-4">
+                                              <div className="h-px bg-gray-300 w-6 sm:w-8"></div>
+                                              <TruckIcon className="h-3 w-3 sm:h-4 sm:w-4 text-gray-400 mx-2" />
+                                              <div className="h-px bg-gray-300 w-6 sm:w-8"></div>
+                                            </div>
+                                            <div className="text-center flex-1">
+                                              <div className="font-medium text-gray-900">
+                                                {item.busInfo.arrival?.city || 'ARR'}
+                                              </div>
+                                              <div className="text-xs text-gray-500 break-words">
+                                                {item.busInfo.arrival?.station}
+                                              </div>
+                                              {item.busInfo.arrival?.date && (
+                                                <div className="text-xs text-gray-600 text-center font-medium">
+                                                  {formatFlightDate(item.busInfo.arrival.date)}
+                                                </div>
+                                              )}
+                                              <div className="text-xs text-gray-600 text-center">
+                                                Arr: {item.busInfo.arrival?.time || item.time}
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center justify-center mt-2">
+                                            {item.busInfo.duration && (
+                                              <div className="text-xs text-gray-600 text-center">
+                                                {item.busInfo.duration}
+                                              </div>
+                                            )}
+                                            {item.busInfo.seatNumber && (
+                                              <div className="text-xs text-gray-600 text-center ml-4">
+                                                Seat: {item.busInfo.seatNumber}
                                               </div>
                                             )}
                                           </div>
@@ -1228,12 +1296,12 @@ const TripDetailPage: React.FC = () => {
                                         return null; // Remove duplicate address display
                                       })()}
                                       
-                                      {/* Address Display - For all items except flight */}
-                                      {item.type !== 'flight' && 
+                                      {/* Address Display - Mobile responsive */}
+                                      {item.type !== 'flight' && item.type !== 'bus' && 
                                        (item.place?.formatted_address || item.location?.address || item.description) && (
                                         <div className="flex items-start mt-2">
                                           <MapPinIcon className="h-3 w-3 text-gray-400 mr-1 mt-0.5 flex-shrink-0" />
-                                          <p className="text-sm text-gray-600 text-left">
+                                          <p className="text-xs sm:text-sm text-gray-600 break-words flex-1">
                                             {(() => {
                                               // For hotels, clean the address from description or use place address
                                               const isHotelItem = (item.type as any) === 'accommodation' || 
@@ -1260,37 +1328,37 @@ const TripDetailPage: React.FC = () => {
                                         </div>
                                       )}
                                       
-                                      {/* Google Rating and Place Types - Only for non-flight items */}
-                                      {item.place && item.type !== 'flight' && (
-                                        <div className="mt-2 space-y-1">
+                                      {/* Google Rating and Place Types - Mobile responsive */}
+                                      {item.place && item.type !== 'flight' && item.type !== 'bus' && (
+                                        <div className="mt-2 space-y-1 sm:space-y-2">
                                           {/* Google Rating */}
                                           {item.place.rating && (
                                             <div className="flex items-center space-x-1">
                                               <StarIcon className="h-3 w-3 text-yellow-400 fill-current flex-shrink-0" />
-                                              <span className="text-xs text-gray-600 text-left">
+                                              <span className="text-xs sm:text-sm text-gray-600">
                                                 {item.place.rating.toFixed(1)} Google
                                               </span>
                                               {item.place.user_ratings_total && item.place.user_ratings_total > 0 && (
-                                                <span className="text-xs text-gray-400 text-left">
+                                                <span className="text-xs text-gray-400 hidden sm:inline">
                                                   ({item.place.user_ratings_total.toLocaleString()} reviews)
                                                 </span>
                                               )}
                                             </div>
                                           )}
                                           
-                                          {/* Place Types */}
+                                          {/* Place Types - Mobile responsive */}
                                           {item.place.types && item.place.types.length > 0 && (
                                             <div className="flex flex-wrap gap-1">
                                               {item.place.types.slice(0, 2).map((type) => (
                                                 <span
                                                   key={type}
-                                                  className="inline-block px-1.5 py-0.5 text-xs bg-blue-50 text-blue-600 rounded text-left"
+                                                  className="inline-block px-1.5 py-0.5 text-xs bg-blue-50 text-blue-600 rounded"
                                                 >
                                                   {type.replace(/_/g, ' ')}
                                                 </span>
                                               ))}
                                               {item.place.types.length > 2 && (
-                                                <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-500 rounded text-left">
+                                                <span className="inline-block px-1.5 py-0.5 text-xs bg-gray-100 text-gray-500 rounded">
                                                   +{item.place.types.length - 2}
                                                 </span>
                                               )}
@@ -1299,24 +1367,27 @@ const TripDetailPage: React.FC = () => {
                                         </div>
                                       )}
                                       
-                                      {/* Duration - Only for activity items */}
+                                      {/* Duration - Mobile responsive */}
                                       {item.duration && item.type === 'activity' && (
-                                        <p className="text-xs text-gray-400 mt-1 text-left">
+                                        <p className="text-xs sm:text-sm text-gray-400 mt-1">
                                           Duration: {item.duration} minutes
                                         </p>
                                       )}
                                       
+                                      {/* Notes - Mobile responsive */}
                                       {item.notes && (
-                                        <p className="text-xs text-gray-600 mt-1 italic text-left break-words overflow-wrap-anywhere">
-                                          Note: {convertLinksToHyperlinks(item.notes)}
-                                        </p>
+                                        <div className="mt-2 p-2 bg-gray-50 rounded border-l-2 border-gray-300">
+                                          <p className="text-xs sm:text-sm text-gray-600 italic break-words overflow-wrap-anywhere">
+                                            {convertLinksToHyperlinks(item.notes)}
+                                          </p>
+                                        </div>
                                       )}
                                       
-                                      {/* User Wish Level - Only for non-flight items */}
-                                      {item.type !== 'flight' && (
-                                        <div className="mt-2">
-                                          <div className="flex items-center justify-between">
-                                            <span className="text-xs text-gray-500">Wish Level:</span>
+                                      {/* User Wish Level - Mobile responsive */}
+                                      {item.type !== 'flight' && item.type !== 'bus' && (
+                                        <div className="mt-2 p-2 bg-gray-50 rounded">
+                                          <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
+                                            <span className="text-xs sm:text-sm text-gray-500 font-medium">Wish Level:</span>
                                             <div className="flex items-center space-x-0.5">
                                               {renderRatingStars(item)}
                                             </div>
@@ -1325,6 +1396,7 @@ const TripDetailPage: React.FC = () => {
                                       )}
                                     </div>
                                   )}
+                                  </div>
                                 </div>
                               </div>
                             ))}
@@ -1340,105 +1412,6 @@ const TripDetailPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Invite Modal */}
-      {showInviteModal && (
-        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-          <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-            <div className="mt-3">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">Invite Collaborator</h3>
-                <button
-                  onClick={() => setShowInviteModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <XMarkIcon className="h-6 w-6" />
-                </button>
-              </div>
-              
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Email Address
-                  </label>
-                  <input
-                    type="email"
-                    value={inviteEmail}
-                    onChange={(e) => setInviteEmail(e.target.value)}
-                    placeholder="Enter email address"
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  />
-                </div>
-                
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Role
-                  </label>
-                  <select
-                    value={inviteRole}
-                    onChange={(e) => setInviteRole(e.target.value as 'viewer' | 'editor')}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="viewer">Viewer - Can view trip details</option>
-                    <option value="editor">Editor - Can edit trip details</option>
-                  </select>
-                </div>
-
-                {collaborators.length > 0 && (
-                  <div>
-                    <h4 className="text-sm font-medium text-gray-700 mb-2">Current Collaborators</h4>
-                    <div className="space-y-2 max-h-32 overflow-y-auto">
-                      {collaborators.map((collaborator) => (
-                        <div key={collaborator.id} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <div className="flex items-center space-x-2">
-                            <UsersIcon className="h-4 w-4 text-gray-400" />
-                            <div>
-                              <p className="text-sm font-medium text-gray-900">{collaborator.name}</p>
-                              <p className="text-xs text-gray-500">{collaborator.email} • {collaborator.role}</p>
-                            </div>
-                          </div>
-                          <div className="flex items-center space-x-1">
-                            <span className={`px-2 py-1 text-xs rounded-full ${
-                              collaborator.status === 'accepted' 
-                                ? 'bg-green-100 text-green-800' 
-                                : 'bg-yellow-100 text-yellow-800'
-                            }`}>
-                              {collaborator.status}
-                            </span>
-                            {collaborator.role !== 'owner' && (
-                              <button
-                                onClick={() => handleRemoveCollaborator(collaborator.id)}
-                                className="text-red-400 hover:text-red-600"
-                              >
-                                <XMarkIcon className="h-4 w-4" />
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              
-              <div className="flex justify-end space-x-3 mt-6">
-                <button
-                  onClick={() => setShowInviteModal(false)}
-                  className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={handleInviteUser}
-                  className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                >
-                  Send Invitation
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Collaboration Modals */}
       <ShareModal
         isOpen={showShareModal}
@@ -1447,15 +1420,11 @@ const TripDetailPage: React.FC = () => {
         tripTitle={tripData?.name || 'Untitled Trip'}
       />
       
-      <InviteCollaboratorModal
+      <InvitationModal
         isOpen={showInviteModal}
         onClose={() => setShowInviteModal(false)}
         tripId={id!}
         tripTitle={tripData?.name || 'Untitled Trip'}
-        onInviteSuccess={() => {
-          // Refresh trip data to show new collaborators
-          queryClient.invalidateQueries(['trip', id]);
-        }}
       />
 
       {/* Flight Edit Modal - REMOVED (flight editing disabled in planned itinerary) */}

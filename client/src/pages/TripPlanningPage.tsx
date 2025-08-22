@@ -5,12 +5,14 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { format, addDays, differenceInDays } from 'date-fns';
 import { tripsService } from '../services/trips';
-import { Trip, ItineraryItem, FlightInfo } from '../types';
+import { Trip, ItineraryItem, FlightInfo, BusInfo } from '../types';
 import { safeParseDate, addDaysToDate, getDaysDifferenceIgnoreTime, combineDateAndTime } from '../utils/dateUtils';
+import { safeExtractCoordinates, safeExtractPlaceCoordinates } from '../utils/coordinateUtils';
 import GoogleMap from '../components/GoogleMap';
 import PlacesSearch from '../components/PlacesSearch';
 import HotelSearch from '../components/HotelSearch';
 import FlightForm from '../components/FlightForm';
+import BusForm from '../components/BusForm';
 import DraggablePlace from '../components/DraggablePlace';
 import ItineraryDay from '../components/ItineraryDay';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -83,10 +85,7 @@ const HotelFormComponent: React.FC<{
       name: hotel.name,
       address: hotel.formatted_address,
       rating: hotel.rating || 0,
-      coordinates: hotel.geometry?.location ? {
-        lat: hotel.geometry.location.lat(),
-        lng: hotel.geometry.location.lng()
-      } : undefined
+      coordinates: safeExtractPlaceCoordinates(hotel)
     }));
   };
 
@@ -158,7 +157,7 @@ const HotelFormComponent: React.FC<{
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-gray-700 text-left mb-1">
             Check-in Date *
@@ -508,8 +507,9 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
   } | null>(null);
   const [showHotelEditModal, setShowHotelEditModal] = useState(false);
 
-  // Flight State
+  // Transportation State
   const [showFlightModal, setShowFlightModal] = useState(false);
+  const [showBusModal, setShowBusModal] = useState(false);
 
   // Share State
   const [showShareModal, setShowShareModal] = useState(false);
@@ -574,13 +574,16 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             // Check if this is a flight item
             const isFlightItem = item.flightInfo || (item.place?.types && item.place.types.includes('flight'));
             const isAccommodationItem = item.hotelInfo || (item.place?.types && item.place.types.includes('lodging'));
+            const isBusItem = item.busInfo || (item.place?.types && item.place.types.includes('bus'));
             
             console.log('🔍 Loading item debug:', {
               itemIndex: index,
               hasFlightInfo: !!item.flightInfo,
+              hasBusInfo: !!item.busInfo,
               hasHotelInfo: !!item.hotelInfo,
               placeTypes: item.place?.types,
               isFlightItem,
+              isBusItem,
               isAccommodationItem,
               customTitle: item.custom_title,
               placeName: item.place?.name
@@ -600,12 +603,14 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                 address: item.place?.address || '',
                 coordinates: item.place?.coordinates || undefined,
               },
-              duration: item.estimated_duration || (isFlightItem ? 120 : 60),
-              type: isFlightItem ? 'flight' as const : isAccommodationItem ? 'accommodation' as const : 'activity' as const,
+              duration: item.estimated_duration || (isFlightItem ? 120 : isBusItem ? 120 : 60),
+              type: isFlightItem ? 'flight' as const : isBusItem ? 'bus' as const : isAccommodationItem ? 'accommodation' as const : 'activity' as const,
               notes: item.notes || '',
               userRating: item.userRating || undefined, // ✅ FIXED: Include user rating from backend
               // Include flight info if available
               flightInfo: item.flightInfo || undefined,
+              // Include bus info if available
+              busInfo: item.busInfo || undefined,
               // Include hotel info if available
               hotelInfo: item.hotelInfo || undefined,
               // ✅ PRESERVE: Include full place data with rating and types
@@ -737,10 +742,10 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
 
     // Update map center to selected place
     if (place.geometry?.location) {
-      setMapCenter({
-        lat: place.geometry.location.lat(),
-        lng: place.geometry.location.lng(),
-      });
+      const coordinates = safeExtractCoordinates(place.geometry.location);
+      if (coordinates) {
+        setMapCenter(coordinates);
+      }
     }
   };
 
@@ -840,10 +845,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
       location: {
         name: place.name,
         address: place.formatted_address,
-        coordinates: place.geometry?.location ? {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng(),
-        } : undefined,
+        coordinates: safeExtractPlaceCoordinates(place),
       },
       duration: 60, // Default 1 hour
       type: 'activity',
@@ -860,60 +862,216 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
   const handleUpdateItineraryItem = (itemId: string, updates: Partial<ItineraryItem>) => {
     console.log('🔄 handleUpdateItineraryItem called:', itemId, updates);
     
-    // Find the current item before update
-    const currentItem = itinerary.find(item => item.id === itemId);
-    console.log('📋 Current item before update:', currentItem);
-    
-    // Update local state immediately for responsive UI
-    const updatedItinerary = itinerary.map(item => 
-      item.id === itemId ? { ...item, ...updates } : item
-    );
-    
-    const updatedItem = updatedItinerary.find(item => item.id === itemId);
-    console.log('📝 Updated item after merge:', updatedItem);
-    console.log('🎯 Specifically userRating:', updatedItem?.userRating);
-    
-    setItinerary(updatedItinerary);
+    try {
+      // Validate inputs
+      if (!itemId || typeof itemId !== 'string') {
+        console.error('❌ Invalid itemId:', itemId);
+        toast.error('Invalid item ID');
+        return;
+      }
 
-    // Transform and save to database
-    const transformedItinerary = updatedItinerary.map(item => ({
-      _id: item.id,
-      day: item.day,
-      date: item.date,
-      start_time: item.time,
-      custom_title: item.title,
-      description: item.description,
-      estimated_duration: item.duration,
-      type: item.type,
-      notes: item.notes,
-      userRating: item.userRating, // Include user rating
-      // Include flight info if present
-      ...(item.flightInfo && { flightInfo: item.flightInfo }),
-      // Include place info if present - PRESERVE ALL PLACE DATA
-      ...(item.place && { 
-        place: {
-          ...item.place,
-          // Ensure critical fields are preserved
-          rating: item.place.rating,
-          types: item.place.types,
-          user_ratings_total: item.place.user_ratings_total,
-          place_id: item.place.place_id || item.place.placeId
+      if (!updates || typeof updates !== 'object') {
+        console.error('❌ Invalid updates object:', updates);
+        toast.error('Invalid update data');
+        return;
+      }
+
+      // Find the current item before update
+      const currentItem = itinerary.find(item => item.id === itemId);
+      if (!currentItem) {
+        console.error('❌ Item not found:', itemId);
+        toast.error('Item not found in itinerary');
+        return;
+      }
+      
+      console.log('📋 Current item before update:', currentItem);
+      
+      // Validate and sanitize updates
+      const sanitizedUpdates: Partial<ItineraryItem> = {};
+      
+      // Handle time update
+      if (updates.time !== undefined) {
+        if (typeof updates.time === 'string' && updates.time.match(/^\d{2}:\d{2}$/)) {
+          sanitizedUpdates.time = updates.time;
+        } else {
+          console.warn('⚠️ Invalid time format, keeping original:', updates.time);
+          sanitizedUpdates.time = currentItem.time;
         }
-      })
-    }));
-    
-    const transformedItem = transformedItinerary.find(item => item._id === itemId);
-    console.log('🚀 Transformed item for DB:', transformedItem);
-    console.log('💾 DB userRating:', transformedItem?.userRating);
-    console.log('🏷️ DB place data:', transformedItem?.place);
-    console.log('⭐ DB place rating:', transformedItem?.place?.rating);
-    console.log('🏢 DB place types:', transformedItem?.place?.types);
-    
-    updateItineraryMutation.mutate(transformedItinerary);
+      }
+      
+      // Handle duration update with validation
+      if (updates.duration !== undefined) {
+        const durationValue = updates.duration;
+        let validDuration: number;
+        
+        if (typeof durationValue === 'number' && !isNaN(durationValue) && durationValue > 0) {
+          validDuration = Math.max(15, Math.min(1440, Math.round(durationValue))); // 15 min to 24 hours
+        } else if (typeof durationValue === 'string') {
+          const parsed = parseInt(durationValue, 10);
+          validDuration = !isNaN(parsed) && parsed > 0 ? Math.max(15, Math.min(1440, parsed)) : 60;
+        } else {
+          validDuration = 60; // Default fallback
+        }
+        
+        sanitizedUpdates.duration = validDuration;
+        console.log('✅ Validated duration:', validDuration, 'from original:', durationValue);
+      }
+      
+      // Handle notes update
+      if (updates.notes !== undefined) {
+        sanitizedUpdates.notes = typeof updates.notes === 'string' ? updates.notes : '';
+      }
+      
+      // Handle userRating update
+      if (updates.userRating !== undefined) {
+        const rating = updates.userRating;
+        if (typeof rating === 'number' && rating >= 0 && rating <= 5) {
+          sanitizedUpdates.userRating = Math.round(rating);
+        } else {
+          console.warn('⚠️ Invalid rating, ignoring:', rating);
+        }
+      }
+      
+      // Handle title update
+      if (updates.title !== undefined) {
+        sanitizedUpdates.title = typeof updates.title === 'string' ? updates.title : '';
+      }
+      
+      // Handle description update
+      if (updates.description !== undefined) {
+        sanitizedUpdates.description = typeof updates.description === 'string' ? updates.description : '';
+      }
+      
+      // Handle type update
+      if (updates.type !== undefined) {
+        sanitizedUpdates.type = updates.type;
+      }
+      
+      // Handle busInfo update
+      if (updates.busInfo !== undefined) {
+        sanitizedUpdates.busInfo = updates.busInfo;
+      }
+      
+      // Handle flightInfo update
+      if (updates.flightInfo !== undefined) {
+        sanitizedUpdates.flightInfo = updates.flightInfo;
+      }
+      
+      // Handle hotelInfo update
+      if (updates.hotelInfo !== undefined) {
+        sanitizedUpdates.hotelInfo = updates.hotelInfo;
+      }
+      
+      // Handle place update
+      if (updates.place !== undefined) {
+        sanitizedUpdates.place = updates.place;
+      }
+      
+      // Handle day update (for moving items between days)
+      if (updates.day !== undefined) {
+        if (typeof updates.day === 'number' && updates.day >= 1) {
+          sanitizedUpdates.day = updates.day;
+        } else {
+          console.warn('⚠️ Invalid day number, keeping original:', updates.day);
+        }
+      }
+      
+      console.log('🔧 Sanitized updates:', sanitizedUpdates);
+      
+      // Update local state immediately for responsive UI
+      const updatedItinerary = itinerary.map(item => 
+        item.id === itemId ? { ...item, ...sanitizedUpdates } : item
+      );
+      
+      const updatedItem = updatedItinerary.find(item => item.id === itemId);
+      console.log('📝 Updated item after merge:', updatedItem);
+      console.log('🎯 Specifically userRating:', updatedItem?.userRating);
+      console.log('⏱️ Specifically duration:', updatedItem?.duration);
+      
+      setItinerary(updatedItinerary);
 
-    // Show success message for wish level updates
-    if (updates.userRating !== undefined) {
-      toast.success(`Wish level set to ${updates.userRating} heart${updates.userRating > 1 ? 's' : ''}!`);
+      // Transform and save to database
+      const transformedItinerary = updatedItinerary.map((item, index) => {
+        try {
+          const transformed = {
+            _id: item.id || `item_${index}`,
+            day: typeof item.day === 'number' ? item.day : 1,
+            date: item.date || new Date().toISOString(),
+            start_time: item.time || '09:00',
+            custom_title: item.title || 'Activity',
+            description: item.description || '',
+            estimated_duration: typeof item.duration === 'number' ? item.duration : 60,
+            type: item.type || 'activity',
+            notes: item.notes || '',
+            userRating: typeof item.userRating === 'number' ? item.userRating : undefined,
+            // Include flight info if present
+            ...(item.flightInfo && { flightInfo: item.flightInfo }),
+            // Include bus info if present
+            ...(item.busInfo && { busInfo: item.busInfo }),
+            // Include hotel info if present
+            ...(item.hotelInfo && { hotelInfo: item.hotelInfo }),
+            // Include place info if present - PRESERVE ALL PLACE DATA
+            ...(item.place && { 
+              place: {
+                ...item.place,
+                // Ensure critical fields are preserved
+                rating: item.place.rating || 0,
+                types: Array.isArray(item.place.types) ? item.place.types : [],
+                user_ratings_total: item.place.user_ratings_total || undefined,
+                place_id: item.place.place_id || item.place.placeId || `place_${index}`
+              }
+            })
+          };
+          
+          return transformed;
+        } catch (transformError) {
+          console.error('❌ Error transforming item:', item, transformError);
+          // Return a minimal valid item to prevent complete failure
+          return {
+            _id: item.id || `item_${index}`,
+            day: 1,
+            date: new Date().toISOString(),
+            start_time: '09:00',
+            custom_title: 'Activity',
+            description: '',
+            estimated_duration: 60,
+            type: 'activity',
+            notes: '',
+            userRating: undefined
+          };
+        }
+      });
+      
+      const transformedItem = transformedItinerary.find(item => item._id === itemId);
+      console.log('🚀 Transformed item for DB:', transformedItem);
+      console.log('💾 DB userRating:', transformedItem?.userRating);
+      console.log('💾 DB duration:', transformedItem?.estimated_duration);
+      
+      // Validate transformed data before sending
+      if (!Array.isArray(transformedItinerary) || transformedItinerary.length === 0) {
+        throw new Error('Invalid transformed itinerary data');
+      }
+      
+      updateItineraryMutation.mutate(transformedItinerary);
+
+      // Show success message for specific updates
+      if (sanitizedUpdates.userRating !== undefined) {
+        toast.success(`Wish level set to ${sanitizedUpdates.userRating} heart${sanitizedUpdates.userRating > 1 ? 's' : ''}!`);
+      } else if (sanitizedUpdates.duration !== undefined) {
+        toast.success('Duration updated successfully!');
+      }
+      
+    } catch (error) {
+      console.error('❌ Error in handleUpdateItineraryItem:', error);
+      toast.error('Failed to update item. Please try again.');
+      
+      // Log additional debug info
+      console.error('Debug info:', {
+        itemId,
+        updates,
+        itineraryLength: itinerary.length,
+        error: error instanceof Error ? error.message : String(error)
+      });
     }
   };
 
@@ -921,6 +1079,58 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
     setItinerary(prev => prev.map(item => 
       item.id === itemId ? { ...item, day: newDay } : item
     ));
+  };
+
+  // Handle adding a bus to the itinerary
+  const handleAddBus = (busInfo: BusInfo) => {
+    const tripStartDate = tripData?.startDate || new Date().toISOString();
+    
+    // Use arrival date for day calculation
+    const arrivalDate = busInfo.arrival.date;
+    const dayNumber = calculateDayNumber(arrivalDate, tripStartDate);
+    
+    console.log('🚌 Bus day calculation:', {
+      busNumber: `${busInfo.company} ${busInfo.busNumber}`,
+      departureDate: busInfo.departure.date,
+      arrivalDate: busInfo.arrival.date,
+      tripStartDate,
+      calculatedDay: dayNumber
+    });
+    
+    // Create new bus item
+    const newBusItem: ItineraryItem = {
+      id: `bus_${Date.now()}`,
+      day: dayNumber,
+      time: busInfo.arrival.time, // Use arrival time for sorting
+      title: `${busInfo.company} ${busInfo.busNumber}`,
+      description: `${busInfo.departure.city} → ${busInfo.arrival.city}`,
+      location: {
+        name: `${busInfo.arrival.station || busInfo.arrival.city} - Arrival`,
+        address: busInfo.arrival.station || busInfo.arrival.city,
+        coordinates: undefined,
+      },
+      duration: busInfo.duration ? parseInt(busInfo.duration.replace(/[^\d]/g, '')) * 60 : 120,
+      type: 'bus',
+      busInfo: busInfo,
+      // Add proper place data with bus type for persistence
+      place: {
+        name: `${busInfo.company} ${busInfo.busNumber}`,
+        address: `${busInfo.departure.city} → ${busInfo.arrival.city}`,
+        coordinates: undefined,
+        place_id: `bus_${Date.now()}`,
+        types: ['bus'],
+        rating: 0,
+        photos: []
+      },
+      notes: `Bus from ${busInfo.departure.city} to ${busInfo.arrival.city}${busInfo.bookingReference ? ` (Confirmation: ${busInfo.bookingReference})` : ''}`
+    };
+    
+    // Add to itinerary
+    setItinerary(prev => [...prev, newBusItem]);
+    
+    // Close modal and show success message
+    setShowBusModal(false);
+    toast.success(`Bus ${busInfo.company} ${busInfo.busNumber} added to Day ${dayNumber}`);
   };
 
   // Unified handleAddFlight function to work with both ItineraryDay and FlightForm
@@ -1109,6 +1319,46 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         };
       }
 
+      // Handle bus items differently
+      if (item.type === 'bus' && item.busInfo) {
+        console.log('🔍 Saving bus item:', {
+          itemId: item.id,
+          title: item.title,
+          hasBusInfo: !!item.busInfo,
+          busInfo: item.busInfo
+        });
+        
+        // For buses, use the arrival date/time from busInfo instead of combineDateAndTime
+        const arrivalDate = item.busInfo.arrival.date;
+        const arrivalTime = item.busInfo.arrival.time;
+        const busDateTime = new Date(`${arrivalDate}T${arrivalTime}:00.000Z`);
+        
+        return {
+          place: {
+            name: item.title,
+            address: item.description || '',
+            coordinates: {}, // Use empty object instead of null
+            place_id: item.id,
+            types: ['bus'],
+            rating: 0,
+            photos: [] // Add missing photos field
+          },
+          date: busDateTime.toISOString(),
+          day: item.day, // ✅ FIXED: Preserve original day number
+          start_time: item.time,
+          end_time: item.time,
+          estimated_duration: item.duration || 120,
+          notes: item.notes || '',
+          userRating: item.userRating,
+          order: index,
+          is_custom: true,
+          custom_title: item.title,
+          custom_description: item.description || '',
+          // Store bus info for backend
+          busInfo: item.busInfo
+        };
+      }
+
       // Handle accommodation items differently
       if (item.type === 'accommodation' && item.hotelInfo) {
         console.log('🔍 Saving accommodation item:', {
@@ -1154,10 +1404,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           // Ensure required fields are present
           name: item.place.name || item.title,
           address: item.place.formatted_address || item.place.address || item.description || item.location?.address || '',
-          coordinates: item.place.geometry?.location ? {
-            lat: typeof item.place.geometry.location.lat === 'function' ? item.place.geometry.location.lat() : item.place.geometry.location.lat,
-            lng: typeof item.place.geometry.location.lng === 'function' ? item.place.geometry.location.lng() : item.place.geometry.location.lng,
-          } : (item.location?.coordinates || {}),
+          coordinates: safeExtractPlaceCoordinates(item.place) || (item.location?.coordinates || {}),
           place_id: item.place.place_id || item.place.placeId || item.id,
           types: item.place.types || [],
           rating: item.place.rating || 0,
@@ -1411,10 +1658,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           pricePerNight: (firstItem.hotelInfo as any)?.pricePerNight || '',
           totalPrice: (firstItem.hotelInfo as any)?.totalPrice || '',
           notes: (firstItem.hotelInfo as any)?.notes || firstItem.notes || '',
-          coordinates: firstItem.hotelInfo?.coordinates || (firstItem.place?.geometry?.location ? {
-            lat: firstItem.place.geometry.location.lat(),
-            lng: firstItem.place.geometry.location.lng()
-          } : undefined)
+          coordinates: firstItem.hotelInfo?.coordinates || safeExtractPlaceCoordinates(firstItem.place)
         };
         
         hotelStay = {
@@ -1475,10 +1719,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             pricePerNight: (item.hotelInfo as any)?.pricePerNight || '',
             totalPrice: (item.hotelInfo as any)?.totalPrice || '',
             notes: (item.hotelInfo as any)?.notes || item.notes || '',
-            coordinates: item.hotelInfo?.coordinates || (item.place?.geometry?.location ? {
-              lat: item.place.geometry.location.lat(),
-              lng: item.place.geometry.location.lng()
-            } : undefined)
+            coordinates: item.hotelInfo?.coordinates || safeExtractPlaceCoordinates(item.place)
           };
           
           hotelStaysMap.set(hotelStayId, {
@@ -1678,7 +1919,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
     <DndProvider backend={HTML5Backend}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-6 text-left">
+        <div className="mb-6">
           <button
             onClick={() => navigate(`/trips/${id}`)}
             className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
@@ -1687,64 +1928,90 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             Back to Trip
           </button>
           
-          <div className="flex justify-between items-center">
+          {/* Mobile-first responsive header */}
+          <div className="flex flex-col space-y-4 lg:flex-row lg:justify-between lg:items-center lg:space-y-0">
             <div className="text-left">
-              <h1 className="text-2xl font-bold text-gray-900 text-left">Plan Your Trip</h1>
-              <p className="text-gray-600 text-left">{trip.name} - {trip.destination}</p>
+              <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Plan Your Trip</h1>
+              <p className="text-sm sm:text-base text-gray-600 truncate">{trip.name} - {trip.destination}</p>
             </div>
-            <div className="flex space-x-3">
-              {!isSharedMode && (
+            
+            {/* Responsive button layout */}
+            <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2 lg:space-x-3">
+              {/* Primary action buttons - always visible */}
+              <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
                 <button
-                  onClick={() => setShowShareModal(true)}
-                  className="inline-flex items-center px-4 py-2 border border-purple-300 shadow-sm text-sm font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  onClick={handleSaveItinerary}
+                  disabled={updateItineraryMutation.isLoading}
+                  className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
                 >
-                  <ShareIcon className="h-4 w-4 mr-2" />
-                  Share Trip
+                  {updateItineraryMutation.isLoading ? 'Saving...' : 'Save Itinerary'}
                 </button>
-              )}
-              <button
-                onClick={() => setShowHotelModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-              >
-                <BuildingOfficeIcon className="h-4 w-4 mr-2" />
-                Add Hotel
-              </button>
-              <button
-                onClick={() => setShowFlightModal(true)}
-                className="inline-flex items-center px-4 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
-                </svg>
-                Add Flight
-              </button>
-              <button
-                onClick={handleSaveItinerary}
-                disabled={updateItineraryMutation.isLoading}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
-              >
-                {updateItineraryMutation.isLoading ? 'Saving...' : 'Save Itinerary'}
-              </button>
+                
+                {!isSharedMode && (
+                  <button
+                    onClick={() => setShowShareModal(true)}
+                    className="inline-flex items-center justify-center px-4 py-2 border border-purple-300 shadow-sm text-sm font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                  >
+                    <ShareIcon className="h-4 w-4 mr-2" />
+                    <span className="hidden sm:inline">Share Trip</span>
+                    <span className="sm:hidden">Share</span>
+                  </button>
+                )}
+              </div>
+              
+              {/* Secondary action buttons - collapsible on mobile */}
+              <div className="flex flex-col space-y-2 sm:flex-row sm:space-y-0 sm:space-x-2">
+                <button
+                  onClick={() => setShowHotelModal(true)}
+                  className="inline-flex items-center justify-center px-3 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <BuildingOfficeIcon className="h-4 w-4 mr-2" />
+                  <span className="hidden sm:inline">Add Hotel</span>
+                  <span className="sm:hidden">Hotel</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowFlightModal(true)}
+                  className="inline-flex items-center justify-center px-3 py-2 border border-blue-300 shadow-sm text-sm font-medium rounded-md text-blue-700 bg-blue-50 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                  </svg>
+                  <span className="hidden sm:inline">Add Flight</span>
+                  <span className="sm:hidden">Flight</span>
+                </button>
+                
+                <button
+                  onClick={() => setShowBusModal(true)}
+                  className="inline-flex items-center justify-center px-3 py-2 border border-green-300 shadow-sm text-sm font-medium rounded-md text-green-700 bg-green-50 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  <svg className="h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h8m-8 5h8m-4 5v-5m-8 0H3v9h18v-9h-3m-6 0a4 4 0 110-8 4 4 0 010 8z" />
+                  </svg>
+                  <span className="hidden sm:inline">Add Bus</span>
+                  <span className="sm:hidden">Bus</span>
+                </button>
+              </div>
             </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-6">
-          {/* Map View Block - Now Broader */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-4 lg:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center text-left">
-                <MapIcon className="h-5 w-5 mr-2 flex-shrink-0" />
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 lg:gap-6">
+          {/* Map View Block - Responsive */}
+          <div className="xl:col-span-1">
+            <div className="bg-white rounded-lg shadow p-3 sm:p-4 lg:p-6">
+              <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <MapIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
                 <span className="truncate">Map View</span>
                 {tripData && (
-                  <span className="ml-2 text-sm text-gray-500 truncate">
+                  <span className="ml-2 text-xs sm:text-sm text-gray-500 truncate">
                     - {tripData.destination}
                   </span>
                 )}
               </h2>
               
-              {/* Search Places and Selected Places - side by side */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-4">
+              {/* Search Places and Selected Places - responsive layout */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 mb-4">
                 {/* Search Places - left side */}
                 <div>
                   <h3 className="text-md font-medium text-gray-800 mb-3 text-left">Search Places</h3>
@@ -1826,10 +2093,10 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           </div>
 
           {/* Right Panel - Itinerary */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-lg shadow p-4 lg:p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-4 flex items-center text-left">
-                <CalendarIcon className="h-5 w-5 mr-2 flex-shrink-0" />
+          <div className="xl:col-span-1">
+            <div className="bg-white rounded-lg shadow p-3 sm:p-4 lg:p-6">
+              <h2 className="text-base sm:text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <CalendarIcon className="h-4 w-4 sm:h-5 sm:w-5 mr-2 flex-shrink-0" />
                 Daily Itinerary
               </h2>
               
@@ -1928,6 +2195,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                         onMoveItem={handleMoveItineraryItem}
                         onEditHotel={handleEditHotel}
                         formatTime={formatTime}
+                        tripStartDate={tripData?.startDate}
                         tripEndDate={tripData?.endDate}
                         // onAddFlight removed - using top-level Add Flight button instead
                       />
@@ -2011,6 +2279,32 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
               <FlightForm
                 onSave={handleAddFlight}
                 onCancel={() => setShowFlightModal(false)}
+                tripStartDate={tripData?.startDate}
+                tripEndDate={tripData?.endDate}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Bus Modal */}
+      {showBusModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Add Bus</h3>
+                <button
+                  onClick={() => setShowBusModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <BusForm
+                onSave={handleAddBus}
+                onCancel={() => setShowBusModal(false)}
                 tripStartDate={tripData?.startDate}
                 tripEndDate={tripData?.endDate}
               />

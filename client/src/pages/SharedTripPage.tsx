@@ -5,6 +5,7 @@ import { collaborationService } from '../services/collaboration';
 import { sharingService } from '../services/sharing';
 import LoadingSpinner from '../components/LoadingSpinner';
 import FlightCard from '../components/FlightCard';
+import BusCard from '../components/BusCard';
 import HotelCard from '../components/HotelCard';
 import { 
   MapPinIcon, 
@@ -17,6 +18,7 @@ import {
   HeartIcon,
   StarIcon,
   PaperAirplaneIcon,
+  TruckIcon,
   HomeIcon,
   CameraIcon,
   GlobeAltIcon
@@ -215,6 +217,11 @@ const SharedTripPage: React.FC = () => {
     // Flight items
     if (item.type === 'flight' || title.includes('Airline') || title.includes('Flight') || /[A-Z]{2,3}\d+/.test(title)) {
       return <PaperAirplaneIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
+    }
+    
+    // Bus items
+    if (item.type === 'bus' || item.busInfo || title.includes('Bus') || title.includes('Coach')) {
+      return <TruckIcon className="h-5 w-5 text-green-600 flex-shrink-0" />;
     }
     
     // Hotel/Accommodation items
@@ -446,6 +453,88 @@ const SharedTripPage: React.FC = () => {
     };
     
     return transformedFlightInfo;
+  };
+
+  // Transform bus data to match BusInfo interface
+  const transformBusData = (item: any) => {
+    // If busInfo already exists and has proper structure, use it
+    if (item.busInfo && item.busInfo.departure && item.busInfo.arrival) {
+      return item.busInfo;
+    }
+    
+    // Check if we have any bus info at all
+    if (!item.busInfo) {
+      // Create a minimal bus info from available data
+      return {
+        company: item.title || item.custom_title || 'Unknown Bus Company',
+        busNumber: '',
+        departure: {
+          station: 'Unknown Station',
+          city: 'Unknown City',
+          date: item.date || '',
+          time: item.time || item.start_time || '00:00'
+        },
+        arrival: {
+          station: 'Unknown Station', 
+          city: 'Unknown City',
+          date: item.date || '',
+          time: item.end_time || item.time || '00:00'
+        }
+      };
+    }
+    
+    const busInfo = item.busInfo;
+    
+    // Try to parse bus company and number from title if not in busInfo
+    let company = busInfo.company || 'Unknown Bus Company';
+    let busNumber = busInfo.busNumber || '';
+    
+    // If we have a title like "FlixBus 123", try to parse it
+    const title = item.title || item.custom_title || '';
+    if (title && !busNumber) {
+      const busMatch = title.match(/(\w+)\s+(\w+\d+|\d+)/); // Match patterns like "FlixBus 123" or "Bus 456"
+      if (busMatch) {
+        company = busMatch[1];
+        busNumber = busMatch[2];
+      }
+    }
+    
+    // Look for city names in notes or description
+    const notes = item.notes || item.description || '';
+    let departureCity = 'Unknown City';
+    let arrivalCity = 'Unknown City';
+    
+    // Look for route patterns like "from Paris to London"
+    const routeMatch = notes.match(/from\s+([^to]+)\s+to\s+(.+)/i);
+    if (routeMatch) {
+      departureCity = routeMatch[1].trim();
+      arrivalCity = routeMatch[2].trim();
+    }
+    
+    const transformedBusInfo = {
+      company: company,
+      busNumber: busNumber,
+      departure: {
+        station: busInfo.departure?.station || busInfo.departureStation || '',
+        city: busInfo.departure?.city || busInfo.departureCity || departureCity,
+        date: busInfo.departure?.date || busInfo.departureDate || item.date || '',
+        time: busInfo.departure?.time || busInfo.departureTime || item.time || item.start_time || '00:00',
+        platform: busInfo.departure?.platform || busInfo.departurePlatform
+      },
+      arrival: {
+        station: busInfo.arrival?.station || busInfo.arrivalStation || '',
+        city: busInfo.arrival?.city || busInfo.arrivalCity || arrivalCity,
+        date: busInfo.arrival?.date || busInfo.arrivalDate || item.date || '',
+        time: busInfo.arrival?.time || busInfo.arrivalTime || item.end_time || '00:00',
+        platform: busInfo.arrival?.platform || busInfo.arrivalPlatform
+      },
+      duration: busInfo.duration || busInfo.busDuration,
+      busType: busInfo.busType || busInfo.type,
+      seatNumber: busInfo.seatNumber || busInfo.seat,
+      bookingReference: busInfo.bookingReference || busInfo.confirmation
+    };
+    
+    return transformedBusInfo;
   };
 
   // Helper function to determine hotel check-in/check-out status
@@ -711,6 +800,28 @@ const SharedTripPage: React.FC = () => {
                             );
                           }
 
+                          // Check if this is a bus item - similar to flight detection
+                          const isLikelyBus = title.includes('Bus') || title.includes('Coach') || title.includes('FlixBus');
+                          const hasBusType = item.type === 'bus';
+                          const hasBusInfo = !!item.busInfo;
+                          const hasBusPlaceType = item.place?.types && item.place.types.includes('bus');
+
+                          // Check if this is a bus item - treat as bus if type is 'bus' OR looks like bus OR has bus info
+                          if (hasBusType || isLikelyBus || hasBusPlaceType || hasBusInfo) {
+                            const transformedBusInfo = transformBusData(item);
+                            
+                            return (
+                              <BusCard
+                                key={`${day}-${index}`}
+                                busInfo={transformedBusInfo}
+                                time={formatTime(getItemTime(item))}
+                                tripEndDate={tripData.end_date}
+                                // Don't pass onEdit or onDelete for read-only view
+                                className="mb-4"
+                              />
+                            );
+                          }
+
                           // Check if this is a hotel item - more flexible detection
                           const isHotelItem = item.type === 'accommodation' || 
                                             item.hotelInfo || 
@@ -801,8 +912,8 @@ const SharedTripPage: React.FC = () => {
                                     )}
                                   </div>
                                   
-                                  {/* Address Display - Only for activity cards, not accommodation or flight */}
-                                  {(item.type !== 'accommodation' && item.type !== 'flight' && 
+                                  {/* Address Display - Only for activity cards, not accommodation, flight, or bus */}
+                                  {(item.type !== 'accommodation' && item.type !== 'flight' && item.type !== 'bus' && 
                                     (item.place?.formatted_address || item.location?.address)) && (
                                     <div className="flex items-start mb-3">
                                       <MapPinIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />

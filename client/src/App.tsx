@@ -19,12 +19,17 @@ import ProfilePage from './pages/ProfilePage';
 import SharedTripPage from './pages/SharedTripPage';
 import SharedTripEditPage from './pages/SharedTripEditPage';
 import InviteResponsePage from './pages/InviteResponsePage';
+import InvitationPage from './pages/InvitationPage';
 import EmailVerificationPage from './pages/EmailVerificationPage';
+import AddBusPage from './pages/AddBusPage';
+import SharedTripsPage from './pages/SharedTripsPage';
 
 // Components
 import Layout from './components/Layout';
 import LoadingSpinner from './components/LoadingSpinner';
 import GoogleMapsDebug from './components/GoogleMapsDebug';
+import InviteDebugger from './components/InviteDebugger';
+import TokenGenerator from './components/TokenGenerator';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -198,10 +203,39 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
         
+        <Route path="/trips/:id/add-bus" element={
+          <ProtectedRoute>
+            <Layout>
+              <AddBusPage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/debug/invite" element={
+          <ProtectedRoute>
+            <Layout>
+              <div className="container mx-auto px-4 py-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <TokenGenerator />
+                  <InviteDebugger />
+                </div>
+              </div>
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
         <Route path="/profile" element={
           <ProtectedRoute>
             <Layout>
               <ProfilePage />
+            </Layout>
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/shared-trips" element={
+          <ProtectedRoute>
+            <Layout>
+              <SharedTripsPage />
             </Layout>
           </ProtectedRoute>
         } />

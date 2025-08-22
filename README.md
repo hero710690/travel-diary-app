@@ -36,6 +36,8 @@ A comprehensive full-stack travel planning and diary application built with mode
 - ✅ **Enhanced Flight Detection** - Multiple detection criteria for flight items
 - ✅ **Spaced Flight Numbers** - Supports formats like "WS 110" and "CI31"
 - ✅ **Flight Data Transformation** - Handles various flight data formats
+- ✅ **Bus Transportation** - Support for bus travel with dedicated bus cards
+- ✅ **Multi-Platform Transport** - Comprehensive travel options beyond just flights
 
 ### 🔄 **Recent Updates (July 8, 2025)**
 - ✅ **Fixed Hotel Status Logic** - Corrected single-day stay status display
@@ -75,12 +77,12 @@ A comprehensive full-stack travel planning and diary application built with mode
 
 ## 🚀 Deployment Workflow
 
-### **Latest Deployment** ✅ **2025-06-29**
-- **Version**: Hotel Address Cleanup v1.5
-- **Frontend Bundle**: main.7814f360.js (166.21 kB gzipped)
-- **New Features**: Cleaned hotel addresses by removing status text suffixes
-- **Status**: ✅ **LIVE** - Clean hotel address display implemented
-- **CloudFront**: Cache invalidated and updated
+### **Latest Deployment** ✅ **2025-07-28**
+- **Version**: Bus Transportation v1.6
+- **Frontend Bundle**: main.f9d5c962.js (676K gzipped)
+- **New Features**: Added bus transportation support with dedicated bus cards and forms
+- **Status**: ✅ **LIVE** - Bus transportation feature deployed
+- **CloudFront**: Cache invalidation I586YK0F4177D2RWDYJIYIVU39
 
 ### **Recent Updates**
 - ✅ **Hotel Address Cleanup** - Removed status text from hotel addresses
@@ -309,6 +311,27 @@ The Lambda handler supports the following endpoints:
 - `OPTIONS /*` - CORS preflight handling
 
 ## 🚀 Recent Updates
+
+### **2025-07-18 - Bus Transportation Feature** ✅ **NEW**
+
+#### **🚌 Complete Bus Transportation Support**
+- **Added Bus Card Component**: New dedicated component for displaying bus travel information
+- **Bus Form Integration**: Comprehensive form for adding and editing bus transportation details
+- **Visual Distinction**: Green-themed bus cards to differentiate from blue flight cards
+- **Complete Information**: Support for bus company, number, stations, platforms, and more
+- **Cross-Page Consistency**: Bus cards available across trip planning, detail, and shared pages
+
+#### **🧳 Enhanced Travel Options**
+- **Multi-Modal Transportation**: Support for both air and ground transportation
+- **Flexible Trip Planning**: Accommodate diverse travel preferences and routes
+- **Comprehensive Details**: Station information, platform numbers, and bus types
+- **Consistent Experience**: Familiar interface matching the flight card design pattern
+
+#### **📊 Technical Implementation**
+- **Bundle Size**: 167.85 kB gzipped (+220B for bus transportation functionality)
+- **Type Extensions**: Added BusInfo interface and extended ItineraryItem type
+- **Component Reuse**: Leveraged existing patterns for consistent implementation
+- **Responsive Design**: Maintains card layout integrity across all screen sizes
 
 ### **2025-07-03 - Flight Card Date Display Enhancement** ✅ **ENHANCED**
 
