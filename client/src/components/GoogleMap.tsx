@@ -38,13 +38,13 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
             return;
           }
         }
-        
+
         // Fallback: try with just the airport code
         const fallbackRequest = {
           query: airportCode,
           fields: ['place_id', 'geometry', 'name']
         };
-        
+
         placesService.textSearch(fallbackRequest, (fallbackResults, fallbackStatus) => {
           if (fallbackStatus === google.maps.places.PlacesServiceStatus.OK && fallbackResults && fallbackResults[0]) {
             const location = fallbackResults[0].geometry?.location;
@@ -60,7 +60,7 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
   };
   const getMarkerIcon = (markerType?: 'activity' | 'hotel' | 'flight' | 'default') => {
     const baseUrl = 'https://maps.google.com/mapfiles/ms/icons/';
-    
+
     switch (markerType) {
       case 'activity':
         return {
@@ -105,7 +105,7 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
       });
 
       setMap(newMap);
-      
+
       // Initialize Places Service
       const placesService = new google.maps.places.PlacesService(newMap);
       setService(placesService);
@@ -115,7 +115,7 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
         newMap.addListener('click', (event: google.maps.MapMouseEvent) => {
           if (event.latLng) {
             console.log('🗺️ Map clicked at:', event.latLng.toJSON());
-            
+
             // Function to handle geocoding fallback
             const performGeocoding = () => {
               const geocoder = new google.maps.Geocoder();
@@ -123,21 +123,21 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
                 { location: event.latLng },
                 (results, geocodeStatus) => {
                   console.log('🔍 Geocoding status:', geocodeStatus);
-                  
+
                   if (geocodeStatus === 'OK' && results && results[0]) {
                     // Try to find the most specific result (not just country/city)
-                    const specificResult = results.find(result => 
-                      result.types.some(type => 
+                    const specificResult = results.find(result =>
+                      result.types.some(type =>
                         ['street_address', 'premise', 'subpremise', 'establishment'].includes(type)
                       )
                     ) || results[0];
-                    
+
                     console.log('📍 Using geocoded result:', {
                       formatted_address: specificResult.formatted_address,
                       types: specificResult.types,
                       place_id: specificResult.place_id
                     });
-                    
+
                     const geocodedPlace: google.maps.places.PlaceResult = {
                       place_id: specificResult.place_id,
                       name: specificResult.formatted_address.split(',')[0], // Use first part as name
@@ -148,7 +148,7 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
                       rating: undefined, // No rating available from geocoding
                       types: specificResult.types,
                     };
-                    
+
                     // Add temporary marker for geocoded location
                     const tempMarker = new google.maps.Marker({
                       position: event.latLng,
@@ -165,12 +165,12 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
                         anchor: new google.maps.Point(12, 24)
                       }
                     });
-                    
+
                     // Remove marker after 2 seconds
                     setTimeout(() => {
                       tempMarker.setMap(null);
                     }, 2000);
-                    
+
                     console.log('📍 Passing geocoded place to onPlaceSelect');
                     onPlaceSelect(geocodedPlace);
                   } else {
@@ -179,23 +179,23 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
                 }
               );
             };
-            
+
             // Try to get the place that was actually clicked on
             // Check if the click was on a place/POI directly
             const placeId = (event as any).placeId;
             if (placeId) {
               console.log('🎯 Direct place click detected, place_id:', placeId);
-              
+
               // Get details for the exact place that was clicked
               const detailsRequest = {
                 placeId: placeId,
                 fields: [
-                  'place_id', 
-                  'name', 
-                  'formatted_address', 
-                  'geometry', 
-                  'photos', 
-                  'rating', 
+                  'place_id',
+                  'name',
+                  'formatted_address',
+                  'geometry',
+                  'photos',
+                  'rating',
                   'types',
                   'user_ratings_total',
                   'price_level',
@@ -211,7 +211,7 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
 
               placesService.getDetails(detailsRequest, (placeDetails, detailsStatus) => {
                 console.log('🔍 Place details status:', detailsStatus);
-                
+
                 if (detailsStatus === google.maps.places.PlacesServiceStatus.OK && placeDetails) {
                   console.log('✅ Got details for clicked place:', {
                     name: placeDetails.name,
@@ -219,7 +219,7 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
                     types: placeDetails.types,
                     formatted_address: placeDetails.formatted_address
                   });
-                  
+
                   // Add a temporary marker at the clicked location
                   const tempMarker = new google.maps.Marker({
                     position: event.latLng,
@@ -236,12 +236,12 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
                       anchor: new google.maps.Point(12, 24)
                     }
                   });
-                  
+
                   // Remove marker after 2 seconds
                   setTimeout(() => {
                     tempMarker.setMap(null);
                   }, 2000);
-                  
+
                   console.log('🗺️ Passing clicked place details to onPlaceSelect');
                   onPlaceSelect(placeDetails);
                 } else {
@@ -271,32 +271,38 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
   // Update markers when they change
   useEffect(() => {
     if (map) {
-      // Clear existing markers
-      mapMarkers.forEach(marker => marker.setMap(null));
-      const newMarkers: google.maps.Marker[] = [];
-      
+      console.log('🗺️ Updating map markers, received:', markers.length, 'markers');
+
+      // Clear existing markers immediately and synchronously
+      mapMarkers.forEach(marker => {
+        marker.setMap(null);
+      });
+      setMapMarkers([]); // Clear the state immediately
+
       // Create places service for airport lookups
       const placesService = new google.maps.places.PlacesService(map);
-      
+
       // Process markers
       const processMarkers = async () => {
+        const newMarkers: google.maps.Marker[] = [];
+
         for (const markerData of markers) {
           // Handle flight markers differently - find airport locations
           if (markerData.markerType === 'flight' && markerData.title.includes('→')) {
             // Extract airport codes from flight description
             const description = markerData.title;
             const airportMatch = description.match(/([A-Z]{3})\s*→\s*([A-Z]{3})/);
-            
+
             if (airportMatch) {
               const [, departureCode, arrivalCode] = airportMatch;
-              
+
               // Create array of unique airports to avoid duplicates
               const uniqueAirports = Array.from(new Set([departureCode, arrivalCode]));
-              
+
               // Find and create markers for unique airports
               for (const airportCode of uniqueAirports) {
                 const airportLocation = await findAirportLocation(airportCode, placesService);
-                
+
                 if (airportLocation) {
                   const airportMarker = new google.maps.Marker({
                     position: airportLocation,
@@ -321,14 +327,15 @@ const MapComponent: React.FC<MapProps> = ({ center, zoom, onPlaceSelect, markers
               title: markerData.title,
               icon: getMarkerIcon(markerData.markerType)
             });
-            
+
             newMarkers.push(marker);
           }
         }
-        
+
+        console.log('🗺️ Created', newMarkers.length, 'new markers on map');
         setMapMarkers(newMarkers);
       };
-      
+
       processMarkers();
     }
   }, [map, markers]);

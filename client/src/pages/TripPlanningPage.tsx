@@ -84,7 +84,7 @@ const HotelFormComponent: React.FC<{
       ...prev,
       name: hotel.name,
       address: hotel.formatted_address,
-      rating: hotel.rating || 0,
+      rating: hotel.rating && hotel.rating > 0 ? hotel.rating : undefined,
       coordinates: safeExtractPlaceCoordinates(hotel)
     }));
   };
@@ -135,7 +135,7 @@ const HotelFormComponent: React.FC<{
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium text-gray-900">{selectedPlace.name}</h4>
-                  {selectedPlace.rating && (
+                  {selectedPlace.rating && selectedPlace.rating > 0 && (
                     <div className="flex items-center">
                       <span className="text-xs text-yellow-600 font-medium">
                         ⭐ {selectedPlace.rating}
@@ -524,6 +524,101 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
       return days;
     }
     return days.filter(day => day.dayNumber === selectedDay);
+  };
+
+  // Function to find hotel for a specific day and update map center
+  const centerMapOnDayHotel = (dayNumber: number) => {
+    // Find hotel items for the specific day
+    const dayHotelItems = itinerary.filter(item => {
+      const isHotelItem = item.type === 'accommodation' || 
+                         item.hotelInfo || 
+                         (item.place?.types && item.place.types.includes('lodging'));
+      return isHotelItem && item.day === dayNumber;
+    });
+
+    console.log('🔍 Debug: Found', dayHotelItems.length, 'hotel items for day', dayNumber);
+    
+    if (dayHotelItems.length > 0) {
+      // Debug each hotel item
+      dayHotelItems.forEach((item, index) => {
+        console.log(`🏨 Hotel ${index + 1}:`, {
+          title: item.title,
+          storedStatus: (item as any).hotelStatus,
+          hasCalculatedStatus: !!(item as any).calculatedHotelStatus,
+          coordinates: item.location?.coordinates || item.place?.coordinates,
+          hotelInfo: !!item.hotelInfo
+        });
+      });
+
+      // Calculate hotel status for each item using the same logic as the component
+      const hotelItemsWithStatus = dayHotelItems.map(item => {
+        const calculatedStatus = getHotelStatus(item, itinerary);
+        return {
+          ...item,
+          calculatedHotelStatus: calculatedStatus
+        };
+      });
+
+      // Prioritize check-in hotel first, then any hotel for the day
+      const checkInHotel = hotelItemsWithStatus.find(item => 
+        (item as any).hotelStatus === 'Check-in' || 
+        item.calculatedHotelStatus?.isCheckIn
+      );
+      
+      const hotelItem = checkInHotel || hotelItemsWithStatus[0]; // Use check-in hotel if available, otherwise first hotel
+      const coordinates = hotelItem.location?.coordinates || hotelItem.place?.coordinates;
+      
+      // Validate coordinates are valid numbers
+      const isValidCoordinates = (coords: any) => {
+        return coords && 
+               typeof coords.lat === 'number' && 
+               typeof coords.lng === 'number' && 
+               !isNaN(coords.lat) && 
+               !isNaN(coords.lng) &&
+               isFinite(coords.lat) && 
+               isFinite(coords.lng);
+      };
+      
+      if (isValidCoordinates(coordinates)) {
+        const hotelStatus = (hotelItem as any).hotelStatus || 
+                           (hotelItem.calculatedHotelStatus?.isCheckIn ? 'Check-in' : 
+                            hotelItem.calculatedHotelStatus?.isCheckOut ? 'Check-out' : 'Stay');
+        
+        console.log('🏨 Centering map on', hotelStatus, 'hotel for day', dayNumber, ':', hotelItem.title, coordinates);
+        setMapCenter(coordinates!); // Use non-null assertion since we validated coordinates
+        return true;
+      } else {
+        console.log('❌ Invalid coordinates for hotel:', hotelItem.title, 'coordinates:', coordinates);
+        
+        // Try to geocode the hotel address as fallback
+        if (hotelItem.hotelInfo?.address || hotelItem.location?.address || hotelItem.place?.formatted_address) {
+          const address = hotelItem.hotelInfo?.address || hotelItem.location?.address || hotelItem.place?.formatted_address;
+          console.log('🔍 Attempting to geocode hotel address:', address);
+          
+          // Use Google Geocoding API to get coordinates from address
+          const geocoder = new google.maps.Geocoder();
+          geocoder.geocode({ address: address }, (results, status) => {
+            if (status === 'OK' && results && results[0]) {
+              const location = results[0].geometry.location;
+              const geocodedCoords = {
+                lat: location.lat(),
+                lng: location.lng()
+              };
+              
+              console.log('✅ Successfully geocoded hotel address:', geocodedCoords);
+              setMapCenter(geocodedCoords);
+            } else {
+              console.log('❌ Failed to geocode hotel address:', status);
+            }
+          });
+          
+          return true; // Return true since we're attempting geocoding
+        }
+      }
+    }
+    
+    console.log('🗺️ No hotel found for day', dayNumber, ', keeping current map center');
+    return false;
   };
 
   // Fetch trip data (either from regular API or use shared data)
@@ -1015,7 +1110,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
               place: {
                 ...item.place,
                 // Ensure critical fields are preserved
-                rating: item.place.rating || 0,
+                rating: item.place.rating && item.place.rating > 0 ? item.place.rating : undefined,
                 types: Array.isArray(item.place.types) ? item.place.types : [],
                 user_ratings_total: item.place.user_ratings_total || undefined,
                 place_id: item.place.place_id || item.place.placeId || `place_${index}`
@@ -1375,7 +1470,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             coordinates: (item.hotelInfo as any)?.coordinates || {},
             place_id: (item.hotelInfo as any)?.place_id || item.id,
             types: ['lodging', 'establishment'],
-            rating: (item.hotelInfo as any)?.rating || 0,
+            rating: (item.hotelInfo as any)?.rating && (item.hotelInfo as any).rating > 0 ? (item.hotelInfo as any).rating : undefined,
             user_ratings_total: (item.hotelInfo as any)?.user_ratings_total && (item.hotelInfo as any).user_ratings_total > 0 ? (item.hotelInfo as any).user_ratings_total : undefined,
             photos: (item.hotelInfo as any)?.photos || []
           },
@@ -1407,7 +1502,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           coordinates: safeExtractPlaceCoordinates(item.place) || (item.location?.coordinates || {}),
           place_id: item.place.place_id || item.place.placeId || item.id,
           types: item.place.types || [],
-          rating: item.place.rating || 0,
+          rating: item.place.rating && item.place.rating > 0 ? item.place.rating : undefined,
           user_ratings_total: item.place.user_ratings_total && item.place.user_ratings_total > 0 ? item.place.user_ratings_total : undefined,
           photos: item.place.photos || []
         } : {
@@ -1596,7 +1691,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           formatted_address: hotelInfo.address,
           place_id: hotelInfo.place_id || `hotel_${hotelInfo.name.replace(/\s+/g, '_')}`,
           types: ['lodging', 'establishment'], // Standard hotel types
-          rating: hotelInfo.rating || 0,
+          rating: hotelInfo.rating && hotelInfo.rating > 0 ? hotelInfo.rating : undefined,
           user_ratings_total: hotelInfo.user_ratings_total && hotelInfo.user_ratings_total > 0 ? hotelInfo.user_ratings_total : undefined,
           photos: hotelInfo.photos || [],
           geometry: hotelInfo.coordinates ? {
@@ -1654,7 +1749,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           roomType: (firstItem.hotelInfo as any)?.roomType || '',
           confirmationNumber: (firstItem.hotelInfo as any)?.confirmationNumber || '',
           phone: (firstItem.hotelInfo as any)?.phone || (firstItem.place as any)?.formatted_phone_number || '',
-          rating: firstItem.hotelInfo?.rating || firstItem.place?.rating || 0,
+          rating: (firstItem.hotelInfo?.rating && firstItem.hotelInfo.rating > 0) ? firstItem.hotelInfo.rating : (firstItem.place?.rating && firstItem.place.rating > 0) ? firstItem.place.rating : undefined,
           pricePerNight: (firstItem.hotelInfo as any)?.pricePerNight || '',
           totalPrice: (firstItem.hotelInfo as any)?.totalPrice || '',
           notes: (firstItem.hotelInfo as any)?.notes || firstItem.notes || '',
@@ -1715,7 +1810,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             roomType: (item.hotelInfo as any)?.roomType || '',
             confirmationNumber: (item.hotelInfo as any)?.confirmationNumber || '',
             phone: (item.hotelInfo as any)?.phone || (item.place as any)?.formatted_phone_number || '',
-            rating: item.hotelInfo?.rating || item.place?.rating || 0,
+            rating: (item.hotelInfo?.rating && item.hotelInfo.rating > 0) ? item.hotelInfo.rating : (item.place?.rating && item.place.rating > 0) ? item.place.rating : undefined,
             pricePerNight: (item.hotelInfo as any)?.pricePerNight || '',
             totalPrice: (item.hotelInfo as any)?.totalPrice || '',
             notes: (item.hotelInfo as any)?.notes || item.notes || '',
@@ -1806,7 +1901,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           formatted_address: updatedHotelInfo.address,
           place_id: updatedHotelInfo.place_id || `hotel_${updatedHotelInfo.name.replace(/\s+/g, '_')}`,
           types: ['lodging', 'establishment'],
-          rating: updatedHotelInfo.rating || 0,
+          rating: updatedHotelInfo.rating && updatedHotelInfo.rating > 0 ? updatedHotelInfo.rating : undefined,
           user_ratings_total: updatedHotelInfo.user_ratings_total && updatedHotelInfo.user_ratings_total > 0 ? updatedHotelInfo.user_ratings_total : undefined,
           photos: updatedHotelInfo.photos || [],
           geometry: updatedHotelInfo.coordinates ? {
@@ -1919,7 +2014,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
     <DndProvider backend={HTML5Backend}>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-6 text-left">
           <button
             onClick={() => navigate(`/trips/${id}`)}
             className="inline-flex items-center text-sm text-gray-500 hover:text-gray-700 mb-4"
@@ -2122,6 +2217,8 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                           onClick={() => {
                             setSelectedDay(day.dayNumber);
                             setShowAllDays(false);
+                            // Center map on hotel for this day
+                            centerMapOnDayHotel(day.dayNumber);
                           }}
                           className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
                             selectedDay === day.dayNumber && !showAllDays

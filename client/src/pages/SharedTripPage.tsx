@@ -7,9 +7,9 @@ import LoadingSpinner from '../components/LoadingSpinner';
 import FlightCard from '../components/FlightCard';
 import BusCard from '../components/BusCard';
 import HotelCard from '../components/HotelCard';
-import { 
-  MapPinIcon, 
-  CalendarIcon, 
+import {
+  MapPinIcon,
+  CalendarIcon,
   ClockIcon,
   LockClosedIcon,
   EyeIcon,
@@ -21,7 +21,8 @@ import {
   TruckIcon,
   HomeIcon,
   CameraIcon,
-  GlobeAltIcon
+  GlobeAltIcon,
+  BuildingStorefrontIcon
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { format } from 'date-fns';
@@ -95,7 +96,7 @@ const SharedTripPage: React.FC = () => {
                 This shared trip is password protected. Please enter the password to continue.
               </p>
             </div>
-            
+
             <form onSubmit={handlePasswordSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
@@ -156,9 +157,9 @@ const SharedTripPage: React.FC = () => {
   };
 
   // Component for "View on Google Maps" button
-  const ViewOnGoogleMapsButton = ({ address, placeName, className = "" }: { 
-    address: string; 
-    placeName?: string; 
+  const ViewOnGoogleMapsButton = ({ address, placeName, className = "" }: {
+    address: string;
+    placeName?: string;
     className?: string;
   }) => (
     <button
@@ -172,7 +173,7 @@ const SharedTripPage: React.FC = () => {
 
   const formatTime = (timeString: string) => {
     if (!timeString) return '';
-    
+
     try {
       // Handle different time formats
       if (timeString.includes(':')) {
@@ -180,7 +181,7 @@ const SharedTripPage: React.FC = () => {
         const [hours, minutes] = timeString.split(':');
         const hour = parseInt(hours, 10);
         const min = minutes.padStart(2, '0');
-        
+
         // Convert to 12-hour format with AM/PM
         if (hour === 0) {
           return `12:${min} AM`;
@@ -213,22 +214,30 @@ const SharedTripPage: React.FC = () => {
   const getLandmarkIcon = (item: any) => {
     const placeTypes = item.place?.types || [];
     const title = item.title || item.custom_title || item.place?.name || '';
-    
+
     // Flight items
     if (item.type === 'flight' || title.includes('Airline') || title.includes('Flight') || /[A-Z]{2,3}\d+/.test(title)) {
       return <PaperAirplaneIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
     }
-    
+
     // Bus items
     if (item.type === 'bus' || item.busInfo || title.includes('Bus') || title.includes('Coach')) {
       return <TruckIcon className="h-5 w-5 text-green-600 flex-shrink-0" />;
     }
-    
+
     // Hotel/Accommodation items
     if (item.type === 'accommodation' || placeTypes.includes('lodging')) {
       return <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
     }
-    
+
+    // Restaurant/Bar/Food items
+    const isRestaurantOrBar = placeTypes.some((type: string) =>
+      ['restaurant', 'bar', 'cafe', 'bakery', 'meal_takeaway', 'meal_delivery', 'food'].includes(type)
+    );
+    if (isRestaurantOrBar) {
+      return <BuildingStorefrontIcon className="h-5 w-5 text-orange-600 flex-shrink-0" />;
+    }
+
     // All other activities use CameraIcon instead of MapPinIcon
     return <CameraIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
   };
@@ -248,7 +257,7 @@ const SharedTripPage: React.FC = () => {
   const generateDays = () => {
     const totalDays = getDuration();
     const days = [];
-    
+
     for (let i = 1; i <= totalDays; i++) {
       let dayDate = new Date();
       try {
@@ -259,13 +268,13 @@ const SharedTripPage: React.FC = () => {
         // Fallback if date parsing fails
         dayDate.setDate(dayDate.getDate() + i - 1);
       }
-      
+
       days.push({
         dayNumber: i,
         date: dayDate
       });
     }
-    
+
     return days;
   };
 
@@ -302,7 +311,7 @@ const SharedTripPage: React.FC = () => {
       // Check if this looks like a flight item based on title
       const title = item.title || item.custom_title || item.place?.name || '';
       const isLikelyFlight = title.includes('Airline') || title.includes('Flight') || /[A-Z]{2,3}\d+/.test(title);
-      
+
       if (isLikelyFlight) {
         console.log('✈️ POTENTIAL FLIGHT ITEM FOUND:', {
           index,
@@ -327,12 +336,12 @@ const SharedTripPage: React.FC = () => {
         try {
           const tripStartDate = new Date(tripData.start_date);
           const itemDate = new Date(item.date);
-          
+
           if (!isNaN(tripStartDate.getTime()) && !isNaN(itemDate.getTime())) {
             const diffTime = itemDate.getTime() - tripStartDate.getTime();
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
             dayNumber = Math.max(1, diffDays + 1); // Ensure minimum day 1
-            
+
             console.log('📅 Calculated day number:', dayNumber, 'for item:', item.title || item.custom_title || item.place?.name, {
               tripStart: tripStartDate.toISOString(),
               itemDate: itemDate.toISOString(),
@@ -372,7 +381,7 @@ const SharedTripPage: React.FC = () => {
     if (item.flightInfo && item.flightInfo.departure && item.flightInfo.arrival) {
       return item.flightInfo;
     }
-    
+
     // Check if we have any flight info at all
     if (!item.flightInfo) {
       // Create a minimal flight info from available data
@@ -386,26 +395,26 @@ const SharedTripPage: React.FC = () => {
           time: item.time || item.start_time || '00:00'
         },
         arrival: {
-          airport: 'Unknown Airport', 
+          airport: 'Unknown Airport',
           airportCode: 'XXX',
           date: item.date || '',
           time: item.time || item.start_time || '00:00'
         }
       };
     }
-    
+
     const flightInfo = item.flightInfo;
-    
+
     // Try to parse flight number and airline from title if not in flightInfo
     let airline = flightInfo.airline || 'Unknown Airline';
     let flightNumber = flightInfo.flightNumber || flightInfo.flight_number || '';
-    
+
     // If we have a title like "China Airlines CI62", try to parse it
     const title = item.title || item.custom_title || '';
     if (title && !flightNumber) {
       const flightMatch = title.match(/([A-Z]{2,3}\d+)/); // Match flight codes like CI62, AA123
       const airlineMatch = title.replace(/[A-Z]{2,3}\d+/, '').trim(); // Remove flight code to get airline
-      
+
       if (flightMatch) {
         flightNumber = flightMatch[1];
       }
@@ -413,19 +422,19 @@ const SharedTripPage: React.FC = () => {
         airline = airlineMatch;
       }
     }
-    
+
     // Try to extract airport info from notes or description
     const notes = item.notes || item.description || '';
     let departureCode = 'XXX';
     let arrivalCode = 'XXX';
-    
+
     // Look for airport codes in notes like "Flight from TPE to YVR"
     const airportMatch = notes.match(/from\s+([A-Z]{3})\s+to\s+([A-Z]{3})/i);
     if (airportMatch) {
       departureCode = airportMatch[1];
       arrivalCode = airportMatch[2];
     }
-    
+
     const transformedFlightInfo = {
       airline: airline,
       flightNumber: flightNumber,
@@ -451,7 +460,7 @@ const SharedTripPage: React.FC = () => {
       bookingReference: flightInfo.bookingReference || flightInfo.booking_reference || flightInfo.confirmation,
       status: flightInfo.status || 'scheduled'
     };
-    
+
     return transformedFlightInfo;
   };
 
@@ -461,7 +470,7 @@ const SharedTripPage: React.FC = () => {
     if (item.busInfo && item.busInfo.departure && item.busInfo.arrival) {
       return item.busInfo;
     }
-    
+
     // Check if we have any bus info at all
     if (!item.busInfo) {
       // Create a minimal bus info from available data
@@ -475,20 +484,20 @@ const SharedTripPage: React.FC = () => {
           time: item.time || item.start_time || '00:00'
         },
         arrival: {
-          station: 'Unknown Station', 
+          station: 'Unknown Station',
           city: 'Unknown City',
           date: item.date || '',
           time: item.end_time || item.time || '00:00'
         }
       };
     }
-    
+
     const busInfo = item.busInfo;
-    
+
     // Try to parse bus company and number from title if not in busInfo
     let company = busInfo.company || 'Unknown Bus Company';
     let busNumber = busInfo.busNumber || '';
-    
+
     // If we have a title like "FlixBus 123", try to parse it
     const title = item.title || item.custom_title || '';
     if (title && !busNumber) {
@@ -498,19 +507,19 @@ const SharedTripPage: React.FC = () => {
         busNumber = busMatch[2];
       }
     }
-    
+
     // Look for city names in notes or description
     const notes = item.notes || item.description || '';
     let departureCity = 'Unknown City';
     let arrivalCity = 'Unknown City';
-    
+
     // Look for route patterns like "from Paris to London"
     const routeMatch = notes.match(/from\s+([^to]+)\s+to\s+(.+)/i);
     if (routeMatch) {
       departureCity = routeMatch[1].trim();
       arrivalCity = routeMatch[2].trim();
     }
-    
+
     const transformedBusInfo = {
       company: company,
       busNumber: busNumber,
@@ -533,33 +542,33 @@ const SharedTripPage: React.FC = () => {
       seatNumber: busInfo.seatNumber || busInfo.seat,
       bookingReference: busInfo.bookingReference || busInfo.confirmation
     };
-    
+
     return transformedBusInfo;
   };
 
   // Helper function to determine hotel check-in/check-out status
   const getHotelStatus = (hotelItem: any, dayItems: any[], currentIndex: number) => {
     // Get hotel name from multiple possible sources (including place.name for lodging items)
-    const hotelName = hotelItem.hotelInfo?.name || 
-                     hotelItem.title || 
-                     hotelItem.custom_title || 
-                     hotelItem.place?.name;
-    
+    const hotelName = hotelItem.hotelInfo?.name ||
+      hotelItem.title ||
+      hotelItem.custom_title ||
+      hotelItem.place?.name;
+
     // Find all occurrences of this hotel in the itinerary
     const allHotelOccurrences = dayItems.filter(item => {
-      const itemHotelName = item.hotelInfo?.name || 
-                           item.title || 
-                           item.custom_title || 
-                           item.place?.name;
-      
+      const itemHotelName = item.hotelInfo?.name ||
+        item.title ||
+        item.custom_title ||
+        item.place?.name;
+
       // Check if this is a hotel/accommodation item (including lodging places)
-      const isHotelItem = item.type === 'accommodation' || 
-                         item.hotelInfo || 
-                         (item.place?.types && item.place.types.includes('lodging'));
-      
+      const isHotelItem = item.type === 'accommodation' ||
+        item.hotelInfo ||
+        (item.place?.types && item.place.types.includes('lodging'));
+
       return itemHotelName === hotelName && isHotelItem;
     });
-    
+
     // Sort by day and time to determine sequence
     const sortedOccurrences = allHotelOccurrences.sort((a, b) => {
       if (a.calculatedDay !== b.calculatedDay) {
@@ -569,19 +578,19 @@ const SharedTripPage: React.FC = () => {
       const timeB = b.time || b.start_time || '00:00';
       return timeA.localeCompare(timeB);
     });
-    
-    const currentItemIndex = sortedOccurrences.findIndex(item => 
+
+    const currentItemIndex = sortedOccurrences.findIndex(item =>
       item === hotelItem || (
-        item.calculatedDay === hotelItem.calculatedDay && 
+        item.calculatedDay === hotelItem.calculatedDay &&
         (item.time || item.start_time) === (hotelItem.time || hotelItem.start_time) &&
         (item.hotelInfo?.name || item.title || item.custom_title || item.place?.name) === hotelName
       )
     );
-    
+
     const isFirstOccurrence = currentItemIndex === 0;
     const isLastOccurrence = currentItemIndex === sortedOccurrences.length - 1;
     const isSingleDay = sortedOccurrences.length === 1;
-    
+
     return {
       isCheckIn: isFirstOccurrence && !isSingleDay,
       isCheckOut: isLastOccurrence,
@@ -674,7 +683,7 @@ const SharedTripPage: React.FC = () => {
                 </div>
               </div>
             </div>
-            
+
             {tripData.description && (
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <h3 className="font-medium text-gray-900 mb-2 text-left">Description</h3>
@@ -687,7 +696,7 @@ const SharedTripPage: React.FC = () => {
           {tripData.itinerary && tripData.itinerary.length > 0 && (
             <div className="bg-white shadow rounded-lg p-6">
               <h2 className="text-xl font-semibold text-gray-900 mb-4 text-left">Itinerary</h2>
-              
+
               {/* Timeline Navigation */}
               {(() => {
                 const days = generateDays();
@@ -702,7 +711,7 @@ const SharedTripPage: React.FC = () => {
                         {showAllDays ? 'Show Selected' : 'Show All'}
                       </button>
                     </div>
-                    
+
                     {/* Scrollable Timeline */}
                     <div className="relative">
                       <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100">
@@ -713,32 +722,31 @@ const SharedTripPage: React.FC = () => {
                               setSelectedDay(day.dayNumber);
                               setShowAllDays(false);
                             }}
-                            className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
-                              selectedDay === day.dayNumber && !showAllDays
-                                ? 'bg-blue-600 text-white'
-                                : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
-                            }`}
+                            className={`flex-shrink-0 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${selectedDay === day.dayNumber && !showAllDays
+                              ? 'bg-blue-600 text-white'
+                              : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-200'
+                              }`}
                           >
                             <div className="text-center">
                               <div className="font-semibold">Day {day.dayNumber}</div>
                               <div className="text-xs opacity-75">
-                                {day.date.toLocaleDateString('en-US', { 
-                                  month: 'short', 
-                                  day: 'numeric' 
+                                {day.date.toLocaleDateString('en-US', {
+                                  month: 'short',
+                                  day: 'numeric'
                                 })}
                               </div>
                             </div>
                           </button>
                         ))}
                       </div>
-                      
+
                       {/* Timeline connector line */}
                       <div className="absolute top-1/2 left-0 right-0 h-px bg-gray-300 -z-10"></div>
                     </div>
                   </div>
                 );
               })()}
-              
+
               <div className="space-y-8">
                 {Object.entries(getGroupedItinerary())
                   .sort(([dayA], [dayB]) => parseInt(dayA) - parseInt(dayB))
@@ -776,281 +784,280 @@ const SharedTripPage: React.FC = () => {
                         ) : (
                           <div className="max-w-4xl mx-auto">
                             {dayItems.map((item: any, index: number) => {
-                          // Enhanced flight detection - check by title pattern, type, and place types
-                          const title = item.title || item.custom_title || item.place?.name || '';
-                          const isLikelyFlight = title.includes('Airline') || title.includes('Flight') || 
-                                               /[A-Z]{2,3}\s*\d+/.test(title); // Allow space between airline code and number
-                          const hasFlightType = item.type === 'flight';
-                          const hasFlightInfo = !!item.flightInfo;
-                          const hasFlightPlaceType = item.place?.types && item.place.types.includes('flight');
+                              // Enhanced flight detection - check by title pattern, type, and place types
+                              const title = item.title || item.custom_title || item.place?.name || '';
+                              const isLikelyFlight = title.includes('Airline') || title.includes('Flight') ||
+                                /[A-Z]{2,3}\s*\d+/.test(title); // Allow space between airline code and number
+                              const hasFlightType = item.type === 'flight';
+                              const hasFlightInfo = !!item.flightInfo;
+                              const hasFlightPlaceType = item.place?.types && item.place.types.includes('flight');
 
-                          // Check if this is a flight item - treat as flight if type is 'flight' OR looks like flight OR has flight place type
-                          if (hasFlightType || isLikelyFlight || hasFlightPlaceType) {
-                            const transformedFlightInfo = transformFlightData(item);
-                            
-                            return (
-                              <FlightCard
-                                key={`${day}-${index}`}
-                                flightInfo={transformedFlightInfo}
-                                time={formatTime(getItemTime(item))}
-                                tripEndDate={tripData.end_date}
-                                // Don't pass onEdit or onDelete for read-only view
-                                className="mb-4"
-                              />
-                            );
-                          }
+                              // Check if this is a flight item - treat as flight if type is 'flight' OR looks like flight OR has flight place type
+                              if (hasFlightType || isLikelyFlight || hasFlightPlaceType) {
+                                const transformedFlightInfo = transformFlightData(item);
 
-                          // Check if this is a bus item - similar to flight detection
-                          const isLikelyBus = title.includes('Bus') || title.includes('Coach') || title.includes('FlixBus');
-                          const hasBusType = item.type === 'bus';
-                          const hasBusInfo = !!item.busInfo;
-                          const hasBusPlaceType = item.place?.types && item.place.types.includes('bus');
+                                return (
+                                  <FlightCard
+                                    key={`${day}-${index}`}
+                                    flightInfo={transformedFlightInfo}
+                                    time={formatTime(getItemTime(item))}
+                                    tripEndDate={tripData.end_date}
+                                    // Don't pass onEdit or onDelete for read-only view
+                                    className="mb-4"
+                                  />
+                                );
+                              }
 
-                          // Check if this is a bus item - treat as bus if type is 'bus' OR looks like bus OR has bus info
-                          if (hasBusType || isLikelyBus || hasBusPlaceType || hasBusInfo) {
-                            const transformedBusInfo = transformBusData(item);
-                            
-                            return (
-                              <BusCard
-                                key={`${day}-${index}`}
-                                busInfo={transformedBusInfo}
-                                time={formatTime(getItemTime(item))}
-                                tripEndDate={tripData.end_date}
-                                // Don't pass onEdit or onDelete for read-only view
-                                className="mb-4"
-                              />
-                            );
-                          }
+                              // Check if this is a bus item - similar to flight detection
+                              const isLikelyBus = title.includes('Bus') || title.includes('Coach') || title.includes('FlixBus');
+                              const hasBusType = item.type === 'bus';
+                              const hasBusInfo = !!item.busInfo;
+                              const hasBusPlaceType = item.place?.types && item.place.types.includes('bus');
 
-                          // Check if this is a hotel item - more flexible detection
-                          const isHotelItem = item.type === 'accommodation' || 
-                                            item.hotelInfo || 
-                                            (item.place?.types && item.place.types.includes('lodging')) ||
-                                            (item.title && (
-                                              item.title.toLowerCase().includes('hotel') ||
-                                              item.title.toLowerCase().includes('resort') ||
-                                              item.title.toLowerCase().includes('inn') ||
-                                              item.title.toLowerCase().includes('motel') ||
-                                              item.title.toLowerCase().includes('lodge')
-                                            ));
-                          
-                          if (isHotelItem) {
-                            const allDayItems = Object.values(getGroupedItinerary()).flat();
-                            const hotelStatus = getHotelStatus(item, allDayItems, index);
-                            
-                            // Transform hotel data to match HotelCard interface
-                            const transformedHotelInfo = {
-                              name: item.hotelInfo?.name || item.title || item.custom_title || 'Hotel',
-                              address: item.description || 
-                                      item.custom_description || 
-                                      item.place?.address ||
-                                      item.place?.formatted_address || 
-                                      item.location?.address || 
-                                      item.hotelInfo?.address || 
-                                      'Address not available',
-                              checkInDate: item.hotelInfo?.checkInDate || '',
-                              checkOutDate: item.hotelInfo?.checkOutDate || '',
-                              roomType: item.hotelInfo?.roomType || item.hotelInfo?.room_type || '',
-                              confirmationNumber: item.hotelInfo?.confirmationNumber || item.hotelInfo?.confirmation_number || '',
-                              rating: item.hotelInfo?.rating || item.place?.rating || null,
-                              user_ratings_total: item.hotelInfo?.user_ratings_total || item.place?.user_ratings_total || null,
-                              notes: item.hotelInfo?.notes || item.notes || '',
-                              coordinates: item.hotelInfo?.coordinates || item.place?.geometry?.location || item.location?.coordinates || undefined,
-                              types: item.place?.types || ['lodging'] // Add place types
-                            };
-                            
-                            // Clean the address by removing status text (same as trip detail page)
-                            if (transformedHotelInfo.address && transformedHotelInfo.address !== 'Address not available') {
-                              transformedHotelInfo.address = transformedHotelInfo.address
-                                .replace(/\s*-\s*Check-in\s*$/i, '')
-                                .replace(/\s*-\s*Check-out\s*$/i, '')
-                                .replace(/\s*-\s*Hotel Stay\s*$/i, '')
-                                .replace(/\s*-\s*Stay\s*$/i, '')
-                                .trim();
-                            }
-                            
-                            // Clean the address by removing status text (same as trip detail page)
-                            if (transformedHotelInfo.address && transformedHotelInfo.address !== 'Address not available') {
-                              transformedHotelInfo.address = transformedHotelInfo.address
-                                .replace(/\s*-\s*Check-in\s*$/i, '')
-                                .replace(/\s*-\s*Check-out\s*$/i, '')
-                                .replace(/\s*-\s*Hotel Stay\s*$/i, '')
-                                .replace(/\s*-\s*Stay\s*$/i, '')
-                                .trim();
-                            }
-                            
-                            return (
-                              <HotelCard
-                                key={`${day}-${index}`}
-                                hotelInfo={transformedHotelInfo}
-                                time={formatTime(getItemTime(item))}
-                                isCheckIn={hotelStatus.isCheckIn}
-                                isCheckOut={hotelStatus.isCheckOut}
-                                className="mb-4"
-                              />
-                            );
-                          }
+                              // Check if this is a bus item - treat as bus if type is 'bus' OR looks like bus OR has bus info
+                              if (hasBusType || isLikelyBus || hasBusPlaceType || hasBusInfo) {
+                                const transformedBusInfo = transformBusData(item);
 
-                          // Regular activity item with enhanced display
-                          return (
-                            <div key={`${day}-${index}`} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  {/* Activity Header with consistent time positioning */}
-                                  <div className="flex items-start justify-between mb-3">
-                                    <div className="flex items-center space-x-2">
-                                      {getLandmarkIcon(item)}
-                                      <h4 className="text-lg font-semibold text-gray-900 text-left">
-                                        {item.title || item.custom_title || item.place?.name}
-                                      </h4>
+                                return (
+                                  <BusCard
+                                    key={`${day}-${index}`}
+                                    busInfo={transformedBusInfo}
+                                    time={formatTime(getItemTime(item))}
+                                    tripEndDate={tripData.end_date}
+                                    // Don't pass onEdit or onDelete for read-only view
+                                    className="mb-4"
+                                  />
+                                );
+                              }
+
+                              // Check if this is a hotel item - more flexible detection
+                              const isHotelItem = item.type === 'accommodation' ||
+                                item.hotelInfo ||
+                                (item.place?.types && item.place.types.includes('lodging')) ||
+                                (item.title && (
+                                  item.title.toLowerCase().includes('hotel') ||
+                                  item.title.toLowerCase().includes('resort') ||
+                                  item.title.toLowerCase().includes('inn') ||
+                                  item.title.toLowerCase().includes('motel') ||
+                                  item.title.toLowerCase().includes('lodge')
+                                ));
+
+                              if (isHotelItem) {
+                                const allDayItems = Object.values(getGroupedItinerary()).flat();
+                                const hotelStatus = getHotelStatus(item, allDayItems, index);
+
+                                // Transform hotel data to match HotelCard interface
+                                const transformedHotelInfo = {
+                                  name: item.hotelInfo?.name || item.title || item.custom_title || 'Hotel',
+                                  address: item.description ||
+                                    item.custom_description ||
+                                    item.place?.address ||
+                                    item.place?.formatted_address ||
+                                    item.location?.address ||
+                                    item.hotelInfo?.address ||
+                                    'Address not available',
+                                  checkInDate: item.hotelInfo?.checkInDate || '',
+                                  checkOutDate: item.hotelInfo?.checkOutDate || '',
+                                  roomType: item.hotelInfo?.roomType || item.hotelInfo?.room_type || '',
+                                  confirmationNumber: item.hotelInfo?.confirmationNumber || item.hotelInfo?.confirmation_number || '',
+                                  rating: item.hotelInfo?.rating || item.place?.rating || null,
+                                  user_ratings_total: item.hotelInfo?.user_ratings_total || item.place?.user_ratings_total || null,
+                                  notes: item.hotelInfo?.notes || item.notes || '',
+                                  coordinates: item.hotelInfo?.coordinates || item.place?.geometry?.location || item.location?.coordinates || undefined,
+                                  types: item.place?.types || ['lodging'] // Add place types
+                                };
+
+                                // Clean the address by removing status text (same as trip detail page)
+                                if (transformedHotelInfo.address && transformedHotelInfo.address !== 'Address not available') {
+                                  transformedHotelInfo.address = transformedHotelInfo.address
+                                    .replace(/\s*-\s*Check-in\s*$/i, '')
+                                    .replace(/\s*-\s*Check-out\s*$/i, '')
+                                    .replace(/\s*-\s*Hotel Stay\s*$/i, '')
+                                    .replace(/\s*-\s*Stay\s*$/i, '')
+                                    .trim();
+                                }
+
+                                // Clean the address by removing status text (same as trip detail page)
+                                if (transformedHotelInfo.address && transformedHotelInfo.address !== 'Address not available') {
+                                  transformedHotelInfo.address = transformedHotelInfo.address
+                                    .replace(/\s*-\s*Check-in\s*$/i, '')
+                                    .replace(/\s*-\s*Check-out\s*$/i, '')
+                                    .replace(/\s*-\s*Hotel Stay\s*$/i, '')
+                                    .replace(/\s*-\s*Stay\s*$/i, '')
+                                    .trim();
+                                }
+
+                                return (
+                                  <HotelCard
+                                    key={`${day}-${index}`}
+                                    hotelInfo={transformedHotelInfo}
+                                    time={formatTime(getItemTime(item))}
+                                    isCheckIn={hotelStatus.isCheckIn}
+                                    isCheckOut={hotelStatus.isCheckOut}
+                                    className="mb-4"
+                                  />
+                                );
+                              }
+
+                              // Regular activity item with enhanced display
+                              return (
+                                <div key={`${day}-${index}`} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1">
+                                      {/* Activity Header with consistent time positioning */}
+                                      <div className="flex items-start justify-between mb-3">
+                                        <div className="flex items-center space-x-2">
+                                          {getLandmarkIcon(item)}
+                                          <h4 className="text-lg font-semibold text-gray-900 text-left">
+                                            {item.title || item.custom_title || item.place?.name}
+                                          </h4>
+                                        </div>
+                                        {getItemTime(item) && (
+                                          <div className="flex items-center text-sm text-gray-500 flex-shrink-0 ml-4">
+                                            <ClockIcon className="h-4 w-4 mr-1" />
+                                            <span className="whitespace-nowrap">{formatTime(getItemTime(item))}</span>
+                                          </div>
+                                        )}
+                                      </div>
+
+                                      {/* Address Display - Only for activity cards, not accommodation, flight, or bus */}
+                                      {(item.type !== 'accommodation' && item.type !== 'flight' && item.type !== 'bus' &&
+                                        (item.place?.formatted_address || item.location?.address)) && (
+                                          <div className="flex items-start mb-3">
+                                            <MapPinIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
+                                            <div className="flex-1">
+                                              <p className="text-sm text-gray-600 text-left">
+                                                {item.place?.formatted_address || item.location?.address}
+                                                <ViewOnGoogleMapsButton
+                                                  address={item.place?.formatted_address || item.location?.address || ''}
+                                                  placeName={item.title}
+                                                />
+                                              </p>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                      {/* Description - Only show if it's different from the address */}
+                                      {item.description &&
+                                        item.description !== (item.place?.formatted_address || item.location?.address) && (
+                                          <div className="flex items-start mb-3">
+                                            {/* Add MapPinIcon for hotel addresses */}
+                                            {(item.type === 'accommodation' ||
+                                              (item.place?.types && item.place.types.includes('lodging'))) && (
+                                                <MapPinIcon className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
+                                              )}
+                                            <div className="flex-1">
+                                              <p className="text-gray-600 text-left break-words overflow-wrap-anywhere">
+                                                {convertLinksToHyperlinks(item.description)}
+                                                {/* Add Google Maps button for hotel addresses */}
+                                                {(item.type === 'accommodation' ||
+                                                  (item.place?.types && item.place.types.includes('lodging'))) && (
+                                                    <ViewOnGoogleMapsButton
+                                                      address={item.description}
+                                                      placeName={item.title}
+                                                    />
+                                                  )}
+                                              </p>
+                                            </div>
+                                          </div>
+                                        )}
+
+                                      {/* Location with enhanced display */}
+                                      {item.location?.name && (
+                                        <div className="flex items-center mb-3 text-sm text-gray-600">
+                                          <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
+                                          <div className="flex-1">
+                                            <span className="text-left">{item.location.name}</span>
+                                            {item.location.address && (
+                                              <span className="text-gray-400 ml-2">• {item.location.address}</span>
+                                            )}
+                                            <ViewOnGoogleMapsButton
+                                              address={item.location.address || item.location.name}
+                                              placeName={item.location.name}
+                                            />
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Google Rating Display */}
+                                      {item.place?.rating && item.place.rating > 0 && (
+                                        <div className="flex items-center mb-3">
+                                          <div className="flex items-center">
+                                            <StarIconSolid className="h-4 w-4 text-yellow-400 mr-1" />
+                                            <span className="text-sm text-gray-600">
+                                              {item.place.rating}
+                                              {item.place.user_ratings_total && item.place.user_ratings_total > 0 && (
+                                                <span> ({item.place.user_ratings_total} reviews)</span>
+                                              )}
+                                            </span>
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Place Types */}
+                                      {item.place?.types && item.place.types.length > 0 && (
+                                        <div className="flex flex-wrap gap-1 mb-3">
+                                          {item.place.types.slice(0, 3).map((type: string, typeIndex: number) => (
+                                            <span
+                                              key={typeIndex}
+                                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
+                                            >
+                                              {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      )}
+
+                                      {/* User Rating Display (Read-only) */}
+                                      {item.userRating && (
+                                        <div className="flex items-center">
+                                          <span className="text-sm font-medium text-gray-700 mr-2">Wish Level:</span>
+                                          <div className="flex items-center">
+                                            {[1, 2, 3, 4, 5].map((heart) => (
+                                              <HeartIconSolid
+                                                key={heart}
+                                                className={`h-4 w-4 ${heart <= (item.userRating || 0)
+                                                  ? 'text-red-500'
+                                                  : 'text-gray-300'
+                                                  }`}
+                                              />
+                                            ))}
+                                          </div>
+                                        </div>
+                                      )}
+
+                                      {/* Notes */}
+                                      {item.notes && (
+                                        <div className="mt-3">
+                                          <p className="text-sm text-gray-600 text-left break-words overflow-wrap-anywhere">
+                                            <strong>Notes:</strong> {convertLinksToHyperlinks(item.notes)}
+                                          </p>
+                                        </div>
+                                      )}
                                     </div>
-                                    {getItemTime(item) && (
-                                      <div className="flex items-center text-sm text-gray-500 flex-shrink-0 ml-4">
-                                        <ClockIcon className="h-4 w-4 mr-1" />
-                                        <span className="whitespace-nowrap">{formatTime(getItemTime(item))}</span>
+
+                                    {/* Photo Display */}
+                                    {item.place?.photos && item.place.photos.length > 0 && (
+                                      <div className="ml-4 flex-shrink-0">
+                                        <img
+                                          src={typeof item.place.photos[0] === 'string'
+                                            ? item.place.photos[0]
+                                            : item.place.photos[0]?.photo_reference
+                                              ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photoreference=${item.place.photos[0].photo_reference}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`
+                                              : '/placeholder-image.jpg'
+                                          }
+                                          alt={item.title || item.place?.name}
+                                          className="w-24 h-24 object-cover rounded-lg shadow-sm"
+                                          onError={(e) => {
+                                            e.currentTarget.style.display = 'none';
+                                          }}
+                                        />
                                       </div>
                                     )}
                                   </div>
-                                  
-                                  {/* Address Display - Only for activity cards, not accommodation, flight, or bus */}
-                                  {(item.type !== 'accommodation' && item.type !== 'flight' && item.type !== 'bus' && 
-                                    (item.place?.formatted_address || item.location?.address)) && (
-                                    <div className="flex items-start mb-3">
-                                      <MapPinIcon className="h-4 w-4 text-gray-400 mr-2 mt-0.5 flex-shrink-0" />
-                                      <div className="flex-1">
-                                        <p className="text-sm text-gray-600 text-left">
-                                          {item.place?.formatted_address || item.location?.address}
-                                          <ViewOnGoogleMapsButton 
-                                            address={item.place?.formatted_address || item.location?.address || ''}
-                                            placeName={item.title}
-                                          />
-                                        </p>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Description - Only show if it's different from the address */}
-                                  {item.description && 
-                                   item.description !== (item.place?.formatted_address || item.location?.address) && (
-                                    <div className="flex items-start mb-3">
-                                      {/* Add MapPinIcon for hotel addresses */}
-                                      {(item.type === 'accommodation' || 
-                                        (item.place?.types && item.place.types.includes('lodging'))) && (
-                                        <MapPinIcon className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
-                                      )}
-                                      <div className="flex-1">
-                                        <p className="text-gray-600 text-left break-words overflow-wrap-anywhere">
-                                          {convertLinksToHyperlinks(item.description)}
-                                          {/* Add Google Maps button for hotel addresses */}
-                                          {(item.type === 'accommodation' || 
-                                            (item.place?.types && item.place.types.includes('lodging'))) && (
-                                            <ViewOnGoogleMapsButton 
-                                              address={item.description}
-                                              placeName={item.title}
-                                            />
-                                          )}
-                                        </p>
-                                      </div>
-                                    </div>
-                                  )}
-                                  
-                                  {/* Location with enhanced display */}
-                                  {item.location?.name && (
-                                    <div className="flex items-center mb-3 text-sm text-gray-600">
-                                      <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
-                                      <div className="flex-1">
-                                        <span className="text-left">{item.location.name}</span>
-                                        {item.location.address && (
-                                          <span className="text-gray-400 ml-2">• {item.location.address}</span>
-                                        )}
-                                        <ViewOnGoogleMapsButton 
-                                          address={item.location.address || item.location.name}
-                                          placeName={item.location.name}
-                                        />
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Google Rating Display */}
-                                  {item.place?.rating && (
-                                    <div className="flex items-center mb-3">
-                                      <div className="flex items-center">
-                                        <StarIconSolid className="h-4 w-4 text-yellow-400 mr-1" />
-                                        <span className="text-sm text-gray-600">
-                                          {item.place.rating}
-                                          {item.place.user_ratings_total && item.place.user_ratings_total > 0 && (
-                                            <span> ({item.place.user_ratings_total} reviews)</span>
-                                          )}
-                                        </span>
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Place Types */}
-                                  {item.place?.types && item.place.types.length > 0 && (
-                                    <div className="flex flex-wrap gap-1 mb-3">
-                                      {item.place.types.slice(0, 3).map((type: string, typeIndex: number) => (
-                                        <span
-                                          key={typeIndex}
-                                          className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700"
-                                        >
-                                          {type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                                        </span>
-                                      ))}
-                                    </div>
-                                  )}
-
-                                  {/* User Rating Display (Read-only) */}
-                                  {item.userRating && (
-                                    <div className="flex items-center">
-                                      <span className="text-sm font-medium text-gray-700 mr-2">Wish Level:</span>
-                                      <div className="flex items-center">
-                                        {[1, 2, 3, 4, 5].map((heart) => (
-                                          <HeartIconSolid
-                                            key={heart}
-                                            className={`h-4 w-4 ${
-                                              heart <= (item.userRating || 0)
-                                                ? 'text-red-500'
-                                                : 'text-gray-300'
-                                            }`}
-                                          />
-                                        ))}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Notes */}
-                                  {item.notes && (
-                                    <div className="mt-3">
-                                      <p className="text-sm text-gray-600 text-left break-words overflow-wrap-anywhere">
-                                        <strong>Notes:</strong> {convertLinksToHyperlinks(item.notes)}
-                                      </p>
-                                    </div>
-                                  )}
                                 </div>
-
-                                {/* Photo Display */}
-                                {item.place?.photos && item.place.photos.length > 0 && (
-                                  <div className="ml-4 flex-shrink-0">
-                                    <img
-                                      src={typeof item.place.photos[0] === 'string' 
-                                        ? item.place.photos[0] 
-                                        : item.place.photos[0]?.photo_reference 
-                                          ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=200&photoreference=${item.place.photos[0].photo_reference}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`
-                                          : '/placeholder-image.jpg'
-                                      }
-                                      alt={item.title || item.place?.name}
-                                      className="w-24 h-24 object-cover rounded-lg shadow-sm"
-                                      onError={(e) => {
-                                        e.currentTarget.style.display = 'none';
-                                      }}
-                                    />
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                              );
+                            })}
                           </div>
                         )}
                       </div>
@@ -1072,7 +1079,7 @@ const SharedTripPage: React.FC = () => {
                         <h3 className="text-lg font-semibold text-gray-900 text-left mb-2">
                           {item.name || item.title}
                         </h3>
-                        
+
                         {item.description && (
                           <p className="text-gray-600 text-sm mb-3 text-left break-words overflow-wrap-anywhere">{item.description}</p>
                         )}
@@ -1083,7 +1090,7 @@ const SharedTripPage: React.FC = () => {
                             <MapPinIcon className="h-4 w-4 mr-2 text-gray-400" />
                             <div className="flex-1">
                               <span className="text-left">{item.location.name}</span>
-                              <ViewOnGoogleMapsButton 
+                              <ViewOnGoogleMapsButton
                                 address={item.location.address || item.location.name}
                                 placeName={item.location.name}
                               />
@@ -1092,7 +1099,7 @@ const SharedTripPage: React.FC = () => {
                         )}
 
                         {/* Google Rating */}
-                        {item.rating && (
+                        {item.rating && item.rating > 0 && (
                           <div className="flex items-center mb-2">
                             <div className="flex items-center">
                               <StarIconSolid className="h-4 w-4 text-yellow-400 mr-1" />
@@ -1114,11 +1121,10 @@ const SharedTripPage: React.FC = () => {
                               {[1, 2, 3, 4, 5].map((heart) => (
                                 <HeartIconSolid
                                   key={heart}
-                                  className={`h-4 w-4 ${
-                                    heart <= (item.userInterestRating || 0)
-                                      ? 'text-red-500'
-                                      : 'text-gray-300'
-                                  }`}
+                                  className={`h-4 w-4 ${heart <= (item.userInterestRating || 0)
+                                    ? 'text-red-500'
+                                    : 'text-gray-300'
+                                    }`}
                                 />
                               ))}
                             </div>
@@ -1130,9 +1136,9 @@ const SharedTripPage: React.FC = () => {
                       {item.photos && item.photos.length > 0 && (
                         <div className="ml-4 flex-shrink-0">
                           <img
-                            src={typeof item.photos[0] === 'string' 
-                              ? item.photos[0] 
-                              : item.photos[0]?.photo_reference 
+                            src={typeof item.photos[0] === 'string'
+                              ? item.photos[0]
+                              : item.photos[0]?.photo_reference
                                 ? `https://maps.googleapis.com/maps/api/place/photo?maxwidth=150&photoreference=${item.photos[0].photo_reference}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`
                                 : '/placeholder-image.jpg'
                             }
@@ -1158,8 +1164,8 @@ const SharedTripPage: React.FC = () => {
             </p>
             <p className="text-blue-600 text-sm">
               This is a read-only view. To create and share your own trips, visit{' '}
-              <a 
-                href="https://d16hcqzmptnoh8.cloudfront.net" 
+              <a
+                href="https://d16hcqzmptnoh8.cloudfront.net"
                 className="font-medium hover:text-blue-700"
                 target="_blank"
                 rel="noopener noreferrer"

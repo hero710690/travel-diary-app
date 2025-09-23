@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useDrag } from 'react-dnd';
 import { convertLinksToHyperlinks } from '../utils/linkUtils';
 import { ClockIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, HeartIcon, StarIcon, MapPinIcon, CameraIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { BuildingStorefrontIcon } from '@heroicons/react/24/outline'; // For restaurants and bars
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import { ItineraryItem } from '../types';
 
@@ -172,6 +173,22 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
     }
   };
 
+  // Function to determine which icon to use based on place type
+  const getActivityIcon = () => {
+    // Check if it's a restaurant, bar, or food-related place
+    const placeTypes = item.place?.types || [];
+    const isRestaurantOrBar = placeTypes.some(type => 
+      ['restaurant', 'bar', 'cafe', 'bakery', 'meal_takeaway', 'meal_delivery', 'food'].includes(type)
+    );
+
+    if (isRestaurantOrBar) {
+      return <BuildingStorefrontIcon className="h-5 w-5 text-orange-600 flex-shrink-0" />;
+    }
+
+    // Default to camera icon for other activities
+    return <CameraIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
+  };
+
   const renderRatingStars = () => {
     const hearts = [];
     // Use item.userRating directly since it's the source of truth from the database
@@ -306,14 +323,10 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
               {/* Header with title on left and time/edit on right */}
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center space-x-2 flex-1 min-w-0">
-                  {item.type !== 'accommodation' && item.type !== 'flight' && (
-                    <CameraIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
+                  {item.type !== 'accommodation' && item.type !== 'flight' && !item.place?.types?.includes('lodging') && (
+                    getActivityIcon()
                   )}
-                  {item.type === 'accommodation' && (
-                    <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
-                  )}
-                  {/* Also show home icon for lodging places */}
-                  {item.type !== 'accommodation' && item.place?.types && item.place.types.includes('lodging') && (
+                  {(item.type === 'accommodation' || item.place?.types?.includes('lodging')) && (
                     <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
                   )}
                   <h4 className="text-lg font-semibold text-gray-900 break-words text-left">
@@ -386,7 +399,7 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
               {item.place && item.type !== 'flight' && (
                 <div className="mt-2 space-y-1">
                   {/* Google Rating */}
-                  {item.place.rating && (
+                  {item.place.rating && item.place.rating > 0 && (
                     <div className="flex items-center space-x-1">
                       <StarIcon className="h-3 w-3 text-yellow-400 fill-current flex-shrink-0" />
                       <span className="text-sm text-gray-600">

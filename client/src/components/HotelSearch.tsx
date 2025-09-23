@@ -223,7 +223,7 @@ const HotelSearch: React.FC<HotelSearchProps> = ({
                     <p className="text-sm font-medium text-gray-900 truncate text-left">
                       {hotel.name}
                     </p>
-                    {hotel.rating && (
+                    {hotel.rating && hotel.rating > 0 && (
                       <div className="flex items-center ml-2">
                         <span className="text-xs text-yellow-600 font-medium">
                           ⭐ {hotel.rating}

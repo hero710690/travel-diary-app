@@ -71,7 +71,7 @@ const DraggablePlace: React.FC<DraggablePlaceProps> = ({ place, onRemove }) => {
             <p className="text-xs text-gray-500 break-words line-clamp-2 mt-1 text-left">
               {place.formatted_address}
             </p>
-            {place.rating && (
+            {place.rating && place.rating > 0 && (
               <div className="flex items-center mt-2 justify-start">
                 <StarIcon className="h-3 w-3 text-yellow-400 fill-current flex-shrink-0" />
                 <span className="text-xs text-gray-600 ml-1 text-left">
