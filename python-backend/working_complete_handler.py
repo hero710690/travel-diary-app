@@ -883,6 +883,10 @@ def handle_update_trip(event, context):
         else:
             expression_names = None
         
+        if 'dayNotes' in body:
+            update_expression += ", dayNotes = :dayNotes"
+            expression_values[':dayNotes'] = body['dayNotes']
+        
         # Update the trip
         try:
             update_params = {
@@ -897,6 +901,10 @@ def handle_update_trip(event, context):
             
             response = trips_table.update_item(**update_params)
             updated_trip = response['Attributes']
+            
+            # Ensure dayNotes field is included in response
+            if 'dayNotes' not in updated_trip and 'dayNotes' in body:
+                updated_trip['dayNotes'] = body['dayNotes']
             
             return create_response(200, {
                 "message": "Trip updated successfully",
@@ -1188,6 +1196,14 @@ def handle_get_trip(event, context):
                 })
             
             trip = trip_response['Item']
+            
+            # Debug: Print trip data to see if dayNotes exists
+            print(f"Retrieved trip data: {trip}")
+            print(f"Trip dayNotes field: {trip.get('dayNotes', 'NOT_FOUND')}")
+            
+            # Ensure dayNotes field exists (initialize as empty array if missing)
+            if 'dayNotes' not in trip:
+                trip['dayNotes'] = []
             
             # Check if user has access to this trip (owner or collaborator)
             if not can_user_access_trip(trip, user_id, 'view_trip'):

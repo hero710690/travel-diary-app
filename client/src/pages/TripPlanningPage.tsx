@@ -1176,6 +1176,40 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
     ));
   };
 
+  const handleUpdateDayNotes = async (day: number, notes: string) => {
+    if (!tripData || !id) return;
+    
+    try {
+      const updatedDayNotes = [...(tripData.dayNotes || [])];
+      const existingIndex = updatedDayNotes.findIndex(d => d.day === day);
+      
+      if (existingIndex >= 0) {
+        updatedDayNotes[existingIndex] = { day, date: '', notes };
+      } else {
+        updatedDayNotes.push({ day, date: '', notes });
+      }
+
+      console.log('Updating day notes:', { day, notes, updatedDayNotes });
+      
+      // Optimistically update the cache immediately
+      queryClient.setQueryData(['trip', id], (oldData: any) => {
+        if (!oldData) return oldData;
+        return { ...oldData, dayNotes: updatedDayNotes };
+      });
+      
+      // Save to backend using the correct trip ID
+      const result = await tripsService.updateTrip(id, { dayNotes: updatedDayNotes });
+      console.log('Day notes update result:', result);
+      
+      toast.success('Day notes updated!');
+    } catch (error) {
+      console.error('Error updating day notes:', error);
+      // Revert optimistic update on error
+      queryClient.invalidateQueries(['trip', id]);
+      toast.error('Failed to update day notes');
+    }
+  };
+
   // Handle adding a bus to the itinerary
   const handleAddBus = (busInfo: BusInfo) => {
     const tripStartDate = tripData?.startDate || new Date().toISOString();
@@ -2294,6 +2328,12 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                         formatTime={formatTime}
                         tripStartDate={tripData?.startDate}
                         tripEndDate={tripData?.endDate}
+                        dayNotes={(() => {
+                          const dayNote = tripData?.dayNotes?.find((d: any) => d.day === day.dayNumber)?.notes;
+                          console.log('Passing dayNotes to ItineraryDay:', { dayNumber: day.dayNumber, dayNote, allDayNotes: tripData?.dayNotes });
+                          return dayNote;
+                        })()}
+                        onUpdateDayNotes={handleUpdateDayNotes}
                         // onAddFlight removed - using top-level Add Flight button instead
                       />
                     );

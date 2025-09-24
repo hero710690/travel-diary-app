@@ -29,6 +29,7 @@ export interface UpdateTripRequest {
   start_date?: string;
   end_date?: string;
   description?: string;
+  dayNotes?: Array<{day: number; date: string; notes: string}>;
 }
 
 // Frontend display interface (for UI components)
@@ -72,6 +73,7 @@ const transformTripForDisplay = (trip: Trip): TripDisplay => {
     createdAt: trip.created_at,
     updatedAt: trip.updated_at,
     itinerary: (trip as any).itinerary || [], // Include itinerary data from backend
+    dayNotes: (trip as any).dayNotes || [], // Include dayNotes data from backend
   };
   
   console.log('🔄 transformTripForDisplay - Output result:', result);
@@ -88,6 +90,7 @@ const transformTripForBackend = (data: {
   endDate?: string;
   end_date?: string;
   description?: string;
+  dayNotes?: Array<{day: number; date: string; notes: string}>;
 }): CreateTripRequest | UpdateTripRequest => {
   const result: any = {};
   
@@ -111,6 +114,10 @@ const transformTripForBackend = (data: {
     result.description = data.description;
   }
   
+  if (data.dayNotes !== undefined) {
+    result.dayNotes = data.dayNotes;
+  }
+  
   return result;
 };
 
@@ -131,6 +138,7 @@ export const tripsService = {
     const response = await api.get<Trip>(getApiUrl(`/trips/${id}`));
     // Backend returns trip object directly
     console.log('✅ tripsService.getTrip response:', response.data);
+    console.log('🔍 Trip dayNotes field:', (response.data as any).dayNotes);
     return transformTripForDisplay(response.data);
   },
 
@@ -161,6 +169,7 @@ export const tripsService = {
     startDate?: string;
     endDate?: string;
     description?: string;
+    dayNotes?: Array<{day: number; date: string; notes: string}>;
   }): Promise<TripDisplay> => {
     console.log('🚀 tripsService.updateTrip called with id:', id, 'data:', data);
     const backendData = transformTripForBackend(data) as UpdateTripRequest;
