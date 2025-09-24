@@ -48,6 +48,7 @@ export interface TripDisplay {
   createdAt: string;
   updatedAt: string;
   itinerary?: any[]; // Temporary compatibility
+  dayNotes?: Array<{day: number; notes: string}>;
 }
 
 const getApiUrl = (endpoint: string): string => {
@@ -206,6 +207,11 @@ export const tripsService = {
     console.log('🚀 tripsService.updateItinerary called with id:', id, 'itinerary:', itinerary);
     await api.put(getApiUrl(`/trips/${id}/itinerary`), { itinerary });
     console.log('✅ tripsService.updateItinerary completed');
+  },
+
+  // Update day notes
+  updateDayNotes: async (id: string, day: number, notes: string): Promise<void> => {
+    await api.put(getApiUrl(`/trips/${id}/day-notes`), { day, notes });
   },
 
   // Get shared trip (temporary compatibility method)

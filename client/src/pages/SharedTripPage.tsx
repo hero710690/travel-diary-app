@@ -772,6 +772,18 @@ const SharedTripPage: React.FC = () => {
                         )}
                       </div>
 
+                      {/* Day Notes - View Only */}
+                      {tripData?.dayNotes?.find((d: any) => d.day === parseInt(day))?.notes && (
+                        <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                          <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
+                            Day Notes
+                          </label>
+                          <div className="text-sm text-gray-600 whitespace-pre-wrap text-left">
+                            {tripData.dayNotes.find((d: any) => d.day === parseInt(day))?.notes}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Day Items */}
                       <div className="space-y-4">
                         {dayItems.length === 0 ? (

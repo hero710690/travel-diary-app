@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from 'react-query';
 import { tripsService } from '../services/trips';
+import { photosService } from '../services/photos';
 import { collaborationService } from '../services/collaboration';
 import { safeParseDate, getDaysDifferenceIgnoreTime } from '../utils/dateUtils';
 import { convertLinksToHyperlinks } from '../utils/linkUtils';
 import FlightCard from '../components/FlightCard';
 import BusCard from '../components/BusCard';
+import PhotoGallery from '../components/PhotoGallery';
 // FlightForm import removed - flight editing disabled in planned itinerary
 import {
   PencilIcon,
@@ -140,6 +142,13 @@ const TripDetailPage: React.FC = () => {
   // Extract trip data from response
   const tripData = tripResponse;
 
+  // Fetch photos separately from new photos table
+  const { data: allPhotos = [], refetch: refetchPhotos } = useQuery(
+    ['photos', id],
+    () => photosService.getPhotosForTrip(id!),
+    { enabled: !!id }
+  );
+
   const deleteTripMutation = useMutation(tripsService.deleteTrip, {
     onSuccess: () => {
       queryClient.invalidateQueries('trips');
@@ -170,6 +179,16 @@ const TripDetailPage: React.FC = () => {
 
   // Flight Edit Functions - REMOVED (flight editing disabled in planned itinerary)
   // Flight editing is now only available in the trip planning page
+
+  // Day notes update function
+  const handleUpdateDayNotes = async (day: number, notes: string) => {
+    try {
+      await tripsService.updateDayNotes(id!, day, notes);
+      refetch(); // Refresh trip data
+    } catch (error) {
+      console.error('Failed to update day notes:', error);
+    }
+  };
 
   const handleDeleteTrip = () => {
     if (window.confirm(`Are you sure you want to delete "${tripData?.name}"? This action cannot be undone.`)) {
@@ -1049,6 +1068,18 @@ const TripDetailPage: React.FC = () => {
                           </div>
                         </div>
 
+                        {/* Day Notes - View Only */}
+                        {tripData?.dayNotes?.find((d: any) => d.day === day.dayNumber)?.notes && (
+                          <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+                            <label className="block text-sm font-medium text-gray-700 mb-2 text-left">
+                              Day Notes
+                            </label>
+                            <div className="text-sm text-gray-600 whitespace-pre-wrap text-left">
+                              {tripData.dayNotes.find((d: any) => d.day === day.dayNumber)?.notes}
+                            </div>
+                          </div>
+                        )}
+
                         {dayItems.length === 0 ? (
                           <div className="text-center py-8 text-gray-500">
                             <CalendarIcon className="mx-auto h-8 w-8 text-gray-300 mb-2" />
@@ -1056,7 +1087,7 @@ const TripDetailPage: React.FC = () => {
                           </div>
                         ) : (
                           <div className="grid grid-cols-1 gap-4">
-                            {dayItems.map((item) => (
+                            {dayItems.map((item, itemIndex) => (
                               <div key={item.id} className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
                                 <div className="flex items-start space-x-3">
                                   <div className="flex-shrink-0 mt-1">
@@ -1402,6 +1433,39 @@ const TripDetailPage: React.FC = () => {
                                             </div>
                                           </div>
                                         )}
+
+                                        {/* Photo Gallery */}
+                                        <PhotoGallery
+                                          photos={allPhotos.filter(photo => 
+                                            photo.activity_index === itemIndex
+                                          )}
+                                          canEdit={true}
+                                          onUpload={async (files) => {
+                                            try {
+                                              for (let i = 0; i < files.length; i++) {
+                                                const file = files[i];
+                                                await photosService.uploadPhoto(
+                                                  id!, 
+                                                  itemIndex, 
+                                                  day.dayNumber, 
+                                                  item.title || 'Activity', 
+                                                  file
+                                                );
+                                              }
+                                              await refetchPhotos();
+                                            } catch (error) {
+                                              console.error('Photo upload error:', error);
+                                            }
+                                          }}
+                                          onDelete={async (photoId) => {
+                                            try {
+                                              await photosService.deletePhoto(id!, photoId);
+                                              await refetchPhotos();
+                                            } catch (error) {
+                                              console.error('Photo delete error:', error);
+                                            }
+                                          }}
+                                        />
                                       </div>
                                     )}
                                   </div>

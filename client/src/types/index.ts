@@ -179,6 +179,16 @@ export interface Collaborator {
   acceptedAt?: string;
 }
 
+export interface ActivityPhoto {
+  id: string;
+  url: string;
+  activity_index?: number;
+  day?: number;
+  activity_title?: string;
+  filename?: string;
+  uploaded_at?: string;
+}
+
 export interface Trip {
   _id: string;
   title: string;
@@ -198,6 +208,7 @@ export interface Trip {
   documents: Document[];
   isPublic: boolean;
   shareToken?: string;
+  dayNotes?: Array<{day: number; notes: string}>;
   coverImage?: string;
   tags: string[];
   duration: number;

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { format } from 'date-fns';
 import { ItineraryItem, FlightInfo, BusInfo } from '../types';
@@ -34,9 +34,10 @@ interface ItineraryDayProps {
   onMoveItem?: (itemId: string, newDay: number) => void;
   onEditHotel?: (hotelStayId: string) => void;
   formatTime?: (timeString: string) => string;
-  tripStartDate?: string; // Add trip start date for day calculation
-  tripEndDate?: string; // Add trip end date for flight time logic
-  // onAddFlight removed - using top-level Add Flight button instead
+  tripStartDate?: string;
+  tripEndDate?: string;
+  dayNotes?: string;
+  onUpdateDayNotes?: (day: number, notes: string) => Promise<void>;
 }
 
 const ItineraryDay: React.FC<ItineraryDayProps> = ({ 
@@ -49,14 +50,24 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
   onEditHotel,
   formatTime,
   tripStartDate,
-  tripEndDate
-  // onAddFlight removed - using top-level Add Flight button instead
+  tripEndDate,
+  dayNotes,
+  onUpdateDayNotes
 }) => {
   // Form states for editing existing transportation items
   const [showFlightForm, setShowFlightForm] = useState(false);
   const [editingFlight, setEditingFlight] = useState<ItineraryItem | null>(null);
   const [showBusForm, setShowBusForm] = useState(false);
   const [editingBus, setEditingBus] = useState<ItineraryItem | null>(null);
+
+  // Day notes editing state
+  const [editingDayNotes, setEditingDayNotes] = useState(false);
+  const [dayNotesValue, setDayNotesValue] = useState(dayNotes || '');
+
+  // Update local state when dayNotes prop changes
+  useEffect(() => {
+    setDayNotesValue(dayNotes || '');
+  }, [dayNotes]);
 
   const [{ isOver }, drop] = useDrop(() => ({
     accept: ['place', 'itinerary-item'],
@@ -224,6 +235,14 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
     setEditingBus(null);
   };
 
+  // Day notes save handler
+  const handleSaveDayNotes = async () => {
+    if (onUpdateDayNotes && dayNotesValue !== (dayNotes || '')) {
+      await onUpdateDayNotes(day.dayNumber, dayNotesValue);
+    }
+    setEditingDayNotes(false);
+  };
+
   return (
     <div
       ref={drop}
@@ -248,6 +267,51 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
           </div>
           {/* Flight button removed - using top-level Add Flight button instead */}
         </div>
+      </div>
+
+      {/* Day Notes - Editable */}
+      <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+        <label className="block text-sm font-medium text-gray-700 mb-2">
+          Day Notes
+        </label>
+        {editingDayNotes ? (
+          <div className="space-y-2">
+            <textarea
+              className="w-full p-2 border border-gray-300 rounded-md text-sm text-left"
+              rows={2}
+              placeholder="Add notes for this day..."
+              value={dayNotesValue}
+              onChange={(e) => setDayNotesValue(e.target.value)}
+            />
+            <div className="flex space-x-2">
+              <button
+                onClick={handleSaveDayNotes}
+                className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setEditingDayNotes(false);
+                  setDayNotesValue(dayNotes || '');
+                }}
+                className="px-3 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div 
+            className="text-sm text-gray-600 text-left whitespace-pre-wrap cursor-pointer hover:bg-gray-100 p-2 rounded min-h-[2rem]"
+            onClick={() => {
+              setEditingDayNotes(true);
+              setDayNotesValue(dayNotes || '');
+            }}
+          >
+            {dayNotesValue || 'Click to add notes for this day...'}
+          </div>
+        )}
       </div>
 
       <div className="space-y-3">

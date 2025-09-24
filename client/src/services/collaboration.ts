@@ -67,6 +67,7 @@ export interface SharedTrip {
   wishlist: any[];
   is_shared: true;
   share_settings: ShareSettings;
+  dayNotes?: Array<{day: number; notes: string}>;
 }
 
 class CollaborationService {

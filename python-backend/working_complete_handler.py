@@ -4,9 +4,11 @@ Working Complete Travel Diary Backend with proper CORS and Email Integration
 import json
 import os
 import boto3
+from boto3.dynamodb.conditions import Key, Attr
 import hashlib
 import uuid
 import re
+import base64
 from datetime import datetime, timedelta
 from decimal import Decimal
 
@@ -2551,6 +2553,200 @@ def handle_accept_invitation(event, context):
             "message": "An internal error occurred"
         })
 
+def get_photos_for_trip(trip_id):
+    """Get all photos for a trip from photos table"""
+    try:
+        photos_table = dynamodb.Table('travel-diary-prod-photos')
+        response = photos_table.query(
+            KeyConditionExpression=Key('trip_id').eq(trip_id)
+        )
+        
+        photos = []
+        for item in response.get('Items', []):
+            photos.append({
+                'id': item['photo_id'],
+                'url': item['s3_url'],
+                'activity_index': int(item['activity_index']),
+                'day': int(item['day']),
+                'activity_title': item['activity_title'],
+                'filename': item['filename'],
+                'uploaded_at': item['uploaded_at']
+            })
+        
+        return photos
+        
+    except Exception as e:
+        print(f"Error getting photos: {str(e)}")
+        return []
+
+def delete_photo_from_table(trip_id, photo_id):
+    """Delete photo from photos table and S3"""
+    try:
+        photos_table = dynamodb.Table('travel-diary-prod-photos')
+        
+        # Get photo details first
+        response = photos_table.get_item(
+            Key={
+                'trip_id': trip_id,
+                'photo_id': photo_id
+            }
+        )
+        
+        if 'Item' not in response:
+            return False
+        
+        s3_key = response['Item']['s3_key']
+        
+        # Delete from S3
+        s3 = boto3.client('s3')
+        s3.delete_object(Bucket='travel-diary-prod-photos', Key=s3_key)
+        
+        # Delete from DynamoDB
+        photos_table.delete_item(
+            Key={
+                'trip_id': trip_id,
+                'photo_id': photo_id
+            }
+        )
+        
+        print(f"Photo deleted successfully: {photo_id}")
+        return True
+        
+    except Exception as e:
+        print(f"Error deleting photo: {str(e)}")
+        return False
+
+def handle_photo_upload(event, context):
+    """Handle photo upload using new photos table"""
+    try:
+        # Parse request body
+        body = json.loads(event['body'])
+        trip_id = body.get('trip_id')
+        activity_index = body.get('activity_index')
+        day = body.get('day')
+        activity_title = body.get('activity_title', 'Unknown Activity')
+        photo_data = body.get('photo_data')
+        filename = body.get('filename')
+        
+        if not all([trip_id, activity_index is not None, day, photo_data, filename]):
+            return create_response(400, {
+                "error": "Missing required fields",
+                "message": "trip_id, activity_index, day, photo_data, and filename are required"
+            })
+        
+        # Generate unique photo ID
+        photo_id = str(uuid.uuid4())
+        
+        # Create S3 key
+        file_extension = filename.split('.')[-1] if '.' in filename else 'jpg'
+        s3_key = f"trips/{trip_id}/photos/{photo_id}.{file_extension}"
+        
+        # Upload to S3
+        photo_bytes = base64.b64decode(photo_data)
+        s3 = boto3.client('s3')
+        s3.put_object(
+            Bucket='travel-diary-prod-photos',
+            Key=s3_key,
+            Body=photo_bytes,
+            ContentType=f'image/{file_extension}',
+            CacheControl='max-age=31536000'
+        )
+        
+        photo_url = f"https://travel-diary-prod-photos.s3.ap-northeast-1.amazonaws.com/{s3_key}"
+        
+        # Save to photos table
+        photos_table = dynamodb.Table('travel-diary-prod-photos')
+        photos_table.put_item(
+            Item={
+                'trip_id': trip_id,
+                'photo_id': photo_id,
+                'day': day,
+                'activity_index': activity_index,
+                'activity_title': activity_title,
+                's3_key': s3_key,
+                's3_url': photo_url,
+                'filename': filename,
+                'uploaded_at': datetime.utcnow().isoformat(),
+                'file_size': len(photo_bytes)
+            }
+        )
+        
+        return create_response(200, {
+            "message": "Photo uploaded successfully",
+            "photo": {
+                'id': photo_id,
+                'url': photo_url,
+                'activity_index': activity_index,
+                'day': day
+            }
+        })
+        
+    except Exception as e:
+        print(f"Photo upload error: {str(e)}")
+        return create_response(500, {"error": "Internal server error"})
+
+def handle_update_day_notes(event, context):
+    """Handle day notes update"""
+    try:
+        # Extract trip ID from path
+        path = event.get('path', '')
+        path_parts = path.strip('/').split('/')
+        
+        trip_id = None
+        for i, part in enumerate(path_parts):
+            if part == 'trips' and i + 1 < len(path_parts):
+                trip_id = path_parts[i + 1]
+                break
+        
+        if not trip_id:
+            return create_response(400, {"error": "Trip ID not found in path"})
+        
+        # Parse request body
+        body = json.loads(event['body'])
+        day = body.get('day')
+        notes = body.get('notes', '')
+        
+        if day is None:
+            return create_response(400, {"error": "Day number is required"})
+        
+        # Get current trip
+        trips_table = dynamodb.Table('travel-diary-prod-trips-serverless')
+        response = trips_table.get_item(Key={'id': trip_id})
+        
+        if 'Item' not in response:
+            return create_response(404, {"error": "Trip not found"})
+        
+        trip = response['Item']
+        
+        # Update day notes
+        if 'dayNotes' not in trip:
+            trip['dayNotes'] = []
+        
+        # Find existing day note or create new one
+        day_note_index = -1
+        for i, day_note in enumerate(trip['dayNotes']):
+            if day_note.get('day') == day:
+                day_note_index = i
+                break
+        
+        if day_note_index >= 0:
+            # Update existing note
+            trip['dayNotes'][day_note_index]['notes'] = notes
+        else:
+            # Add new note
+            trip['dayNotes'].append({'day': day, 'notes': notes})
+        
+        # Save updated trip
+        trips_table.put_item(Item=trip)
+        
+        return create_response(200, {
+            "message": "Day notes updated successfully"
+        })
+        
+    except Exception as e:
+        print(f"Day notes update error: {str(e)}")
+        return create_response(500, {"error": "Internal server error"})
+
 def lambda_handler(event, context):
     """Main Lambda handler with complete backend functionality"""
     try:
@@ -2561,6 +2757,33 @@ def lambda_handler(event, context):
         path = event.get('path', '/')
         
         print(f"Processing: {http_method} {path}")
+        
+        # Handle photo operations first
+        if '/photos/' in path and http_method == 'DELETE':
+            path_parts = path.strip('/').split('/')
+            if 'photos' in path_parts:
+                photos_index = path_parts.index('photos')
+                if photos_index + 1 < len(path_parts):
+                    photo_id = path_parts[photos_index + 1]
+                    body = json.loads(event.get('body', '{}'))
+                    trip_id = body.get('trip_id')
+                    
+                    if not trip_id:
+                        return create_response(400, {"error": "trip_id required"})
+                    
+                    success = delete_photo_from_table(trip_id, photo_id)
+                    if success:
+                        return create_response(200, {"message": "Photo deleted successfully"})
+                    else:
+                        return create_response(404, {"error": "Photo not found"})
+        
+        # Handle get photos
+        if path.endswith('/photos') and http_method == 'GET':
+            path_parts = path.strip('/').split('/')
+            if len(path_parts) >= 3:
+                trip_id = path_parts[-2]
+                photos = get_photos_for_trip(trip_id)
+                return create_response(200, {"photos": photos})
         
         # Handle OPTIONS requests (CORS preflight)
         if http_method == 'OPTIONS':
@@ -2646,6 +2869,18 @@ def lambda_handler(event, context):
                         "error": "Method not allowed",
                         "message": "Only PUT method is allowed for itinerary updates"
                     })
+            # Handle day notes: PUT /trips/{id}/day-notes
+            elif path.endswith('/day-notes'):
+                if http_method == 'PUT':
+                    return handle_update_day_notes(event, context)
+                else:
+                    return create_response(405, {
+                        "error": "Method not allowed",
+                        "message": "Only PUT method is allowed for day notes updates"
+                    })
+            # Handle photo upload: POST /trips/{id}/photos
+            elif path.endswith('/photos') and http_method == 'POST':
+                return handle_photo_upload(event, context)
             # Handle individual trip operations: /trips/{id} or /api/v1/trips/{id}
             elif http_method == 'GET':
                 return handle_get_trip(event, context)
