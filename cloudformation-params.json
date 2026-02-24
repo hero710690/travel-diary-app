@@ -1,0 +1,18 @@
+[
+  {
+    "ParameterKey": "ProjectName",
+    "ParameterValue": "travel-diary"
+  },
+  {
+    "ParameterKey": "Environment",
+    "ParameterValue": "prod"
+  },
+  {
+    "ParameterKey": "GoogleMapsApiKey",
+    "ParameterValue": "your-google-maps-api-key-here"
+  },
+  {
+    "ParameterKey": "SenderEmail",
+    "ParameterValue": "noreply@travel-diary.com"
+  }
+]

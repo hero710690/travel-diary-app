@@ -6,8 +6,8 @@
 # ============================================
 # AWS Account Configuration
 # ============================================
-export AWS_REGION="us-east-1"              # Change to your preferred region (e.g., us-east-1, eu-west-1, ap-southeast-1)
-export AWS_ACCOUNT_ID="123456789012"       # Your AWS Account ID (12 digits)
+export AWS_REGION="us-northeast-1"              # Change to your preferred region (e.g., us-east-1, eu-west-1, ap-southeast-1)
+export AWS_ACCOUNT_ID="467364672998"       # Your AWS Account ID (12 digits)
 export ENVIRONMENT="prod"                   # Environment: prod, dev, staging
 
 # ============================================
@@ -30,7 +30,7 @@ export VERIFICATIONS_TABLE="${PROJECT_NAME}-${ENVIRONMENT}-email-verifications"
 # Google Maps Configuration
 # ============================================
 # Get your API key from: https://console.cloud.google.com/google/maps-apis
-export GOOGLE_MAPS_API_KEY="YOUR_GOOGLE_MAPS_API_KEY_HERE"
+export GOOGLE_MAPS_API_KEY="your-google-maps-api-key-here"
 
 # ============================================
 # Email Configuration (AWS SES)
