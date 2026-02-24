@@ -1,0 +1,277 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Travel Diary Application Infrastructure'
+
+Parameters:
+  ProjectName:
+    Type: String
+    Default: travel-diary
+    Description: Project name prefix for resources
+  
+  Environment:
+    Type: String
+    Default: prod
+    AllowedValues:
+      - dev
+      - staging
+      - prod
+    Description: Environment name
+  
+  GoogleMapsApiKey:
+    Type: String
+    NoEcho: true
+    Description: Google Maps API Key
+  
+  SenderEmail:
+    Type: String
+    Description: Verified SES sender email address
+
+Resources:
+  # S3 Bucket for Frontend
+  FrontendBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub '${ProjectName}-${Environment}-frontend-${AWS::AccountId}'
+      WebsiteConfiguration:
+        IndexDocument: index.html
+        ErrorDocument: index.html
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: false
+        BlockPublicPolicy: false
+        IgnorePublicAcls: false
+        RestrictPublicBuckets: false
+
+  FrontendBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref FrontendBucket
+      PolicyDocument:
+        Statement:
+          - Sid: PublicReadGetObject
+            Effect: Allow
+            Principal: '*'
+            Action: s3:GetObject
+            Resource: !Sub '${FrontendBucket.Arn}/*'
+
+  # DynamoDB Tables
+  UsersTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-${Environment}-users-serverless'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: email-index
+          KeySchema:
+            - AttributeName: email
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  TripsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-${Environment}-trips-serverless'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: id
+          AttributeType: S
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: userId-index
+          KeySchema:
+            - AttributeName: userId
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  SessionsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-${Environment}-sessions-serverless'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: sessionId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: sessionId
+          KeyType: HASH
+
+  VerificationsTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub '${ProjectName}-${Environment}-email-verifications'
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: email
+          AttributeType: S
+      KeySchema:
+        - AttributeName: email
+          KeyType: HASH
+
+  # Lambda Execution Role
+  LambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub '${ProjectName}-${Environment}-lambda-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+      Policies:
+        - PolicyName: DynamoDBAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - dynamodb:GetItem
+                  - dynamodb:PutItem
+                  - dynamodb:UpdateItem
+                  - dynamodb:DeleteItem
+                  - dynamodb:Query
+                  - dynamodb:Scan
+                Resource:
+                  - !GetAtt UsersTable.Arn
+                  - !Sub '${UsersTable.Arn}/index/*'
+                  - !GetAtt TripsTable.Arn
+                  - !Sub '${TripsTable.Arn}/index/*'
+                  - !GetAtt SessionsTable.Arn
+                  - !GetAtt VerificationsTable.Arn
+        - PolicyName: SESAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - ses:SendEmail
+                  - ses:SendRawEmail
+                Resource: '*'
+
+  # Lambda Function
+  BackendFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub '${ProjectName}-${Environment}-backend'
+      Runtime: python3.9
+      Handler: working_complete_handler.lambda_handler
+      Role: !GetAtt LambdaExecutionRole.Arn
+      Timeout: 30
+      MemorySize: 256
+      Code:
+        ZipFile: |
+          def lambda_handler(event, context):
+              return {'statusCode': 200, 'body': 'Placeholder - deploy actual code'}
+      Environment:
+        Variables:
+          AWS_REGION: !Ref AWS::Region
+          USERS_TABLE: !Ref UsersTable
+          TRIPS_TABLE: !Ref TripsTable
+          SESSIONS_TABLE: !Ref SessionsTable
+          VERIFICATIONS_TABLE: !Ref VerificationsTable
+          SENDER_EMAIL: !Ref SenderEmail
+          GOOGLE_MAPS_API_KEY: !Ref GoogleMapsApiKey
+
+  # API Gateway
+  ApiGateway:
+    Type: AWS::ApiGatewayV2::Api
+    Properties:
+      Name: !Sub '${ProjectName}-${Environment}-api'
+      ProtocolType: HTTP
+      CorsConfiguration:
+        AllowOrigins:
+          - '*'
+        AllowMethods:
+          - GET
+          - POST
+          - PUT
+          - DELETE
+          - OPTIONS
+        AllowHeaders:
+          - '*'
+
+  ApiIntegration:
+    Type: AWS::ApiGatewayV2::Integration
+    Properties:
+      ApiId: !Ref ApiGateway
+      IntegrationType: AWS_PROXY
+      IntegrationUri: !Sub 'arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${BackendFunction.Arn}/invocations'
+      PayloadFormatVersion: '2.0'
+
+  ApiRoute:
+    Type: AWS::ApiGatewayV2::Route
+    Properties:
+      ApiId: !Ref ApiGateway
+      RouteKey: '$default'
+      Target: !Sub 'integrations/${ApiIntegration}'
+
+  ApiStage:
+    Type: AWS::ApiGatewayV2::Stage
+    Properties:
+      ApiId: !Ref ApiGateway
+      StageName: '$default'
+      AutoDeploy: true
+
+  LambdaApiPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !Ref BackendFunction
+      Action: lambda:InvokeFunction
+      Principal: apigateway.amazonaws.com
+      SourceArn: !Sub 'arn:aws:execute-api:${AWS::Region}:${AWS::AccountId}:${ApiGateway}/*'
+
+Outputs:
+  FrontendBucketName:
+    Description: S3 bucket for frontend
+    Value: !Ref FrontendBucket
+    Export:
+      Name: !Sub '${AWS::StackName}-FrontendBucket'
+
+  FrontendURL:
+    Description: Website URL
+    Value: !GetAtt FrontendBucket.WebsiteURL
+    Export:
+      Name: !Sub '${AWS::StackName}-FrontendURL'
+
+  ApiEndpoint:
+    Description: API Gateway endpoint
+    Value: !GetAtt ApiGateway.ApiEndpoint
+    Export:
+      Name: !Sub '${AWS::StackName}-ApiEndpoint'
+
+  LambdaFunctionName:
+    Description: Lambda function name
+    Value: !Ref BackendFunction
+    Export:
+      Name: !Sub '${AWS::StackName}-LambdaFunction'
+
+  UsersTableName:
+    Description: Users DynamoDB table
+    Value: !Ref UsersTable
+
+  TripsTableName:
+    Description: Trips DynamoDB table
+    Value: !Ref TripsTable
+
+  SessionsTableName:
+    Description: Sessions DynamoDB table
+    Value: !Ref SessionsTable
+
+  VerificationsTableName:
+    Description: Verifications DynamoDB table
+    Value: !Ref VerificationsTable
