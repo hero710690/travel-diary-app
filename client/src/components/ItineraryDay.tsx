@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useDrop } from 'react-dnd';
 import { format } from 'date-fns';
-import { ItineraryItem, FlightInfo, BusInfo } from '../types';
+import { ItineraryItem, FlightInfo, BusInfo, TrainInfo } from '../types';
 import DraggableItineraryItem from './DraggableItineraryItem';
 import FlightCard from './FlightCard';
 import BusCard from './BusCard';
+import TrainCard from './TrainCard';
 import HotelCard from './HotelCard';
 import FlightForm from './FlightForm'; // Restored for editing existing flights
 import BusForm from './BusForm'; // Added for bus support
+import TrainForm from './TrainForm'; // Added for train support
 import toast from 'react-hot-toast';
 import { 
   PlusIcon 
@@ -59,6 +61,8 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
   const [editingFlight, setEditingFlight] = useState<ItineraryItem | null>(null);
   const [showBusForm, setShowBusForm] = useState(false);
   const [editingBus, setEditingBus] = useState<ItineraryItem | null>(null);
+  const [showTrainForm, setShowTrainForm] = useState(false);
+  const [editingTrain, setEditingTrain] = useState<ItineraryItem | null>(null);
 
   // Day notes editing state
   const [editingDayNotes, setEditingDayNotes] = useState(false);
@@ -109,13 +113,14 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
     setShowFlightForm(true);
   };
 
-  const handleUpdateFlight = (flightInfo: FlightInfo) => {
+  const handleUpdateFlight = (flightInfo: FlightInfo, notes?: string) => {
     if (editingFlight && onUpdateItem) {
       onUpdateItem(editingFlight.id, {
         flightInfo,
         time: flightInfo.arrival.time, // Use arrival time for consistency
         title: `${flightInfo.airline} ${flightInfo.flightNumber}`,
         description: `${flightInfo.departure.airportCode} → ${flightInfo.arrival.airportCode}`,
+        notes: notes || editingFlight.notes || '',
       });
     }
     setEditingFlight(null);
@@ -144,7 +149,21 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
     console.log('🚌 Bus edit form opened');
   };
 
-  const handleUpdateBus = (busInfo: BusInfo) => {
+  const handleEditTrain = (item: ItineraryItem) => {
+    console.log('🚄 handleEditTrain called with item:', item);
+    console.log('🚄 item.trainInfo:', item.trainInfo);
+    
+    if (!item.trainInfo) {
+      console.error('🚄 No trainInfo found in item:', item);
+      toast.error('Train information not found. Cannot edit.');
+      return;
+    }
+    setEditingTrain(item);
+    setShowTrainForm(true);
+    console.log('🚄 Train edit form opened');
+  };
+
+  const handleUpdateBus = (busInfo: BusInfo, notes?: string) => {
     console.log('🚌 handleUpdateBus called with:', busInfo);
     console.log('🚌 editingBus:', editingBus);
     console.log('🚌 onUpdateItem available:', !!onUpdateItem);
@@ -193,7 +212,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
       time: busInfo.arrival.time,
       title: `${busInfo.company} ${busInfo.busNumber}`,
       description: `${busInfo.departure.city} → ${busInfo.arrival.city}`,
-      notes: `Bus from ${busInfo.departure.city} to ${busInfo.arrival.city}${busInfo.bookingReference ? ` (Confirmation: ${busInfo.bookingReference})` : ''}`,
+      notes: notes || editingBus.notes || '',
       place: {
         name: `${busInfo.company} ${busInfo.busNumber}`,
         address: `${busInfo.departure.city} → ${busInfo.arrival.city}`,
@@ -233,6 +252,80 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
   const handleCancelBusForm = () => {
     setShowBusForm(false);
     setEditingBus(null);
+  };
+
+  const handleUpdateTrain = (trainInfo: TrainInfo, notes?: string) => {
+    console.log('🚄 handleUpdateTrain called with:', trainInfo);
+    console.log('🚄 editingTrain:', editingTrain);
+    console.log('🚄 onUpdateItem available:', !!onUpdateItem);
+    
+    if (!editingTrain) {
+      console.error('🚄 No editingTrain found');
+      return;
+    }
+    
+    if (!onUpdateItem) {
+      console.error('🚄 No onUpdateItem function provided');
+      return;
+    }
+
+    let newDay = editingTrain.day;
+    if (tripStartDate && trainInfo.arrival.date) {
+      try {
+        const tripStart = new Date(tripStartDate);
+        const arrivalDate = new Date(trainInfo.arrival.date);
+        newDay = Math.floor((arrivalDate.getTime() - tripStart.getTime()) / (1000 * 60 * 60 * 24)) + 1;
+      } catch (error) {
+        console.error('Error calculating day:', error);
+      }
+    }
+
+    const updateData = {
+      type: 'train' as const,
+      day: newDay,
+      trainInfo: trainInfo,
+      time: trainInfo.arrival.time,
+      title: `${trainInfo.company} ${trainInfo.trainNumber}`,
+      description: `${trainInfo.departure.city} → ${trainInfo.arrival.city}`,
+      notes: notes || editingTrain.notes || '',
+      place: {
+        name: `${trainInfo.company} ${trainInfo.trainNumber}`,
+        address: `${trainInfo.departure.city} → ${trainInfo.arrival.city}`,
+        coordinates: undefined,
+        place_id: editingTrain.place?.place_id || `train_${editingTrain.id}`,
+        types: ['train'],
+        rating: 0,
+        photos: []
+      }
+    };
+
+    console.log('🚄 Calling onUpdateItem with:', {
+      itemId: editingTrain.id,
+      updateData,
+      dayChanged: newDay !== editingTrain.day
+    });
+
+    try {
+      onUpdateItem(editingTrain.id, updateData);
+      console.log('🚄 onUpdateItem called successfully');
+      
+      if (newDay !== editingTrain.day) {
+        toast.success(`Train ${trainInfo.company} ${trainInfo.trainNumber} updated and moved to Day ${newDay}`);
+      } else {
+        toast.success(`Train ${trainInfo.company} ${trainInfo.trainNumber} updated successfully`);
+      }
+    } catch (error) {
+      console.error('🚄 Error calling onUpdateItem:', error);
+      toast.error('Failed to update train information');
+    }
+    
+    setEditingTrain(null);
+    setShowTrainForm(false);
+  };
+
+  const handleCancelTrainForm = () => {
+    setShowTrainForm(false);
+    setEditingTrain(null);
   };
 
   // Day notes save handler
@@ -329,7 +422,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
                                (item.place?.types && item.place.types.includes('lodging'));
             
             return (
-              item.type === 'flight' && item.flightInfo ? (
+              item.flightInfo ? (
                 <FlightCard
                   key={item.id}
                   flightInfo={item.flightInfo}
@@ -337,8 +430,9 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
                   onEdit={() => handleEditFlight(item)}
                   onDelete={() => onRemoveItem(item.id)}
                   tripEndDate={tripEndDate}
+                  notes={item.notes}
                 />
-              ) : item.type === 'bus' && item.busInfo ? (
+              ) : item.busInfo ? (
                 <BusCard
                   key={item.id}
                   busInfo={item.busInfo}
@@ -346,6 +440,16 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
                   onEdit={() => handleEditBus(item)}
                   onDelete={() => onRemoveItem(item.id)}
                   tripEndDate={tripEndDate}
+                  notes={item.notes}
+                />
+              ) : item.trainInfo ? (
+                <TrainCard
+                  key={item.id}
+                  trainInfo={item.trainInfo}
+                  time={formatTime ? formatTime(item.time || '') : (item.time || '')}
+                  onEdit={() => handleEditTrain(item)}
+                  onDelete={() => onRemoveItem(item.id)}
+                  notes={item.notes}
                 />
               ) : isHotelItem ? (
                 <HotelCard
@@ -406,6 +510,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
           initialData={editingFlight.flightInfo}
           onSave={handleUpdateFlight}
           onCancel={handleCancelFlightForm}
+          initialNotes={editingFlight.notes}
         />
       )}
 
@@ -417,6 +522,18 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
           onCancel={handleCancelBusForm}
           tripStartDate={editingBus.busInfo?.departure.date}
           tripEndDate={tripEndDate}
+          initialNotes={editingBus.notes}
+        />
+      )}
+
+      {showTrainForm && editingTrain && (
+        <TrainForm
+          initialData={editingTrain.trainInfo}
+          onSubmit={handleUpdateTrain}
+          onCancel={handleCancelTrainForm}
+          tripStartDate={editingTrain.trainInfo?.departure.date}
+          tripEndDate={tripEndDate}
+          initialNotes={editingTrain.notes}
         />
       )}
     </div>

@@ -5,7 +5,7 @@ import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { format, addDays, differenceInDays } from 'date-fns';
 import { tripsService } from '../services/trips';
-import { Trip, ItineraryItem, FlightInfo, BusInfo } from '../types';
+import { Trip, ItineraryItem, FlightInfo, BusInfo, TrainInfo } from '../types';
 import { safeParseDate, addDaysToDate, getDaysDifferenceIgnoreTime, combineDateAndTime } from '../utils/dateUtils';
 import { safeExtractCoordinates, safeExtractPlaceCoordinates } from '../utils/coordinateUtils';
 import GoogleMap from '../components/GoogleMap';
@@ -13,6 +13,7 @@ import PlacesSearch from '../components/PlacesSearch';
 import HotelSearch from '../components/HotelSearch';
 import FlightForm from '../components/FlightForm';
 import BusForm from '../components/BusForm';
+import TrainForm from '../components/TrainForm';
 import DraggablePlace from '../components/DraggablePlace';
 import ItineraryDay from '../components/ItineraryDay';
 import LoadingSpinner from '../components/LoadingSpinner';
@@ -510,6 +511,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
   // Transportation State
   const [showFlightModal, setShowFlightModal] = useState(false);
   const [showBusModal, setShowBusModal] = useState(false);
+  const [showTrainModal, setShowTrainModal] = useState(false);
 
   // Share State
   const [showShareModal, setShowShareModal] = useState(false);
@@ -670,15 +672,18 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             const isFlightItem = item.flightInfo || (item.place?.types && item.place.types.includes('flight'));
             const isAccommodationItem = item.hotelInfo || (item.place?.types && item.place.types.includes('lodging'));
             const isBusItem = item.busInfo || (item.place?.types && item.place.types.includes('bus'));
+            const isTrainItem = item.trainInfo || (item.place?.types && item.place.types.includes('train'));
             
             console.log('🔍 Loading item debug:', {
               itemIndex: index,
               hasFlightInfo: !!item.flightInfo,
               hasBusInfo: !!item.busInfo,
+              hasTrainInfo: !!item.trainInfo,
               hasHotelInfo: !!item.hotelInfo,
               placeTypes: item.place?.types,
               isFlightItem,
               isBusItem,
+              isTrainItem,
               isAccommodationItem,
               customTitle: item.custom_title,
               placeName: item.place?.name
@@ -698,17 +703,14 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                 address: item.place?.address || '',
                 coordinates: item.place?.coordinates || undefined,
               },
-              duration: item.estimated_duration || (isFlightItem ? 120 : isBusItem ? 120 : 60),
-              type: isFlightItem ? 'flight' as const : isBusItem ? 'bus' as const : isAccommodationItem ? 'accommodation' as const : 'activity' as const,
+              duration: item.estimated_duration || (isFlightItem || isBusItem || isTrainItem ? 120 : 60),
+              type: isFlightItem ? 'flight' as const : isBusItem ? 'bus' as const : isTrainItem ? 'train' as const : isAccommodationItem ? 'accommodation' as const : 'activity' as const,
               notes: item.notes || '',
-              userRating: item.userRating || undefined, // ✅ FIXED: Include user rating from backend
-              // Include flight info if available
+              userRating: item.userRating || undefined,
               flightInfo: item.flightInfo || undefined,
-              // Include bus info if available
               busInfo: item.busInfo || undefined,
-              // Include hotel info if available
+              trainInfo: item.trainInfo || undefined,
               hotelInfo: item.hotelInfo || undefined,
-              // ✅ PRESERVE: Include full place data with rating and types
               place: item.place || undefined,
             };
           });
@@ -1047,6 +1049,11 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         sanitizedUpdates.busInfo = updates.busInfo;
       }
       
+      // Handle trainInfo update
+      if (updates.trainInfo !== undefined) {
+        sanitizedUpdates.trainInfo = updates.trainInfo;
+      }
+      
       // Handle flightInfo update
       if (updates.flightInfo !== undefined) {
         sanitizedUpdates.flightInfo = updates.flightInfo;
@@ -1103,6 +1110,8 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             ...(item.flightInfo && { flightInfo: item.flightInfo }),
             // Include bus info if present
             ...(item.busInfo && { busInfo: item.busInfo }),
+            // Include train info if present
+            ...(item.trainInfo && { trainInfo: item.trainInfo }),
             // Include hotel info if present
             ...(item.hotelInfo && { hotelInfo: item.hotelInfo }),
             // Include place info if present - PRESERVE ALL PLACE DATA
@@ -1260,6 +1269,42 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
     // Close modal and show success message
     setShowBusModal(false);
     toast.success(`Bus ${busInfo.company} ${busInfo.busNumber} added to Day ${dayNumber}`);
+  };
+
+  const handleAddTrain = (trainInfo: TrainInfo) => {
+    const tripStartDate = tripData?.startDate || new Date().toISOString();
+    const arrivalDate = trainInfo.arrival.date;
+    const dayNumber = calculateDayNumber(arrivalDate, tripStartDate);
+    
+    const newTrainItem: ItineraryItem = {
+      id: `train_${Date.now()}`,
+      day: dayNumber,
+      time: trainInfo.arrival.time,
+      title: `${trainInfo.company} ${trainInfo.trainNumber}`,
+      description: `${trainInfo.departure.city} → ${trainInfo.arrival.city}`,
+      location: {
+        name: `${trainInfo.arrival.station || trainInfo.arrival.city} - Arrival`,
+        address: trainInfo.arrival.station || trainInfo.arrival.city,
+        coordinates: undefined,
+      },
+      duration: trainInfo.duration ? parseInt(trainInfo.duration.replace(/[^\d]/g, '')) * 60 : 60,
+      type: 'train',
+      trainInfo: trainInfo,
+      place: {
+        name: `${trainInfo.company} ${trainInfo.trainNumber}`,
+        address: `${trainInfo.departure.city} → ${trainInfo.arrival.city}`,
+        coordinates: undefined,
+        place_id: `train_${Date.now()}`,
+        types: ['train'],
+        rating: 0,
+        photos: []
+      },
+      notes: `Train from ${trainInfo.departure.city} to ${trainInfo.arrival.city}${trainInfo.bookingReference ? ` (Ref: ${trainInfo.bookingReference})` : ''}`
+    };
+    
+    setItinerary(prev => [...prev, newTrainItem]);
+    setShowTrainModal(false);
+    toast.success(`Train ${trainInfo.company} ${trainInfo.trainNumber} added to Day ${dayNumber}`);
   };
 
   // Unified handleAddFlight function to work with both ItineraryDay and FlightForm
@@ -1485,6 +1530,37 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           custom_description: item.description || '',
           // Store bus info for backend
           busInfo: item.busInfo
+        };
+      }
+
+      // Handle train items differently
+      if (item.type === 'train' && item.trainInfo) {
+        const arrivalDate = item.trainInfo.arrival.date;
+        const arrivalTime = item.trainInfo.arrival.time;
+        const trainDateTime = new Date(`${arrivalDate}T${arrivalTime}:00.000Z`);
+        
+        return {
+          place: {
+            name: item.title,
+            address: item.description || '',
+            coordinates: {},
+            place_id: item.id,
+            types: ['train'],
+            rating: 0,
+            photos: []
+          },
+          date: trainDateTime.toISOString(),
+          day: item.day,
+          start_time: item.time,
+          end_time: item.time,
+          estimated_duration: item.duration || 120,
+          notes: item.notes || '',
+          userRating: item.userRating,
+          order: index,
+          is_custom: true,
+          custom_title: item.title,
+          custom_description: item.description || '',
+          trainInfo: item.trainInfo
         };
       }
 
@@ -2120,6 +2196,17 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                   <span className="hidden sm:inline">Add Bus</span>
                   <span className="sm:hidden">Bus</span>
                 </button>
+
+                <button
+                  onClick={() => setShowTrainModal(true)}
+                  className="inline-flex items-center justify-center px-3 py-2 border border-purple-300 shadow-sm text-sm font-medium rounded-md text-purple-700 bg-purple-50 hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500"
+                >
+                  <svg className="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-9.75m-17.25 0h18m0 0V3.375c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M6.75 12h10.5" />
+                  </svg>
+                  <span className="hidden sm:inline">Add Train</span>
+                  <span className="sm:hidden">Train</span>
+                </button>
               </div>
             </div>
           </div>
@@ -2442,6 +2529,31 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
               <BusForm
                 onSave={handleAddBus}
                 onCancel={() => setShowBusModal(false)}
+                tripStartDate={tripData?.startDate}
+                tripEndDate={tripData?.endDate}
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showTrainModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-10 mx-auto p-5 border w-[600px] shadow-lg rounded-md bg-white">
+            <div className="mt-3">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-medium text-gray-900">Add Train</h3>
+                <button
+                  onClick={() => setShowTrainModal(false)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              
+              <TrainForm
+                onSubmit={handleAddTrain}
+                onCancel={() => setShowTrainModal(false)}
                 tripStartDate={tripData?.startDate}
                 tripEndDate={tripData?.endDate}
               />

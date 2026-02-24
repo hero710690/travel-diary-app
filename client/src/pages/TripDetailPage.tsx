@@ -8,6 +8,7 @@ import { safeParseDate, getDaysDifferenceIgnoreTime } from '../utils/dateUtils';
 import { convertLinksToHyperlinks } from '../utils/linkUtils';
 import FlightCard from '../components/FlightCard';
 import BusCard from '../components/BusCard';
+import TrainCard from '../components/TrainCard';
 import PhotoGallery from '../components/PhotoGallery';
 // FlightForm import removed - flight editing disabled in planned itinerary
 import {
@@ -46,9 +47,10 @@ interface ItineraryItem {
   title: string;
   description: string;
   duration?: number;
-  type: 'activity' | 'flight' | 'bus';
+  type: 'activity' | 'flight' | 'bus' | 'train';
   flightInfo?: any;
   busInfo?: any;
+  trainInfo?: any;
   location?: {
     name: string;
     address: string;
@@ -469,6 +471,7 @@ const TripDetailPage: React.FC = () => {
 
         const isFlightItem = item.flightInfo || (item.place?.types && item.place.types.includes('flight'));
         const isBusItem = item.busInfo || (item.place?.types && item.place.types.includes('bus')) || item.type === 'bus';
+        const isTrainItem = item.trainInfo || (item.place?.types && item.place.types.includes('train')) || item.type === 'train';
 
         const transformedItem = {
           id: item._id || `item_${index}`,
@@ -481,12 +484,13 @@ const TripDetailPage: React.FC = () => {
             address: item.place?.address || '',
             coordinates: item.place?.coordinates || undefined,
           },
-          duration: item.estimated_duration || (isFlightItem ? 120 : isBusItem ? 120 : 60),
-          type: isFlightItem ? 'flight' as const : isBusItem ? 'bus' as const : 'activity' as const,
+          duration: item.estimated_duration || (isFlightItem ? 120 : isBusItem ? 120 : isTrainItem ? 60 : 60),
+          type: isFlightItem ? 'flight' as const : isBusItem ? 'bus' as const : isTrainItem ? 'train' as const : 'activity' as const,
           notes: item.notes || '',
           userRating: item.userRating || undefined, // ✅ FIXED: Include user rating for hearts display
           flightInfo: item.flightInfo || undefined,
           busInfo: item.busInfo || undefined,
+          trainInfo: item.trainInfo || undefined,
           place: item.place || undefined, // ✅ PRESERVE: Include full place data with rating and types
         };
 
@@ -898,7 +902,7 @@ const TripDetailPage: React.FC = () => {
 
               <div>
                 <h3 className="text-lg font-medium text-gray-900 mb-3 text-left">Quick Stats</h3>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
                   <div className="bg-blue-50 p-4 rounded-lg">
                     <div className="flex items-center">
                       <CalendarIcon className="h-8 w-8 text-blue-600" />
@@ -926,6 +930,19 @@ const TripDetailPage: React.FC = () => {
                         <p className="text-sm font-medium text-orange-900 text-left">Buses</p>
                         <p className="text-2xl font-bold text-orange-600 text-left">
                           {itinerary.filter(item => item.type === 'bus').length}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-indigo-50 p-4 rounded-lg">
+                    <div className="flex items-center">
+                      <svg className="h-8 w-8 text-indigo-600" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.125-.504 1.125-1.125v-9.75m-17.25 0h18m0 0V3.375c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M6.75 12h10.5" />
+                      </svg>
+                      <div className="ml-3 text-left">
+                        <p className="text-sm font-medium text-indigo-900 text-left">Trains</p>
+                        <p className="text-2xl font-bold text-indigo-600 text-left">
+                          {itinerary.filter(item => item.type === 'train').length}
                         </p>
                       </div>
                     </div>
@@ -1423,7 +1440,9 @@ const TripDetailPage: React.FC = () => {
                                         )}
 
                                         {/* User Wish Level - Mobile responsive */}
-                                        {item.type !== 'flight' && item.type !== 'bus' && (
+                                        {item.type !== 'flight' && item.type !== 'bus' && 
+                                         !(item as any).hotelInfo && 
+                                         !(item.place?.types && item.place.types.includes('lodging')) && (
                                           <div className="mt-2 p-2 bg-gray-50 rounded">
                                             <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
                                               <span className="text-xs sm:text-sm text-gray-500 font-medium">Wish Level:</span>
@@ -1437,7 +1456,8 @@ const TripDetailPage: React.FC = () => {
                                         {/* Photo Gallery */}
                                         <PhotoGallery
                                           photos={allPhotos.filter(photo => 
-                                            photo.activity_index === itemIndex
+                                            photo.activity_index === itemIndex && 
+                                            photo.day === day.dayNumber
                                           )}
                                           canEdit={true}
                                           onUpload={async (files) => {

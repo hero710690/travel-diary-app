@@ -68,6 +68,7 @@ export interface SharedTrip {
   is_shared: true;
   share_settings: ShareSettings;
   dayNotes?: Array<{day: number; notes: string}>;
+  photos?: Array<{id: string; url: string; item_id: string}>;
 }
 
 class CollaborationService {

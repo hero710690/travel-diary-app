@@ -29,6 +29,7 @@ export interface UpdateTripRequest {
   start_date?: string;
   end_date?: string;
   description?: string;
+  status?: string;
   dayNotes?: Array<{day: number; date: string; notes: string}>;
 }
 
@@ -91,6 +92,7 @@ const transformTripForBackend = (data: {
   endDate?: string;
   end_date?: string;
   description?: string;
+  status?: string;
   dayNotes?: Array<{day: number; date: string; notes: string}>;
 }): CreateTripRequest | UpdateTripRequest => {
   const result: any = {};
@@ -113,6 +115,10 @@ const transformTripForBackend = (data: {
   
   if (data.description !== undefined) {
     result.description = data.description;
+  }
+  
+  if (data.status !== undefined) {
+    result.status = data.status;
   }
   
   if (data.dayNotes !== undefined) {

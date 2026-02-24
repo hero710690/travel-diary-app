@@ -89,6 +89,31 @@ export interface BusInfo {
   status?: 'scheduled' | 'delayed' | 'cancelled' | 'boarding' | 'departed' | 'arrived';
 }
 
+export interface TrainInfo {
+  company: string;
+  trainNumber: string;
+  departure: {
+    station: string;
+    city: string;
+    date: string; // YYYY-MM-DD format
+    time: string;
+    platform?: string;
+  };
+  arrival: {
+    station: string;
+    city: string;
+    date: string; // YYYY-MM-DD format
+    time: string;
+    platform?: string;
+  };
+  duration?: string; // e.g., "2h 30m"
+  trainType?: string; // e.g., "Express", "Local", "Shinkansen"
+  carNumber?: string;
+  seatNumber?: string;
+  bookingReference?: string;
+  status?: 'scheduled' | 'delayed' | 'cancelled' | 'boarding' | 'departed' | 'arrived';
+}
+
 export interface HotelInfo {
   name: string;
   address: string;
@@ -125,13 +150,15 @@ export interface ItineraryItem {
     };
   };
   duration?: number; // in minutes
-  type: 'activity' | 'meal' | 'transport' | 'accommodation' | 'flight' | 'bus';
+  type: 'activity' | 'meal' | 'transport' | 'accommodation' | 'flight' | 'bus' | 'train';
   notes?: string;
   userRating?: number; // User's experience rating (1-5 stars) - added after visiting
   // Flight-specific information
   flightInfo?: FlightInfo;
   // Bus-specific information
   busInfo?: BusInfo;
+  // Train-specific information
+  trainInfo?: TrainInfo;
   // Hotel-specific information
   hotelInfo?: HotelInfo;
   // Legacy fields for backward compatibility
@@ -383,6 +410,7 @@ export interface TripForm {
   currency: string;
   isPublic?: boolean;
   tags?: string;
+  status?: string;
 }
 
 export interface ExpenseForm {

@@ -64,6 +64,7 @@ const EditTripPage: React.FC = () => {
         currency: 'USD', // Not available in TripDisplay
         isPublic: false, // Not available in TripDisplay
         tags: '', // Not available in TripDisplay
+        status: trip.status || 'planning', // Add status field
       };
 
       console.log('📝 Setting form data:', formData);
@@ -234,6 +235,22 @@ const EditTripPage: React.FC = () => {
                   <p className="mt-1 text-sm text-red-600">{errors.endDate.message}</p>
                 )}
               </div>
+            </div>
+
+            {/* Status Field */}
+            <div>
+              <label htmlFor="status" className="block text-left text-sm font-medium text-gray-700">
+                Trip Status
+              </label>
+              <select
+                id="status"
+                {...register('status')}
+                className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              >
+                <option value="planning">Planning</option>
+                <option value="ongoing">Ongoing</option>
+                <option value="completed">Completed</option>
+              </select>
             </div>
 
             <div>

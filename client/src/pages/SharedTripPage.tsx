@@ -6,6 +6,7 @@ import { sharingService } from '../services/sharing';
 import LoadingSpinner from '../components/LoadingSpinner';
 import FlightCard from '../components/FlightCard';
 import BusCard from '../components/BusCard';
+import TrainCard from '../components/TrainCard';
 import HotelCard from '../components/HotelCard';
 import {
   MapPinIcon,
@@ -26,6 +27,8 @@ import {
 } from '@heroicons/react/24/outline';
 import { HeartIcon as HeartIconSolid, StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import { format } from 'date-fns';
+import { photosService } from '../services/photos';
+import PhotoGallery from '../components/PhotoGallery';
 import { convertLinksToHyperlinks } from '../utils/linkUtils';
 
 const SharedTripPage: React.FC = () => {
@@ -63,6 +66,16 @@ const SharedTripPage: React.FC = () => {
       onError: () => {
         // Ignore errors for permissions check
       }
+    }
+  );
+
+  // Fetch photos separately (same as TripDetailPage)
+  const { data: allPhotos = [] } = useQuery(
+    ['photos', tripData?.id],
+    () => photosService.getPhotosForTrip(tripData!.id),
+    {
+      enabled: !!tripData?.id,
+      retry: false
     }
   );
 
@@ -220,14 +233,19 @@ const SharedTripPage: React.FC = () => {
       return <PaperAirplaneIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
     }
 
+    // Hotel/Accommodation items - check first to avoid false positives
+    if (item.type === 'accommodation' || item.hotelInfo || placeTypes.includes('lodging')) {
+      return <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
+    }
+
     // Bus items
     if (item.type === 'bus' || item.busInfo || title.includes('Bus') || title.includes('Coach')) {
       return <TruckIcon className="h-5 w-5 text-green-600 flex-shrink-0" />;
     }
 
-    // Hotel/Accommodation items
-    if (item.type === 'accommodation' || placeTypes.includes('lodging')) {
-      return <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
+    // Train items - check trainInfo first, avoid generic "JR" which matches hotels
+    if (item.trainInfo || item.type === 'train' || title.includes('Shinkansen') || title.includes('特急')) {
+      return <span className="text-xl flex-shrink-0">🚄</span>;
     }
 
     // Restaurant/Bar/Food items
@@ -814,6 +832,7 @@ const SharedTripPage: React.FC = () => {
                                     flightInfo={transformedFlightInfo}
                                     time={formatTime(getItemTime(item))}
                                     tripEndDate={tripData.end_date}
+                                    notes={item.notes}
                                     // Don't pass onEdit or onDelete for read-only view
                                     className="mb-4"
                                   />
@@ -836,24 +855,62 @@ const SharedTripPage: React.FC = () => {
                                     busInfo={transformedBusInfo}
                                     time={formatTime(getItemTime(item))}
                                     tripEndDate={tripData.end_date}
+                                    notes={item.notes}
                                     // Don't pass onEdit or onDelete for read-only view
                                     className="mb-4"
                                   />
                                 );
                               }
 
-                              // Check if this is a hotel item - more flexible detection
+                              // Check if this is a hotel item first - more flexible detection
                               const isHotelItem = item.type === 'accommodation' ||
                                 item.hotelInfo ||
                                 (item.place?.types && item.place.types.includes('lodging')) ||
-                                (item.title && (
-                                  item.title.toLowerCase().includes('hotel') ||
-                                  item.title.toLowerCase().includes('resort') ||
-                                  item.title.toLowerCase().includes('inn') ||
-                                  item.title.toLowerCase().includes('motel') ||
-                                  item.title.toLowerCase().includes('lodge')
-                                ));
+                                title.includes('Hotel') || 
+                                title.includes('Inn') || 
+                                title.includes('Resort') ||
+                                title.includes('Hostel');
 
+                              if (isHotelItem) {
+                                // Hotel rendering logic will be below
+                              } else {
+                                // Check if this is a train item - only after hotel check
+                                const hasTrainInfo = !!item.trainInfo;
+                                const hasTrainType = item.type === 'train';
+                                const isLikelyTrain = title.includes('Shinkansen') || title.includes('特急');
+
+                                if (hasTrainInfo || hasTrainType || isLikelyTrain) {
+                                  const transformedTrainInfo = item.trainInfo || {
+                                    company: item.custom_title?.split(' ')[0] || 'Train',
+                                    trainNumber: item.custom_title?.split(' ').slice(1).join(' ') || '',
+                                    departure: {
+                                      station: item.custom_description?.split('➝')[0]?.trim() || '',
+                                      city: '',
+                                      date: item.date?.split('T')[0] || '',
+                                      time: item.start_time || ''
+                                    },
+                                    arrival: {
+                                      station: item.custom_description?.split('➝')[1]?.trim() || '',
+                                      city: '',
+                                      date: item.date?.split('T')[0] || '',
+                                      time: item.end_time || ''
+                                    },
+                                    duration: item.estimated_duration ? `${Math.floor(item.estimated_duration / 60)}h ${item.estimated_duration % 60}m` : ''
+                                  };
+
+                                  return (
+                                    <TrainCard
+                                      key={`${day}-${index}`}
+                                      trainInfo={transformedTrainInfo}
+                                      time={formatTime(getItemTime(item))}
+                                      notes={item.notes}
+                                      className="mb-4"
+                                    />
+                                  );
+                                }
+                              }
+
+                              // Hotel rendering
                               if (isHotelItem) {
                                 const allDayItems = Object.values(getGroupedItinerary()).flat();
                                 const hotelStatus = getHotelStatus(item, allDayItems, index);
@@ -913,7 +970,7 @@ const SharedTripPage: React.FC = () => {
 
                               // Regular activity item with enhanced display
                               return (
-                                <div key={`${day}-${index}`} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow">
+                                <div key={`${day}-${index}`} className="border border-gray-200 rounded-lg p-6 hover:shadow-md transition-shadow mb-4">
                                   <div className="flex items-start justify-between">
                                     <div className="flex-1">
                                       {/* Activity Header with consistent time positioning */}
@@ -1021,7 +1078,9 @@ const SharedTripPage: React.FC = () => {
                                       )}
 
                                       {/* User Rating Display (Read-only) */}
-                                      {item.userRating && (
+                                      {item.userRating && 
+                                       !(item as any).hotelInfo && 
+                                       !(item.place?.types && item.place.types.includes('lodging')) && (
                                         <div className="flex items-center">
                                           <span className="text-sm font-medium text-gray-700 mr-2">Wish Level:</span>
                                           <div className="flex items-center">
@@ -1046,6 +1105,15 @@ const SharedTripPage: React.FC = () => {
                                           </p>
                                         </div>
                                       )}
+
+                                      {/* Photo Gallery - View Only */}
+                                      <PhotoGallery
+                                        photos={allPhotos.filter(photo => 
+                                          photo.activity_index === index && 
+                                          photo.day === parseInt(day)
+                                        )}
+                                        canEdit={false}
+                                      />
                                     </div>
 
                                     {/* Photo Display */}

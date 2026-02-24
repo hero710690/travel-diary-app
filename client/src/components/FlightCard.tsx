@@ -16,6 +16,7 @@ interface FlightCardProps {
   onDelete?: () => void;
   className?: string;
   tripEndDate?: string; // Add trip end date to determine departure flights
+  notes?: string; // Add notes prop
 }
 
 const FlightCard: React.FC<FlightCardProps> = ({ 
@@ -24,7 +25,8 @@ const FlightCard: React.FC<FlightCardProps> = ({
   onEdit, 
   onDelete, 
   className = '',
-  tripEndDate
+  tripEndDate,
+  notes
 }) => {
   const formatDate = (dateString: string) => {
     if (!dateString) return '';
@@ -188,7 +190,7 @@ const FlightCard: React.FC<FlightCardProps> = ({
       </div>
 
       {/* Additional Info */}
-      {(flightInfo.seatNumber || flightInfo.bookingReference || flightInfo.aircraft) && (
+      {(flightInfo.seatNumber || flightInfo.bookingReference || flightInfo.aircraft || notes) && (
         <div className="border-t border-gray-100 pt-3 mt-3">
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-gray-600 text-left">
             {flightInfo.seatNumber && (
@@ -201,6 +203,11 @@ const FlightCard: React.FC<FlightCardProps> = ({
               <span className="break-words text-left">Ref: {flightInfo.bookingReference}</span>
             )}
           </div>
+          {notes && (
+            <div className="mt-2 text-xs text-gray-600 text-left">
+              <span className="font-medium">Notes:</span> {notes}
+            </div>
+          )}
         </div>
       )}
 

@@ -7,10 +7,11 @@ import {
 
 interface BusFormProps {
   initialData?: Partial<BusInfo>;
-  onSave: (busInfo: BusInfo) => void;
+  onSave: (busInfo: BusInfo, notes?: string) => void;
   onCancel: () => void;
   tripStartDate?: string;
   tripEndDate?: string;
+  initialNotes?: string;
 }
 
 const BusForm: React.FC<BusFormProps> = ({ 
@@ -18,7 +19,8 @@ const BusForm: React.FC<BusFormProps> = ({
   onSave, 
   onCancel, 
   tripStartDate, 
-  tripEndDate 
+  tripEndDate,
+  initialNotes
 }) => {
   const [formData, setFormData] = useState<BusInfo>({
     company: initialData?.company || '',
@@ -43,6 +45,8 @@ const BusForm: React.FC<BusFormProps> = ({
     bookingReference: initialData?.bookingReference || '',
     status: initialData?.status || 'scheduled',
   });
+
+  const [notes, setNotes] = useState(initialNotes || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,7 +73,7 @@ const BusForm: React.FC<BusFormProps> = ({
     }
 
     console.log('🚌 BusForm calling onSave with:', formData);
-    onSave(formData);
+    onSave(formData, notes);
   };
 
   const updateField = (field: string, value: string) => {
@@ -341,6 +345,20 @@ const BusForm: React.FC<BusFormProps> = ({
                 placeholder="e.g., ABC123"
               />
             </div>
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
+              Notes
+            </label>
+            <textarea
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              rows={3}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+              placeholder="Additional notes or booking information..."
+            />
           </div>
 
           {/* Actions */}

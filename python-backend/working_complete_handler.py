@@ -1842,9 +1842,16 @@ def handle_get_shared_trip(event, context):
                 'duration': target_trip.get('duration', 1),
                 'itinerary': target_trip.get('itinerary', []),
                 'wishlist': target_trip.get('wishlist', []),
+                'photos': target_trip.get('photos', []),
+                'dayNotes': target_trip.get('dayNotes', []),
                 'is_shared': True,
                 'share_settings': settings
             }
+            
+            # Debug logging
+            print(f"Shared trip debug - photos: {target_trip.get('photos', [])}")
+            print(f"Shared trip debug - dayNotes: {target_trip.get('dayNotes', [])}")
+            print(f"Shared trip debug - all keys: {list(target_trip.keys())}")
             
             return create_response(200, {
                 "message": "Shared trip retrieved successfully",
