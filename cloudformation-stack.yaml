@@ -35,10 +35,10 @@ Resources:
         IndexDocument: index.html
         ErrorDocument: index.html
       PublicAccessBlockConfiguration:
-        BlockPublicAcls: false
-        BlockPublicPolicy: false
-        IgnorePublicAcls: false
-        RestrictPublicBuckets: false
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
 
   FrontendBucketPolicy:
     Type: AWS::S3::BucketPolicy
@@ -46,11 +46,55 @@ Resources:
       Bucket: !Ref FrontendBucket
       PolicyDocument:
         Statement:
-          - Sid: PublicReadGetObject
+          - Sid: AllowCloudFrontServicePrincipal
             Effect: Allow
-            Principal: '*'
+            Principal:
+              Service: cloudfront.amazonaws.com
             Action: s3:GetObject
             Resource: !Sub '${FrontendBucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
+  # CloudFront Origin Access Control
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub '${ProjectName}-${Environment}-oac'
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  # CloudFront Distribution
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        Comment: !Sub '${ProjectName}-${Environment} frontend'
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt FrontendBucket.RegionalDomainName
+            OriginAccessControlId: !Ref CloudFrontOAC
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          TargetOriginId: S3Origin
+          ViewerProtocolPolicy: redirect-to-https
+          AllowedMethods: [GET, HEAD, OPTIONS]
+          CachedMethods: [GET, HEAD]
+          ForwardedValues:
+            QueryString: false
+          Compress: true
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
 
   # DynamoDB Tables
   UsersTable:
@@ -101,10 +145,10 @@ Resources:
       TableName: !Sub '${ProjectName}-${Environment}-sessions-serverless'
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: sessionId
+        - AttributeName: id
           AttributeType: S
       KeySchema:
-        - AttributeName: sessionId
+        - AttributeName: id
           KeyType: HASH
 
   VerificationsTable:
@@ -168,7 +212,7 @@ Resources:
     Type: AWS::Lambda::Function
     Properties:
       FunctionName: !Sub '${ProjectName}-${Environment}-backend'
-      Runtime: python3.9
+      Runtime: python3.11
       Handler: working_complete_handler.lambda_handler
       Role: !GetAtt LambdaExecutionRole.Arn
       Timeout: 30
@@ -179,7 +223,7 @@ Resources:
               return {'statusCode': 200, 'body': 'Placeholder - deploy actual code'}
       Environment:
         Variables:
-          AWS_REGION: !Ref AWS::Region
+          APP_REGION: !Ref AWS::Region
           USERS_TABLE: !Ref UsersTable
           TRIPS_TABLE: !Ref TripsTable
           SESSIONS_TABLE: !Ref SessionsTable
@@ -247,6 +291,18 @@ Outputs:
     Value: !GetAtt FrontendBucket.WebsiteURL
     Export:
       Name: !Sub '${AWS::StackName}-FrontendURL'
+
+  CloudFrontURL:
+    Description: CloudFront distribution URL
+    Value: !Sub 'https://${CloudFrontDistribution.DomainName}'
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontURL'
+
+  CloudFrontDistributionId:
+    Description: CloudFront distribution ID
+    Value: !Ref CloudFrontDistribution
+    Export:
+      Name: !Sub '${AWS::StackName}-CloudFrontDistributionId'
 
   ApiEndpoint:
     Description: API Gateway endpoint
