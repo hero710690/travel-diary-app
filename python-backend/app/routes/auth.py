@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from ..models.user import UserCreate, UserLogin, Token, User, UserInDB
-from ..core.security import verify_password, get_password_hash, create_access_token, verify_token
+from ..core.security import verify_password, get_password_hash, create_access_token, verify_token, needs_password_rehash
 from ..services.service_factory import get_user_service
 from ..database import get_database
 
@@ -62,7 +62,7 @@ async def register(user_data: UserCreate):
 async def login(user_data: UserLogin):
     """Login user with JSON data"""
     user_service = get_user_service()
-    
+
     # Get user by email
     user = await user_service.get_user_by_email(user_data.email)
     if not user or not verify_password(user_data.password, user.hashed_password):
@@ -71,7 +71,19 @@ async def login(user_data: UserLogin):
             detail="Incorrect email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
+    # Auto-migrate legacy password hash (SHA256) to bcrypt
+    if needs_password_rehash(user.hashed_password):
+        try:
+            new_hash = get_password_hash(user_data.password)
+            from ..database.firestore import firestore_client
+            await firestore_client.db.collection('users').document(str(user.id)).update(
+                {'hashed_password': new_hash}
+            )
+            print(f"Password rehashed for user {user.email}")
+        except Exception as e:
+            print(f"Password rehash failed (non-critical): {e}")
+
     # Create access token
     access_token = create_access_token(data={"sub": user.email})
     

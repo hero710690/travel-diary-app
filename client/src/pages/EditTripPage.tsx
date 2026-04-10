@@ -99,16 +99,28 @@ const EditTripPage: React.FC = () => {
   };
 
   const currencies = [
+    { code: 'TWD', name: 'New Taiwan Dollar' },
     { code: 'USD', name: 'US Dollar' },
     { code: 'EUR', name: 'Euro' },
     { code: 'GBP', name: 'British Pound' },
     { code: 'JPY', name: 'Japanese Yen' },
     { code: 'CNY', name: 'Chinese Yuan' },
+    { code: 'HKD', name: 'Hong Kong Dollar' },
     { code: 'KRW', name: 'Korean Won' },
+    { code: 'SGD', name: 'Singapore Dollar' },
+    { code: 'THB', name: 'Thai Baht' },
+    { code: 'MYR', name: 'Malaysian Ringgit' },
+    { code: 'VND', name: 'Vietnamese Dong' },
+    { code: 'PHP', name: 'Philippine Peso' },
+    { code: 'IDR', name: 'Indonesian Rupiah' },
+    { code: 'INR', name: 'Indian Rupee' },
     { code: 'CAD', name: 'Canadian Dollar' },
     { code: 'AUD', name: 'Australian Dollar' },
+    { code: 'NZD', name: 'New Zealand Dollar' },
     { code: 'CHF', name: 'Swiss Franc' },
     { code: 'SEK', name: 'Swedish Krona' },
+    { code: 'CZK', name: 'Czech Koruna' },
+    { code: 'HUF', name: 'Hungarian Forint' },
   ];
 
   if (isLoading) {

@@ -34,6 +34,7 @@ class UserInDB(MongoBaseModel, UserBase):
 
 class User(MongoBaseModel, UserBase):
     """User model for API responses"""
+    hashed_password: Optional[str] = None
     created_at: str
     updated_at: str
 

@@ -6,8 +6,8 @@ from pydantic_core import core_schema
 
 
 class PyObjectId(ObjectId):
-    """Custom ObjectId type for Pydantic models"""
-    
+    """Custom ObjectId type for Pydantic models — accepts ObjectId strings and UUIDs"""
+
     @classmethod
     def __get_pydantic_core_schema__(
         cls, source_type: Any, handler: GetJsonSchemaHandler
@@ -22,9 +22,10 @@ class PyObjectId(ObjectId):
 
     @classmethod
     def validate(cls, v):
-        if not ObjectId.is_valid(v):
-            raise ValueError("Invalid ObjectId")
-        return ObjectId(v)
+        if ObjectId.is_valid(v):
+            return ObjectId(v)
+        # Accept non-ObjectId strings (e.g. UUIDs from Firestore/DynamoDB)
+        return v
 
     @classmethod
     def __get_pydantic_json_schema__(
@@ -34,9 +35,9 @@ class PyObjectId(ObjectId):
 
 
 class MongoBaseModel(BaseModel):
-    """Base model for MongoDB documents"""
-    
-    id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
+    """Base model with flexible ID — works with MongoDB ObjectId, UUID strings, etc."""
+
+    id: Any = Field(default_factory=PyObjectId, alias="_id", serialization_alias="id")
 
     class Config:
         populate_by_name = True

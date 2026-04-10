@@ -6,18 +6,24 @@ import os
 
 class Settings(BaseSettings):
     # Database Configuration
-    DATABASE_TYPE: str = "mongodb"  # "mongodb" or "dynamodb"
-    
+    DATABASE_TYPE: str = "mongodb"  # "mongodb", "dynamodb", or "firestore"
+
     # MongoDB (for local development)
     MONGODB_URL: str = "mongodb://localhost:27017/travel_diary"
     DATABASE_NAME: str = "travel_diary"
-    
+
     # DynamoDB (for AWS deployment)
     # AWS_REGION is automatically provided by Lambda runtime
     AWS_REGION: str = os.getenv("AWS_REGION", "us-east-1")
     USERS_TABLE: str = "travel-diary-users"
     TRIPS_TABLE: str = "travel-diary-trips"
     SESSIONS_TABLE: str = "travel-diary-sessions"
+
+    # Firestore (for GCP deployment)
+    GCP_PROJECT_ID: str = "jean-project-492204"
+    USERS_COLLECTION: str = "users"
+    TRIPS_COLLECTION: str = "trips"
+    SESSIONS_COLLECTION: str = "sessions"
     
     # JWT
     SECRET_KEY: str = "your-secret-key-change-this-in-production"
@@ -29,12 +35,14 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Travel Diary API"
     VERSION: str = "1.0.0"
     
-    # CORS - Updated for CloudFront
+    # CORS
     BACKEND_CORS_ORIGINS: Union[str, List[str]] = [
         "http://localhost:3000",
         "https://localhost:3000",
-        "http://localhost:3001", 
-        "https://localhost:3001"
+        "http://localhost:3001",
+        "https://localhost:3001",
+        "https://trip-diary.web.app",
+        "https://trip-diary.firebaseapp.com"
     ]
     
     @validator("BACKEND_CORS_ORIGINS", pre=True)

@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from .core.config import settings
 from .database import close_database_connection
-from .routes import auth_router, trips_router
+from .routes import auth_router, trips_router, shared_router
 
 
 @asynccontextmanager
@@ -38,6 +38,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(auth_router, prefix=settings.API_V1_STR)
+app.include_router(shared_router, prefix=settings.API_V1_STR)
 app.include_router(trips_router, prefix=settings.API_V1_STR)
 
 
@@ -65,9 +66,11 @@ async def health_check():
 
 if __name__ == "__main__":
     import uvicorn
+    import os
+    port = int(os.getenv("PORT", "8000"))
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
+        port=port,
         reload=settings.DEBUG
     )

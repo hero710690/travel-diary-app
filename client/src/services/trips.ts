@@ -106,11 +106,11 @@ const transformTripForBackend = (data: {
   }
   
   if (data.start_date || data.startDate) {
-    result.start_date = data.start_date || data.startDate;
+    result.startDate = data.start_date || data.startDate;
   }
-  
+
   if (data.end_date || data.endDate) {
-    result.end_date = data.end_date || data.endDate;
+    result.endDate = data.end_date || data.endDate;
   }
   
   if (data.description !== undefined) {
@@ -132,7 +132,7 @@ export const tripsService = {
   // Get all trips for current user
   getTrips: async (): Promise<TripDisplay[]> => {
     console.log('🚀 tripsService.getTrips called');
-    const response = await api.get<Trip[]>(getApiUrl('/trips'));
+    const response = await api.get<Trip[]>(getApiUrl('/trips/'));
     // Backend returns array directly
     const trips = Array.isArray(response.data) ? response.data : [];
     console.log('✅ tripsService.getTrips response:', trips);
@@ -142,11 +142,11 @@ export const tripsService = {
   // Get single trip by ID
   getTrip: async (id: string): Promise<TripDisplay> => {
     console.log('🚀 tripsService.getTrip called with id:', id);
-    const response = await api.get<Trip>(getApiUrl(`/trips/${id}`));
-    // Backend returns trip object directly
-    console.log('✅ tripsService.getTrip response:', response.data);
-    console.log('🔍 Trip dayNotes field:', (response.data as any).dayNotes);
-    return transformTripForDisplay(response.data);
+    const response = await api.get<any>(getApiUrl(`/trips/${id}`));
+    // Backend returns {message, trip} wrapper
+    const trip = response.data.trip || response.data;
+    console.log('✅ tripsService.getTrip response:', trip);
+    return transformTripForDisplay(trip);
   },
 
   // Create new trip
@@ -162,7 +162,7 @@ export const tripsService = {
     const backendData = transformTripForBackend(data) as CreateTripRequest;
     console.log('🔄 Transformed backend data:', backendData);
     
-    const response = await api.post<{message: string; trip: Trip}>(getApiUrl('/trips'), backendData);
+    const response = await api.post<{message: string; trip: Trip}>(getApiUrl('/trips/'), backendData);
     console.log('✅ tripsService.createTrip response:', response.data);
     
     // Backend returns {message: "...", trip: {...}}

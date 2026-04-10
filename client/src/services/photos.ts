@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://aprb1rgwqf.execute-api.ap-northeast-1.amazonaws.com/prod';
+const API_BASE_URL = process.env.REACT_APP_API_URL || 'https://trip-diary.web.app';
 
 export const photosService = {
   // Upload photo

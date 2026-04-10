@@ -43,7 +43,7 @@ async def get_trip(
 ):
     """Get a specific trip"""
     trip_service = get_trip_service()
-    trip = await trip_service.get_trip_by_id(trip_id, str(current_user.id))
+    trip = await trip_service.get_trip_by_id(trip_id, str(current_user.id), current_user.email)
     
     if not trip:
         raise HTTPException(

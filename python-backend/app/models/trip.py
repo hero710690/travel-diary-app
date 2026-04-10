@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Any, Optional, List
 from pydantic import BaseModel, Field, validator
 from datetime import datetime
 from .common import MongoBaseModel, Place, ItineraryItem, Collaborator
@@ -103,14 +103,14 @@ class Trip(MongoBaseModel):
     destination: str
     start_date: str
     end_date: str
-    duration: int
+    duration: int = 1
     status: str = "planning"
     is_public: bool = False
     user_id: str
-    collaborators: List[Collaborator] = Field(default_factory=list)
-    wishlist: List[Place] = Field(default_factory=list)
-    itinerary: List[ItineraryItem] = Field(default_factory=list)
-    total_budget: float = 0.0
+    collaborators: List[Any] = Field(default_factory=list)
+    wishlist: List[Any] = Field(default_factory=list)
+    itinerary: List[Any] = Field(default_factory=list)
+    total_budget: Optional[float] = 0.0
     currency: str = "USD"
     created_at: str
     updated_at: str

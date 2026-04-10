@@ -43,7 +43,7 @@ const SharedTripsPage: React.FC = () => {
   const { data: sharedTrips, isLoading, error } = useQuery<SharedTrip[]>(
     ['shared-trips'],
     async () => {
-      const response = await fetch('https://aprb1rgwqf.execute-api.ap-northeast-1.amazonaws.com/prod/api/v1/trips/shared', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'https://trip-diary.web.app'}/api/v1/trips/shared`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
