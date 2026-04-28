@@ -1309,9 +1309,9 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
 
   // Unified handleAddFlight function to work with both ItineraryDay and FlightForm
   const handleAddFlight = (
-    dayNumberOrFlightInfo: number | any, 
-    flightInfoOrTime?: any | string, 
-    time?: string
+    dayNumberOrFlightInfo: number | any,
+    flightInfoOrTime?: any | string,
+    time?: string | number
   ) => {
     let newFlightItem: ItineraryItem;
     
@@ -1338,8 +1338,10 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
         notes: flightInfo.bookingReference ? `Booking: ${flightInfo.bookingReference}` : '',
       };
     } else {
-      // New signature: (flightInfo: any) - from FlightForm
+      // New signature: (flightInfo: any, notes?: string, cost?: number) - from FlightForm
       const flightInfo = dayNumberOrFlightInfo;
+      const flightNotes = typeof flightInfoOrTime === 'string' ? flightInfoOrTime : '';
+      const flightCost = typeof time === 'number' ? time : undefined;
       const tripStartDate = tripData?.startDate || new Date().toISOString();
       
       // Use arrival date for day calculation (since trip starts in arrival country)
@@ -1390,7 +1392,8 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           aircraft: flightInfo.aircraft,
           bookingReference: flightInfo.bookingReference
         },
-        notes: `Flight from ${departureDisplay} to ${arrivalDisplay}${flightInfo.bookingReference ? ` (Confirmation: ${flightInfo.bookingReference})` : ''}`
+        notes: flightNotes || `Flight from ${departureDisplay} to ${arrivalDisplay}${flightInfo.bookingReference ? ` (Confirmation: ${flightInfo.bookingReference})` : ''}`,
+        cost: flightCost,
       };
       
       setShowFlightModal(false);
@@ -2138,6 +2141,23 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
             <div className="text-left">
               <h1 className="text-xl sm:text-2xl font-bold text-gray-900">Plan Your Trip</h1>
               <p className="text-sm sm:text-base text-gray-600 truncate">{trip.name} - {trip.destination}</p>
+              {(() => {
+                const totalCost = itinerary.reduce((sum: number, item: any) => {
+                  const itemCost = item.cost || 0;
+                  const hotelCost = (item.type === 'accommodation' && item.hotelInfo?.totalPrice) ? item.hotelInfo.totalPrice : 0;
+                  return sum + itemCost + hotelCost;
+                }, 0);
+                return totalCost > 0 ? (
+                  <p className="text-sm font-medium text-green-700">
+                    Total expenses: ${totalCost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    {trip.totalBudget && trip.totalBudget > 0 && (
+                      <span className={`ml-2 ${totalCost > trip.totalBudget ? 'text-red-600' : 'text-gray-500'}`}>
+                        / ${trip.totalBudget.toLocaleString()} budget
+                      </span>
+                    )}
+                  </p>
+                ) : null;
+              })()}
             </div>
             
             {/* Responsive button layout */}

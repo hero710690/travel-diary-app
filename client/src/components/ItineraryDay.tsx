@@ -11,9 +11,8 @@ import FlightForm from './FlightForm'; // Restored for editing existing flights
 import BusForm from './BusForm'; // Added for bus support
 import TrainForm from './TrainForm'; // Added for train support
 import toast from 'react-hot-toast';
-import { 
-  PlusIcon 
-  // PaperAirplaneIcon removed - no longer needed for add buttons 
+import {
+  PlusIcon,
 } from '@heroicons/react/24/outline';
 
 interface Place {
@@ -113,15 +112,16 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
     setShowFlightForm(true);
   };
 
-  const handleUpdateFlight = (flightInfo: FlightInfo, notes?: string) => {
+  const handleUpdateFlight = (flightInfo: FlightInfo, notes?: string, cost?: number) => {
     if (editingFlight && onUpdateItem) {
       onUpdateItem(editingFlight.id, {
         flightInfo,
-        time: flightInfo.arrival.time, // Use arrival time for consistency
+        time: flightInfo.arrival.time,
         title: `${flightInfo.airline} ${flightInfo.flightNumber}`,
         description: `${flightInfo.departure.airportCode} → ${flightInfo.arrival.airportCode}`,
         notes: notes || editingFlight.notes || '',
-      });
+        cost: cost,
+      } as any);
     }
     setEditingFlight(null);
     setShowFlightForm(false);
@@ -163,7 +163,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
     console.log('🚄 Train edit form opened');
   };
 
-  const handleUpdateBus = (busInfo: BusInfo, notes?: string) => {
+  const handleUpdateBus = (busInfo: BusInfo, notes?: string, cost?: number) => {
     console.log('🚌 handleUpdateBus called with:', busInfo);
     console.log('🚌 editingBus:', editingBus);
     console.log('🚌 onUpdateItem available:', !!onUpdateItem);
@@ -207,12 +207,13 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
     // Create the update object with all necessary fields
     const updateData = {
       type: 'bus' as const,
-      day: newDay, // Include the recalculated day
+      day: newDay,
       busInfo: busInfo,
       time: busInfo.arrival.time,
       title: `${busInfo.company} ${busInfo.busNumber}`,
       description: `${busInfo.departure.city} → ${busInfo.arrival.city}`,
       notes: notes || editingBus.notes || '',
+      cost: cost,
       place: {
         name: `${busInfo.company} ${busInfo.busNumber}`,
         address: `${busInfo.departure.city} → ${busInfo.arrival.city}`,
@@ -254,7 +255,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
     setEditingBus(null);
   };
 
-  const handleUpdateTrain = (trainInfo: TrainInfo, notes?: string) => {
+  const handleUpdateTrain = (trainInfo: TrainInfo, notes?: string, cost?: number) => {
     console.log('🚄 handleUpdateTrain called with:', trainInfo);
     console.log('🚄 editingTrain:', editingTrain);
     console.log('🚄 onUpdateItem available:', !!onUpdateItem);
@@ -288,6 +289,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
       title: `${trainInfo.company} ${trainInfo.trainNumber}`,
       description: `${trainInfo.departure.city} → ${trainInfo.arrival.city}`,
       notes: notes || editingTrain.notes || '',
+      cost: cost,
       place: {
         name: `${trainInfo.company} ${trainInfo.trainNumber}`,
         address: `${trainInfo.departure.city} → ${trainInfo.arrival.city}`,
@@ -354,11 +356,23 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
             {format(day.date, 'EEEE, MMM d')}
           </p>
         </div>
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           <div className="text-xs text-gray-400">
             {items.length} {items.length === 1 ? 'activity' : 'activities'}
           </div>
-          {/* Flight button removed - using top-level Add Flight button instead */}
+          {(() => {
+            const dayCost = items.reduce((sum, item) => {
+              // Use item.cost for activities/transport, or hotelInfo.totalPrice for hotels
+              const itemCost = (item as any).cost || 0;
+              const hotelCost = (item.type === 'accommodation' && item.hotelInfo?.totalPrice) ? item.hotelInfo.totalPrice : 0;
+              return sum + itemCost + hotelCost;
+            }, 0);
+            return dayCost > 0 ? (
+              <div className="text-xs font-medium text-green-700 bg-green-50 px-2 py-0.5 rounded">
+                ${dayCost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+              </div>
+            ) : null;
+          })()}
         </div>
       </div>
 
@@ -418,79 +432,73 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
         ) : (
           sortedItems.map((item) => {
             // Check if this is a hotel/accommodation item
-            const isHotelItem = item.type === 'accommodation' || 
+            const isHotelItem = item.type === 'accommodation' ||
                                (item.place?.types && item.place.types.includes('lodging'));
-            
+
             return (
-              item.flightInfo ? (
-                <FlightCard
-                  key={item.id}
-                  flightInfo={item.flightInfo}
-                  time={formatTime ? formatTime(item.time || '') : (item.time || '')}
-                  onEdit={() => handleEditFlight(item)}
-                  onDelete={() => onRemoveItem(item.id)}
-                  tripEndDate={tripEndDate}
-                  notes={item.notes}
-                />
-              ) : item.busInfo ? (
-                <BusCard
-                  key={item.id}
-                  busInfo={item.busInfo}
-                  time={formatTime ? formatTime(item.time || '') : (item.time || '')}
-                  onEdit={() => handleEditBus(item)}
-                  onDelete={() => onRemoveItem(item.id)}
-                  tripEndDate={tripEndDate}
-                  notes={item.notes}
-                />
-              ) : item.trainInfo ? (
-                <TrainCard
-                  key={item.id}
-                  trainInfo={item.trainInfo}
-                  time={formatTime ? formatTime(item.time || '') : (item.time || '')}
-                  onEdit={() => handleEditTrain(item)}
-                  onDelete={() => onRemoveItem(item.id)}
-                  notes={item.notes}
-                />
-              ) : isHotelItem ? (
-                <HotelCard
-                  key={item.id}
-                  hotelInfo={{
-                    name: item.hotelInfo?.name || item.title || item.place?.name || 'Hotel',
-                    address: item.hotelInfo?.address || item.description || item.place?.formatted_address || item.place?.address || '',
-                    checkInDate: item.hotelInfo?.checkInDate || '', 
-                    checkOutDate: item.hotelInfo?.checkOutDate || '', 
-                    rating: item.hotelInfo?.rating || item.place?.rating,
-                    user_ratings_total: item.place?.user_ratings_total,
-                    notes: item.hotelInfo?.notes || item.notes || '',
-                    // Most importantly - preserve room type!
-                    roomType: item.hotelInfo?.roomType,
-                    confirmationNumber: item.hotelInfo?.confirmationNumber,
-                    coordinates: item.hotelInfo?.coordinates,
-                    // Add place types
-                    types: item.place?.types || ['lodging']
-                  }}
-                  time={formatTime ? formatTime(item.time || '') : (item.time || '')}
-                  isCheckIn={(item as any).calculatedHotelStatus?.isCheckIn || false}
-                  isCheckOut={(item as any).calculatedHotelStatus?.isCheckOut || false}
-                  onEdit={() => {
-                    // Extract hotel stay ID from item ID (format: hotelStayId_day_X)
-                    const hotelStayId = item.id.split('_day_')[0];
-                    if (onEditHotel) {
-                      onEditHotel(hotelStayId);
-                    }
-                  }}
-                  onDelete={() => onRemoveItem(item.id)}
-                />
-              ) : (
-                <DraggableItineraryItem
-                  key={item.id}
-                  item={item}
-                  onRemove={onRemoveItem}
-                  onUpdate={onUpdateItem}
-                  onEditHotel={onEditHotel}
-                  formatTime={formatTime}
-                />
-              )
+              <div key={item.id}>
+                {item.flightInfo ? (
+                  <FlightCard
+                    flightInfo={item.flightInfo}
+                    time={formatTime ? formatTime(item.time || '') : (item.time || '')}
+                    onEdit={() => handleEditFlight(item)}
+                    onDelete={() => onRemoveItem(item.id)}
+                    tripEndDate={tripEndDate}
+                    notes={item.notes}
+                  />
+                ) : item.busInfo ? (
+                  <BusCard
+                    busInfo={item.busInfo}
+                    time={formatTime ? formatTime(item.time || '') : (item.time || '')}
+                    onEdit={() => handleEditBus(item)}
+                    onDelete={() => onRemoveItem(item.id)}
+                    tripEndDate={tripEndDate}
+                    notes={item.notes}
+                  />
+                ) : item.trainInfo ? (
+                  <TrainCard
+                    trainInfo={item.trainInfo}
+                    time={formatTime ? formatTime(item.time || '') : (item.time || '')}
+                    onEdit={() => handleEditTrain(item)}
+                    onDelete={() => onRemoveItem(item.id)}
+                    notes={item.notes}
+                  />
+                ) : isHotelItem ? (
+                  <HotelCard
+                    hotelInfo={{
+                      name: item.hotelInfo?.name || item.title || item.place?.name || 'Hotel',
+                      address: item.hotelInfo?.address || item.description || item.place?.formatted_address || item.place?.address || '',
+                      checkInDate: item.hotelInfo?.checkInDate || '',
+                      checkOutDate: item.hotelInfo?.checkOutDate || '',
+                      rating: item.hotelInfo?.rating || item.place?.rating,
+                      user_ratings_total: item.place?.user_ratings_total,
+                      notes: item.hotelInfo?.notes || item.notes || '',
+                      roomType: item.hotelInfo?.roomType,
+                      confirmationNumber: item.hotelInfo?.confirmationNumber,
+                      coordinates: item.hotelInfo?.coordinates,
+                      types: item.place?.types || ['lodging']
+                    }}
+                    time={formatTime ? formatTime(item.time || '') : (item.time || '')}
+                    isCheckIn={(item as any).calculatedHotelStatus?.isCheckIn || false}
+                    isCheckOut={(item as any).calculatedHotelStatus?.isCheckOut || false}
+                    onEdit={() => {
+                      const hotelStayId = item.id.split('_day_')[0];
+                      if (onEditHotel) {
+                        onEditHotel(hotelStayId);
+                      }
+                    }}
+                    onDelete={() => onRemoveItem(item.id)}
+                  />
+                ) : (
+                  <DraggableItineraryItem
+                    item={item}
+                    onRemove={onRemoveItem}
+                    onUpdate={onUpdateItem}
+                    onEditHotel={onEditHotel}
+                    formatTime={formatTime}
+                  />
+                )}
+              </div>
             );
           })
         )}
@@ -511,6 +519,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
           onSave={handleUpdateFlight}
           onCancel={handleCancelFlightForm}
           initialNotes={editingFlight.notes}
+          initialCost={(editingFlight as any).cost}
         />
       )}
 
@@ -523,6 +532,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
           tripStartDate={editingBus.busInfo?.departure.date}
           tripEndDate={tripEndDate}
           initialNotes={editingBus.notes}
+          initialCost={(editingBus as any).cost}
         />
       )}
 
@@ -534,6 +544,7 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
           tripStartDate={editingTrain.trainInfo?.departure.date}
           tripEndDate={tripEndDate}
           initialNotes={editingTrain.notes}
+          initialCost={(editingTrain as any).cost}
         />
       )}
     </div>

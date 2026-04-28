@@ -152,6 +152,7 @@ export interface ItineraryItem {
   duration?: number; // in minutes
   type: 'activity' | 'meal' | 'transport' | 'accommodation' | 'flight' | 'bus' | 'train';
   notes?: string;
+  cost?: number; // Expense amount for this activity
   userRating?: number; // User's experience rating (1-5 stars) - added after visiting
   // Flight-specific information
   flightInfo?: FlightInfo;

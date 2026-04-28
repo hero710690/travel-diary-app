@@ -7,11 +7,12 @@ import {
 
 interface FlightFormProps {
   initialData?: Partial<FlightInfo>;
-  onSave: (flightInfo: FlightInfo, notes?: string) => void;
+  onSave: (flightInfo: FlightInfo, notes?: string, cost?: number) => void;
   onCancel: () => void;
   tripStartDate?: string;
   tripEndDate?: string;
   initialNotes?: string;
+  initialCost?: number;
 }
 
 const FlightForm: React.FC<FlightFormProps> = ({ 
@@ -20,7 +21,8 @@ const FlightForm: React.FC<FlightFormProps> = ({
   onCancel, 
   tripStartDate, 
   tripEndDate,
-  initialNotes
+  initialNotes,
+  initialCost
 }) => {
   const [formData, setFormData] = useState<FlightInfo>({
     airline: initialData?.airline || '',
@@ -49,6 +51,7 @@ const FlightForm: React.FC<FlightFormProps> = ({
   });
 
   const [notes, setNotes] = useState(initialNotes || '');
+  const [cost, setCost] = useState<string>(initialCost ? String(initialCost) : '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +65,7 @@ const FlightForm: React.FC<FlightFormProps> = ({
       return;
     }
 
-    onSave(formData, notes);
+    onSave(formData, notes, cost ? parseFloat(cost) : undefined);
   };
 
   const updateField = (field: string, value: string) => {
@@ -362,18 +365,34 @@ const FlightForm: React.FC<FlightFormProps> = ({
             </div>
           </div>
 
-          {/* Notes */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
-              Notes
-            </label>
-            <textarea
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              placeholder="Additional notes or booking information..."
-            />
+          {/* Cost & Notes */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
+                Total Price
+              </label>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                value={cost}
+                onChange={(e) => setCost(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="0.00"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
+                Notes
+              </label>
+              <textarea
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                placeholder="Additional notes..."
+              />
+            </div>
           </div>
 
           {/* Actions */}

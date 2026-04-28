@@ -79,9 +79,16 @@ class TripUpdate(BaseModel):
     destination: Optional[str] = Field(None, min_length=1, max_length=200)
     start_date: Optional[str] = None
     end_date: Optional[str] = None
+    startDate: Optional[str] = None
+    endDate: Optional[str] = None
     duration: Optional[int] = Field(None, gt=0)
     status: Optional[str] = None
     is_public: Optional[bool] = None
+    isPublic: Optional[bool] = None
+    total_budget: Optional[float] = None
+    totalBudget: Optional[float] = None
+    currency: Optional[str] = None
+    tags: Optional[Any] = None
 
 
 class TripInDB(MongoBaseModel, TripBase):
@@ -118,7 +125,7 @@ class Trip(MongoBaseModel):
 
 class ItineraryUpdate(BaseModel):
     """Itinerary update model"""
-    itinerary: List[ItineraryItem]
+    itinerary: List[Any]
 
 
 class WishlistUpdate(BaseModel):

@@ -149,14 +149,29 @@ class FirestoreTripService:
 
     async def update_trip(self, trip_id: str, trip_data: TripUpdate, user_id: str) -> Optional[Trip]:
         try:
-            update_dict = {}
+            raw = {}
             for field, value in trip_data.dict(exclude_unset=True).items():
                 if value is not None:
-                    update_dict[field] = value
+                    raw[field] = value
 
-            if 'startDate' in update_dict and 'endDate' in update_dict:
-                start_date = datetime.fromisoformat(update_dict['startDate'].replace('Z', '+00:00'))
-                end_date = datetime.fromisoformat(update_dict['endDate'].replace('Z', '+00:00'))
+            # Normalize camelCase to snake_case for Firestore storage
+            field_map = {
+                'startDate': 'start_date',
+                'endDate': 'end_date',
+                'totalBudget': 'total_budget',
+                'isPublic': 'is_public',
+            }
+            update_dict = {}
+            for key, value in raw.items():
+                db_key = field_map.get(key, key)
+                update_dict[db_key] = value
+
+            # Calculate duration if dates are provided
+            sd = update_dict.get('start_date')
+            ed = update_dict.get('end_date')
+            if sd and ed:
+                start_date = datetime.fromisoformat(sd.replace('Z', '+00:00'))
+                end_date = datetime.fromisoformat(ed.replace('Z', '+00:00'))
                 update_dict['duration'] = (end_date - start_date).days + 1
 
             updated_trip = await self.db.update_trip(trip_id, update_dict, user_id)

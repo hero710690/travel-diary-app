@@ -2,12 +2,13 @@ import React, { useState, useEffect } from 'react';
 import { TrainInfo } from '../types';
 
 interface TrainFormProps {
-  onSubmit: (trainInfo: TrainInfo, notes?: string) => void;
+  onSubmit: (trainInfo: TrainInfo, notes?: string, cost?: number) => void;
   onCancel: () => void;
   tripStartDate?: string;
   tripEndDate?: string;
   initialData?: TrainInfo;
   initialNotes?: string;
+  initialCost?: number;
 }
 
 const TrainForm: React.FC<TrainFormProps> = ({
@@ -16,7 +17,8 @@ const TrainForm: React.FC<TrainFormProps> = ({
   tripStartDate,
   tripEndDate,
   initialData,
-  initialNotes
+  initialNotes,
+  initialCost
 }) => {
   const [formData, setFormData] = useState<TrainInfo>({
     company: initialData?.company || '',
@@ -44,10 +46,11 @@ const TrainForm: React.FC<TrainFormProps> = ({
   });
 
   const [notes, setNotes] = useState(initialNotes || '');
+  const [cost, setCost] = useState<string>(initialCost ? String(initialCost) : '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit(formData, notes);
+    onSubmit(formData, notes, cost ? parseFloat(cost) : undefined);
   };
 
   return (
@@ -325,8 +328,22 @@ const TrainForm: React.FC<TrainFormProps> = ({
         </div>
       </div>
 
-      <div className="flex justify-end space-x-3 pt-4">
-        {/* Notes */}
+      {/* Cost & Notes */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
+            Total Price
+          </label>
+          <input
+            type="number"
+            step="0.01"
+            min="0"
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="0.00"
+          />
+        </div>
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-1 text-left">
             Notes
@@ -334,12 +351,14 @@ const TrainForm: React.FC<TrainFormProps> = ({
           <textarea
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
-            rows={3}
+            rows={2}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-            placeholder="Additional notes or booking information..."
+            placeholder="Additional notes..."
           />
         </div>
+      </div>
 
+      <div className="flex justify-end space-x-3 pt-4">
         <button
           type="button"
           onClick={onCancel}

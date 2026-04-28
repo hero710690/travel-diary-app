@@ -106,11 +106,15 @@ const transformTripForBackend = (data: {
   }
   
   if (data.start_date || data.startDate) {
-    result.startDate = data.start_date || data.startDate;
+    const val = data.start_date || data.startDate;
+    result.startDate = val;
+    result.start_date = val;
   }
 
   if (data.end_date || data.endDate) {
-    result.endDate = data.end_date || data.endDate;
+    const val = data.end_date || data.endDate;
+    result.endDate = val;
+    result.end_date = val;
   }
   
   if (data.description !== undefined) {

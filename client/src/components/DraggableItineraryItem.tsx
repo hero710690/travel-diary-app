@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDrag } from 'react-dnd';
 import { convertLinksToHyperlinks } from '../utils/linkUtils';
-import { ClockIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, HeartIcon, StarIcon, MapPinIcon, CameraIcon, HomeIcon } from '@heroicons/react/24/outline';
+import { ClockIcon, TrashIcon, PencilIcon, CheckIcon, XMarkIcon, HeartIcon, StarIcon, MapPinIcon, CameraIcon, HomeIcon, CurrencyDollarIcon } from '@heroicons/react/24/outline';
 import { BuildingStorefrontIcon } from '@heroicons/react/24/outline'; // For restaurants and bars
 import { HeartIcon as HeartIconSolid } from '@heroicons/react/24/solid';
 import { ItineraryItem } from '../types';
@@ -44,7 +44,8 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editTime, setEditTime] = useState(item.time);
   const [editDuration, setEditDuration] = useState(item.duration || 60);
-  const [editNotes, setEditNotes] = useState(item.notes || ''); // Add notes editing state
+  const [editNotes, setEditNotes] = useState(item.notes || '');
+  const [editCost, setEditCost] = useState<string>(item.cost ? String(item.cost) : '');
   const [hoveredHeart, setHoveredHeart] = useState<number | null>(null);
 
 
@@ -106,7 +107,8 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
     setIsEditing(true);
     setEditTime(item.time);
     setEditDuration(item.duration || 60);
-    setEditNotes(item.notes || ''); // Initialize notes for editing
+    setEditNotes(item.notes || '');
+    setEditCost(item.cost ? String(item.cost) : '');
   };
 
   const handleEditSave = () => {
@@ -126,7 +128,8 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
 
       const updateData: any = {
         time: editTime,
-        notes: editNotes || '' // Include notes in the update
+        notes: editNotes || '',
+        cost: editCost ? parseFloat(editCost) : undefined,
       };
       
       // Only update duration for non-accommodation items
@@ -160,7 +163,8 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
     setIsEditing(false);
     setEditTime(item.time);
     setEditDuration(item.duration || 60);
-    setEditNotes(item.notes || ''); // Reset notes on cancel
+    setEditNotes(item.notes || '');
+    setEditCost(item.cost ? String(item.cost) : '');
   };
 
   const handleRatingClick = (rating: number) => {
@@ -298,6 +302,18 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                   className="text-xs border border-gray-300 rounded px-2 py-1 w-full resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="Add notes or comments..."
                   rows={2}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <CurrencyDollarIcon className="h-4 w-4 text-gray-400" />
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={editCost}
+                  onChange={(e) => setEditCost(e.target.value)}
+                  className="text-sm border border-gray-300 rounded px-2 py-1 w-28 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Cost"
                 />
               </div>
               <div className="flex items-center space-x-2">
@@ -449,7 +465,17 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
                   Duration: {formatDuration(item.duration)}
                 </p>
               )}
-              
+
+              {/* Cost Display */}
+              {item.cost != null && item.cost > 0 && (
+                <div className="flex items-center mt-1">
+                  <CurrencyDollarIcon className="h-3 w-3 text-green-600 mr-1" />
+                  <span className="text-xs font-medium text-green-700">
+                    {item.cost.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                  </span>
+                </div>
+              )}
+
               {/* User Wish Level - Only for non-flight items */}
               {item.type !== 'flight' && (
                 <div className="mt-2" onMouseDown={(e) => e.stopPropagation()}>

@@ -149,10 +149,17 @@ class FirestoreClient:
                 'isPublic': 'is_public',
             }
 
+            allowed_fields = [
+                'title', 'description', 'destination', 'duration', 'status', 'currency',
+                'tags', 'collaborators', 'wishlist', 'itinerary',
+                # snake_case (from service layer)
+                'start_date', 'end_date', 'total_budget', 'is_public',
+                # camelCase (from direct calls)
+                'startDate', 'endDate', 'totalBudget', 'isPublic',
+            ]
+
             for key, value in trip_data.items():
-                if key in ['title', 'description', 'destination', 'startDate', 'endDate',
-                           'duration', 'status', 'totalBudget', 'currency', 'isPublic',
-                           'tags', 'collaborators', 'wishlist', 'itinerary']:
+                if key in allowed_fields:
                     db_key = field_map.get(key, key)
                     update_data[db_key] = value
 
