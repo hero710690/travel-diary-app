@@ -662,8 +662,7 @@ const TripDetailPage: React.FC = () => {
 
   const getPlaceIcon = (type: string, item?: any) => {
     // Check if this is a hotel/accommodation item
-    const isHotelItem = type === 'accommodation' ||
-      (item?.place?.types && item.place.types.includes('lodging'));
+    const isHotelItem = type === 'accommodation' || !!item?.hotelInfo;
 
     switch (type) {
       case 'flight':
@@ -698,8 +697,7 @@ const TripDetailPage: React.FC = () => {
     // Find all occurrences of this hotel in the itinerary
     const allHotelOccurrences = allItems.filter(item => {
       const itemHotelName = item.hotelInfo?.name || item.title || item.custom_title || item.place?.name;
-      const isHotelItem = item.type === 'accommodation' || item.hotelInfo ||
-        (item.place?.types && item.place.types.includes('lodging'));
+      const isHotelItem = item.type === 'accommodation' || !!item.hotelInfo;
       return itemHotelName === hotelName && isHotelItem;
     });
 
@@ -1198,8 +1196,7 @@ const TripDetailPage: React.FC = () => {
 
                                               {/* Status badge for accommodation items */}
                                               {(() => {
-                                                const isHotelItem = (item.type as any) === 'accommodation' ||
-                                                  (item.place?.types && item.place.types.includes('lodging'));
+                                                const isHotelItem = (item.type as any) === 'accommodation' || !!(item as any).hotelInfo;
 
                                                 if (!isHotelItem) return null;
 
@@ -1343,8 +1340,7 @@ const TripDetailPage: React.FC = () => {
                                         {/* Hotel Info - Only for accommodation items */}
                                         {(() => {
                                           // Check if this is a hotel/accommodation item
-                                          const isHotelItem = (item.type as any) === 'accommodation' ||
-                                            (item.place?.types && item.place.types.includes('lodging'));
+                                          const isHotelItem = (item.type as any) === 'accommodation' || !!(item as any).hotelInfo;
 
                                           if (!isHotelItem) return null;
 
@@ -1360,8 +1356,7 @@ const TripDetailPage: React.FC = () => {
                                               <p className="text-xs sm:text-sm text-gray-600 break-words flex-1 text-left">
                                                 {(() => {
                                                   // For hotels, clean the address from description or use place address
-                                                  const isHotelItem = (item.type as any) === 'accommodation' ||
-                                                    (item.place?.types && item.place.types.includes('lodging'));
+                                                  const isHotelItem = (item.type as any) === 'accommodation' || !!(item as any).hotelInfo;
 
                                                   if (isHotelItem) {
                                                     let hotelAddress = item.description || item.place?.formatted_address || item.location?.address || '';
@@ -1440,9 +1435,9 @@ const TripDetailPage: React.FC = () => {
                                         )}
 
                                         {/* User Wish Level - Mobile responsive */}
-                                        {item.type !== 'flight' && item.type !== 'bus' && 
-                                         !(item as any).hotelInfo && 
-                                         !(item.place?.types && item.place.types.includes('lodging')) && (
+                                        {item.type !== 'flight' && item.type !== 'bus' &&
+                                         (item.type as any) !== 'accommodation' &&
+                                         !(item as any).hotelInfo && (
                                           <div className="mt-2 p-2 bg-gray-50 rounded">
                                             <div className="flex flex-col space-y-1 sm:flex-row sm:items-center sm:justify-between sm:space-y-0">
                                               <span className="text-xs sm:text-sm text-gray-500 font-medium">Wish Level:</span>

@@ -234,7 +234,7 @@ const SharedTripPage: React.FC = () => {
     }
 
     // Hotel/Accommodation items - check first to avoid false positives
-    if (item.type === 'accommodation' || item.hotelInfo || placeTypes.includes('lodging')) {
+    if (item.type === 'accommodation' || item.hotelInfo) {
       return <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />;
     }
 
@@ -579,10 +579,8 @@ const SharedTripPage: React.FC = () => {
         item.custom_title ||
         item.place?.name;
 
-      // Check if this is a hotel/accommodation item (including lodging places)
-      const isHotelItem = item.type === 'accommodation' ||
-        item.hotelInfo ||
-        (item.place?.types && item.place.types.includes('lodging'));
+      // Check if this is a hotel/accommodation item
+      const isHotelItem = item.type === 'accommodation' || !!item.hotelInfo;
 
       return itemHotelName === hotelName && isHotelItem;
     });
@@ -863,13 +861,7 @@ const SharedTripPage: React.FC = () => {
                               }
 
                               // Check if this is a hotel item first - more flexible detection
-                              const isHotelItem = item.type === 'accommodation' ||
-                                item.hotelInfo ||
-                                (item.place?.types && item.place.types.includes('lodging')) ||
-                                title.includes('Hotel') || 
-                                title.includes('Inn') || 
-                                title.includes('Resort') ||
-                                title.includes('Hostel');
+                              const isHotelItem = item.type === 'accommodation' || !!item.hotelInfo;
 
                               if (isHotelItem) {
                                 // Hotel rendering logic will be below
@@ -1012,7 +1004,7 @@ const SharedTripPage: React.FC = () => {
                                           <div className="flex items-start mb-3">
                                             {/* Add MapPinIcon for hotel addresses */}
                                             {(item.type === 'accommodation' ||
-                                              (item.place?.types && item.place.types.includes('lodging'))) && (
+                                              !!item.hotelInfo) && (
                                                 <MapPinIcon className="h-4 w-4 text-gray-500 mr-2 mt-0.5 flex-shrink-0" />
                                               )}
                                             <div className="flex-1">
@@ -1020,7 +1012,7 @@ const SharedTripPage: React.FC = () => {
                                                 {convertLinksToHyperlinks(item.description)}
                                                 {/* Add Google Maps button for hotel addresses */}
                                                 {(item.type === 'accommodation' ||
-                                                  (item.place?.types && item.place.types.includes('lodging'))) && (
+                                                  !!item.hotelInfo) && (
                                                     <ViewOnGoogleMapsButton
                                                       address={item.description}
                                                       placeName={item.title}
@@ -1080,7 +1072,7 @@ const SharedTripPage: React.FC = () => {
                                       {/* User Rating Display (Read-only) */}
                                       {item.userRating && 
                                        !(item as any).hotelInfo && 
-                                       !(item.place?.types && item.place.types.includes('lodging')) && (
+                                       !!!item.hotelInfo && (
                                         <div className="flex items-center">
                                           <span className="text-sm font-medium text-gray-700 mr-2">Wish Level:</span>
                                           <div className="flex items-center">

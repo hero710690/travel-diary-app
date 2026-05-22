@@ -432,8 +432,9 @@ const ItineraryDay: React.FC<ItineraryDayProps> = ({
         ) : (
           sortedItems.map((item) => {
             // Check if this is a hotel/accommodation item
-            const isHotelItem = item.type === 'accommodation' ||
-                               (item.place?.types && item.place.types.includes('lodging'));
+            // Only treat as hotel if explicitly typed as accommodation OR has hotelInfo
+            // Don't rely solely on place.types since Google Maps may tag non-hotel places with 'lodging'
+            const isHotelItem = item.type === 'accommodation' || !!item.hotelInfo;
 
             return (
               <div key={item.id}>

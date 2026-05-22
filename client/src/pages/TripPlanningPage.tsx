@@ -425,9 +425,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                            item.place?.name;
       
       // Check if this is a hotel/accommodation item
-      const isHotelItem = item.type === 'accommodation' || 
-                         item.hotelInfo || 
-                         (item.place?.types && item.place.types.includes('lodging'));
+      const isHotelItem = item.type === 'accommodation' || !!item.hotelInfo;
       
       const matches = itemHotelName === hotelName && isHotelItem;
       
@@ -532,9 +530,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
   const centerMapOnDayHotel = (dayNumber: number) => {
     // Find hotel items for the specific day
     const dayHotelItems = itinerary.filter(item => {
-      const isHotelItem = item.type === 'accommodation' || 
-                         item.hotelInfo || 
-                         (item.place?.types && item.place.types.includes('lodging'));
+      const isHotelItem = item.type === 'accommodation' || !!item.hotelInfo;
       return isHotelItem && item.day === dayNumber;
     });
 
@@ -670,7 +666,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
 
             // Check if this is a flight item
             const isFlightItem = item.flightInfo || (item.place?.types && item.place.types.includes('flight'));
-            const isAccommodationItem = item.hotelInfo || (item.place?.types && item.place.types.includes('lodging'));
+            const isAccommodationItem = item.hotelInfo || item.type === 'accommodation';
             const isBusItem = item.busInfo || (item.place?.types && item.place.types.includes('bus'));
             const isTrainItem = item.trainInfo || (item.place?.types && item.place.types.includes('train'));
             
@@ -1890,10 +1886,8 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
   useEffect(() => {
     if (itinerary.length > 0) {
       // More flexible filtering - check for accommodation type OR hotelInfo presence
-      const hotelItems = itinerary.filter(item => 
-        item.type === 'accommodation' || 
-        item.hotelInfo ||
-        (item.place?.types && item.place.types.includes('lodging'))
+      const hotelItems = itinerary.filter(item =>
+        item.type === 'accommodation' || !!item.hotelInfo
       );
       
       const hotelStaysMap = new Map<string, any>();
@@ -2073,16 +2067,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
           : item.title || item.place?.name || 'Planned Item';
         
         // Enhanced hotel detection logic
-        const isHotelItem = item.type === 'accommodation' || 
-                          item.hotelInfo || 
-                          (item.place?.types && item.place.types.includes('lodging')) ||
-                          (item.title && (
-                            item.title.toLowerCase().includes('hotel') ||
-                            item.title.toLowerCase().includes('resort') ||
-                            item.title.toLowerCase().includes('inn') ||
-                            item.title.toLowerCase().includes('motel') ||
-                            item.title.toLowerCase().includes('lodge')
-                          ));
+        const isHotelItem = item.type === 'accommodation' || !!item.hotelInfo;
         
         return {
           position: {
@@ -2402,9 +2387,7 @@ const TripPlanningPage: React.FC<TripPlanningPageProps> = ({
                     // Calculate hotel status for each hotel item
                     const itemsWithHotelStatus = dayItems.map(item => {
                       // Check if this is an accommodation item (hotel)
-                      const isAccommodationItem = item.type === 'accommodation' || 
-                                                 item.hotelInfo || 
-                                                 (item.place?.types && item.place.types.includes('lodging'));
+                      const isAccommodationItem = item.type === 'accommodation' || !!item.hotelInfo;
                       
                       if (isAccommodationItem) {
                         console.log('🏨 Processing accommodation item:', {

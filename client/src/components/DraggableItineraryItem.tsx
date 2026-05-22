@@ -22,8 +22,7 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
   formatTime
 }) => {
   // Debug hotel status for accommodation items
-  const isAccommodationItem = item.type === 'accommodation' || 
-                             (item.place?.types && item.place.types.includes('lodging'));
+  const isAccommodationItem = item.type === 'accommodation' || !!item.hotelInfo;
   
   if (isAccommodationItem) {
     console.log('🏨 DraggableItineraryItem hotel debug:', {
@@ -339,17 +338,17 @@ const DraggableItineraryItem: React.FC<DraggableItineraryItemProps> = ({
               {/* Header with title on left and time/edit on right */}
               <div className="flex items-start justify-between mb-2">
                 <div className="flex items-center space-x-2 flex-1 min-w-0">
-                  {item.type !== 'accommodation' && item.type !== 'flight' && !item.place?.types?.includes('lodging') && (
+                  {!isAccommodationItem && item.type !== 'flight' && (
                     getActivityIcon()
                   )}
-                  {(item.type === 'accommodation' || item.place?.types?.includes('lodging')) && (
+                  {isAccommodationItem && (
                     <HomeIcon className="h-5 w-5 text-blue-600 flex-shrink-0" />
                   )}
                   <h4 className="text-lg font-semibold text-gray-900 break-words text-left">
                     {item.title}
                   </h4>
                   {/* Hotel Status Badge */}
-                  {((item.type === 'accommodation') || (item.place?.types && item.place.types.includes('lodging'))) && (
+                  {isAccommodationItem && (
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       (item as any).calculatedHotelStatus?.isCheckIn ? 'bg-green-100 text-green-800' :
                       (item as any).calculatedHotelStatus?.isCheckOut ? 'bg-orange-100 text-orange-800' :
